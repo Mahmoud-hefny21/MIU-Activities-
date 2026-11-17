@@ -54,6 +54,15 @@ a:hover {
   color: var(--primary-600);
 }
 
+:focus-visible {
+  outline: 3px solid var(--border-focus);
+  outline-offset: 3px;
+}
+
+:root[data-theme="dark"] :focus-visible {
+  outline-color: #fbbf24;
+}
+
 /* Page Shell & Container */
 .page-shell {
   flex: 1 0 auto;
@@ -75,6 +84,13 @@ a:hover {
 .view.active {
   display: block;
   animation: fadeIn var(--transition-base);
+}
+
+/* The injected footer's wrapper is the body flex item, so it owns the spacer. */
+body > #site-footer {
+  width: 100%;
+  margin-top: auto;
+  flex-shrink: 0;
 }
 
 html.auth-route-pending #homeView { display: none; }

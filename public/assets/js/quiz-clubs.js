@@ -1,15 +1,11 @@
 // Club catalogue for the "Find Your Club" quiz.
 //
-// Authoritative source: data/clubs.json (public clubs). The ids, names, statuses,
-// categories, taglines, descriptions and images below mirror that file. Keep this
-// snapshot in sync when data/clubs.json changes.
-//
-// Only clubs present in the repository records are included. Clubs mentioned in
-// external summaries but missing from the repository (for example PACE, Rawi,
-// Elwarsha, Sketching, The Jewellery Makers, ActiveX, Entity, Ventures, ASCC,
-// AIESEC, Campaigners, Move, MMC and Enactus) are intentionally excluded: their
-// active status, routes and descriptions cannot be verified from current project
-// records. TEDx MIU is included because it exists in data/clubs.json.
+// The public catalogue is served by /api/clubs from the configured database
+// provider. data/clubs.json is a 12-club local fallback/seed snapshot, and this
+// quiz catalogue contains reviewed scoring profiles for those 12 clubs only.
+// The live database may contain additional clubs, but names and profile data do
+// not define quiz scoring. Add recommendations only with reviewed question and
+// explanation mappings; never infer or duplicate a club from external summaries.
 //
 // A club is treated as active while its status is not "closed". "Full" clubs are
 // still active (at membership capacity); they can be recommended and viewed, but

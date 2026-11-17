@@ -164,7 +164,9 @@ test('account session prefers student identity and labels software development a
     isAdminSessionValid: async () => false,
     getSoftwareDevelopmentSession: async () => false,
     getConfiguredAdminEmail: () => identity.email,
-    ClubAccount: { findOne: () => query(account) }, mongoReady: true, console
+    ClubAccount: { findOne: () => query(account) }, mongoReady: true,
+    mongoose: { isSqlProvider: false, connection: { readyState: 1 } },
+    databaseErrorReason: error => error.name, console
   };
   vm.createContext(context);
   vm.runInContext(source.slice(start, end), context);
@@ -190,7 +192,9 @@ test('a club sign-in exposes the student dashboard only when a matching student 
     getStaffDashboardOptions: () => [{ role: 'president', clubId: 8 }],
     StudentAccount: { exists: async filter => filter.email === identity.email },
     isAdminSessionValid: async () => false, getConfiguredAdminEmail: () => '',
-    ClubAccount: { findOne: () => query(null) }, clubs: [{ id: 8, name: 'MUN' }], mongoReady: true, console
+    ClubAccount: { findOne: () => query(null) }, clubs: [{ id: 8, name: 'MUN' }], mongoReady: true,
+    mongoose: { isSqlProvider: false, connection: { readyState: 1 } },
+    databaseErrorReason: error => error.name, console
   };
   vm.createContext(context); vm.runInContext(source.slice(start, end), context);
   const response = { setHeader() {}, status() { return this; }, json(value) { this.body = value; } };

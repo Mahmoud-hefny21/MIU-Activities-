@@ -6,6 +6,7 @@
   const pending = new Map(), watchers = new Set();
   const nativeFetch = window.fetch.bind(window);
   let source, notification, fallbackTimer;
+  let initialConnectionEstablished = false;
   const get = key => { try { return localStorage.getItem(key); } catch { return null; } };
   const set = (key, value) => { try { localStorage.setItem(key, value); } catch { /* Storage is optional. */ } };
   const memoryDirty = new Map();
@@ -27,8 +28,11 @@
   const stopFallback = () => { clearTimeout(fallbackTimer); fallbackTimer = null; };
   const startFallback = () => {
     if (fallbackTimer || document.visibilityState !== 'visible' || navigator.onLine === false) return;
-    invalidate();
-    fallbackTimer = setTimeout(() => { fallbackTimer = null; startFallback(); }, 30000);
+    fallbackTimer = setTimeout(() => {
+      fallbackTimer = null;
+      invalidate();
+      startFallback();
+    }, 30000);
   };
   window.fetch = async (input, options = {}) => {
     const url = new URL(input instanceof Request ? input.url : input, location.href);
@@ -72,6 +76,8 @@
   };
   const connect = () => {
     if (document.visibilityState !== 'visible' || navigator.onLine === false) { source?.close(); source = null; stopFallback(); return; }
+    const isReconnect = initialConnectionEstablished;
+    initialConnectionEstablished = true;
     if (!source && typeof EventSource !== 'undefined') {
       source = new EventSource('/api/site/public-data-stream?since=' + encodeURIComponent(get(tokenKey) || ''));
       source.addEventListener('invalidate', event => {
@@ -88,7 +94,9 @@
       source.addEventListener('error', startFallback);
     }
     if (typeof EventSource === 'undefined') startFallback();
-    notify();
+    // Each page already starts its own initial data reads. Watchers should
+    // refresh on invalidations or later reconnects, not repeat those reads.
+    if (isReconnect) notify();
   };
   window.miuLiveData = { watch, invalidate };
   document.addEventListener('visibilitychange', connect);

@@ -48,3 +48,33 @@ test('failed session validation keeps preview protected and serves HTML while AP
     assert.equal(Boolean(res.data), path.startsWith('/api/'));
   }
 });
+
+test('MIU Events page denials render the branded error page while API denials stay JSON', async () => {
+  const source = fs.readFileSync(require.resolve('../server'), 'utf8');
+  const start = source.indexOf('async function requireMiuEventsDashboard(');
+  const end = source.indexOf('function clubPasswordMatches(', start);
+  const guardSource = source.slice(start, end);
+  const guard = vm.runInNewContext(`${guardSource}; requireMiuEventsDashboard`, {
+    getClubAccountFromRequest: async () => null,
+    isAdminSessionValid: async () => false,
+    console: { error() {} },
+    sendHttpErrorPage: (res, status, title, detail) => {
+      res.statusCode = status;
+      res.html = { title, detail };
+      return res;
+    }
+  });
+
+  for (const path of ['/dashboards/miu-events-dashboard.html', '/api/miu-events/content']) {
+    const res = {
+      status(code) { this.statusCode = code; return this; },
+      json(data) { this.data = data; return this; }
+    };
+    let allowed = false;
+    await guard({ path }, res, () => { allowed = true; });
+    assert.equal(allowed, false);
+    assert.equal(res.statusCode, 401);
+    assert.equal(Boolean(res.html), path.endsWith('.html'));
+    assert.equal(Boolean(res.data), path.startsWith('/api/'));
+  }
+});

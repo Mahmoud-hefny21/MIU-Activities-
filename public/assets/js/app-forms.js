@@ -375,6 +375,7 @@ function clubContentImage(item, type, club) {
 
 function renderClubContentSections(club) {
   return CLUB_CONTENT_SECTIONS.map((section) => {
+    const heading = section.type === 'feed' ? 'Feed' : `${section.label}s`;
     const items = Array.isArray(club[section.key]) ? [...club[section.key]] : [];
     if (!items.length) return '';
     const sorted = section.order === 'upcoming'
@@ -403,24 +404,37 @@ function renderClubContentSections(club) {
         </article>`;
     }).join('');
     return `
-    <section class="detail-section">
-      <h3>${escapeHtml(section.label)}</h3>
-      <div class="detail-cards-grid detail-club-cards">
+    <section class="detail-section detail-content-section" aria-label="Club ${escapeHtml(section.label)}s">
+      <div class="detail-section-heading">
+        <h3>${escapeHtml(heading)}</h3>
+        <div class="detail-carousel-controls" aria-label="${escapeHtml(section.label)} navigation">
+          <button type="button" class="detail-carousel-arrow" data-carousel-direction="-1" aria-label="Scroll ${escapeHtml(section.label)} cards left">&#8592;</button>
+          <button type="button" class="detail-carousel-arrow" data-carousel-direction="1" aria-label="Scroll ${escapeHtml(section.label)} cards right">&#8594;</button>
+        </div>
+      </div>
+      <div class="detail-cards-grid detail-club-cards" tabindex="0" role="region" aria-label="${escapeHtml(club.name)} ${escapeHtml(section.label)} cards">
         ${cards}
       </div>
     </section>`;
   }).join('');
 }
 
+let clubDetailCarouselResizeHandler = null;
+
 function openClubDetail(clubId) {
   const normalizedClubId = Number(clubId);
   const club = state.clubs.find((item) => Number(item.id) === normalizedClubId);
   if (!club) return;
+  if (clubDetailCarouselResizeHandler) {
+    window.removeEventListener('resize', clubDetailCarouselResizeHandler);
+    clubDetailCarouselResizeHandler = null;
+  }
   fetch(`/api/clubs/${encodeURIComponent(normalizedClubId)}/view`, { method: 'POST', cache: 'no-store' }).catch(() => {});
   const canApply = club.status === 'open';
 
   state.selectedClub = club;
   clubDetail.innerHTML = `
+    <button class="club-profile-back" data-action="go-home" type="button"><span aria-hidden="true">←</span> Back to clubs</button>
     <button class="club-detail-close" data-action="go-home" type="button" aria-label="Close club details" title="Close">&times;</button>
     <div class="club-detail-hero">
       <div class="detail-logo-frame">
@@ -473,7 +487,7 @@ function openClubDetail(clubId) {
   `;
 
   clubDetail.querySelector('[data-action="apply-club"]').addEventListener('click', () => openApplicationForm(normalizedClubId));
-  clubDetail.querySelector('[data-action="go-home"]').addEventListener('click', () => showView('home'));
+  clubDetail.querySelectorAll('[data-action="go-home"]').forEach(button => button.addEventListener('click', () => showView('home')));
   const ratingDialog = clubDetail.querySelector('.club-rating-dialog');
   clubDetail.querySelector('[data-action="rate-club"]').addEventListener('click', () => ratingDialog.showModal());
   clubDetail.querySelector('[data-action="close-rating"]').addEventListener('click', () => ratingDialog.close());
@@ -490,6 +504,34 @@ function openClubDetail(clubId) {
       card.querySelector('.event-info-btn')?.click();
     });
   });
+  clubDetail.querySelectorAll('.detail-content-section').forEach(section => {
+    const track = section.querySelector('.detail-club-cards');
+    const controls = section.querySelector('.detail-carousel-controls');
+    const arrows = [...section.querySelectorAll('[data-carousel-direction]')];
+    const updateControls = () => {
+      const canScroll = track.scrollWidth > track.clientWidth + 2;
+      controls.hidden = !canScroll;
+      arrows[0].disabled = track.scrollLeft <= 1;
+      arrows[1].disabled = track.scrollLeft + track.clientWidth >= track.scrollWidth - 2;
+    };
+    controls.addEventListener('click', event => {
+      const button = event.target.closest('[data-carousel-direction]');
+      if (!button) return;
+      track.scrollBy({ left: Number(button.dataset.carouselDirection) * track.clientWidth * 0.85, behavior: 'smooth' });
+    });
+    track.addEventListener('scroll', updateControls, { passive: true });
+    requestAnimationFrame(updateControls);
+  });
+  clubDetailCarouselResizeHandler = () => {
+    clubDetail.querySelectorAll('.detail-content-section').forEach(section => {
+      const track = section.querySelector('.detail-club-cards');
+      const arrows = [...section.querySelectorAll('[data-carousel-direction]')];
+      section.querySelector('.detail-carousel-controls').hidden = track.scrollWidth <= track.clientWidth + 2;
+      arrows[0].disabled = track.scrollLeft <= 1;
+      arrows[1].disabled = track.scrollLeft + track.clientWidth >= track.scrollWidth - 2;
+    });
+  };
+  window.addEventListener('resize', clubDetailCarouselResizeHandler, { passive: true });
   clubDetail.querySelectorAll('.event-info-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const section = CLUB_CONTENT_SECTIONS.find(section => section.key === btn.dataset.contentSection);

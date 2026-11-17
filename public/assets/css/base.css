@@ -196,6 +196,15 @@ a:hover {
   color: var(--primary-600);
 }
 
+:focus-visible {
+  outline: 3px solid var(--border-focus);
+  outline-offset: 3px;
+}
+
+:root[data-theme="dark"] :focus-visible {
+  outline-color: #fbbf24;
+}
+
 /* Page Shell & Container */
 .page-shell {
   flex: 1 0 auto;
@@ -217,6 +226,13 @@ a:hover {
 .view.active {
   display: block;
   animation: fadeIn var(--transition-base);
+}
+
+/* The injected footer's wrapper is the body flex item, so it owns the spacer. */
+body > #site-footer {
+  width: 100%;
+  margin-top: auto;
+  flex-shrink: 0;
 }
 
 html.auth-route-pending #homeView { display: none; }
@@ -393,6 +409,11 @@ html.site-startup-pending .site-loading-indicator { opacity: 0; visibility: hidd
   box-shadow: var(--shadow-sm);
   transition: background-color var(--transition-base), border-color var(--transition-base);
 }
+
+/* Header markup is injected after the first paint; reserve its flow slot. */
+#site-header { min-height: 80px; }
+@media (max-width: 1120px) { #site-header { min-height: 70px; } }
+@media (max-width: 520px) { #site-header { min-height: 67px; } }
 
 :root[data-theme="dark"] .topbar-nav {
   background-color: rgba(32, 32, 32, 0.94);
@@ -689,6 +710,28 @@ html.site-startup-pending .site-loading-indicator { opacity: 0; visibility: hidd
   color: var(--primary-800);
 }
 
+@media (max-width: 640px) {
+  .page-back-control {
+    position: static !important;
+    width: fit-content !important;
+    min-width: 0 !important;
+    max-width: calc(100vw - 24px);
+    min-height: 44px !important;
+    padding: 7px 12px !important;
+    border-radius: 999px;
+    background: var(--bg-panel);
+    box-shadow: 0 5px 16px rgba(15, 23, 42, .16);
+    font-size: .78rem;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .page-back-control:focus-visible {
+    outline: 3px solid var(--primary-700);
+    outline-offset: 3px;
+  }
+}
+
 :root[data-theme="dark"] .secondary-btn:hover {
   background-color: var(--slate-800);
   color: #fca5a5;
@@ -738,6 +781,57 @@ html.site-startup-pending .site-loading-indicator { opacity: 0; visibility: hidd
   background-color: var(--danger-bg);
   color: var(--danger);
   border-color: var(--danger-border);
+}
+
+/* Keep dismiss/exit controls visually consistent across public and dashboard
+   pages, even when they use page-specific class names. */
+:is(
+  button[aria-label*="close" i],
+  button[aria-label*="exit" i],
+  button[title*="close" i],
+  button[class*="close" i],
+  button[id*="close" i]
+) {
+  box-sizing: border-box;
+  display: inline-grid;
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  min-height: 42px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+  color: var(--primary-800);
+  font: 700 1.2rem/1 system-ui, sans-serif;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+:is(
+  button[aria-label*="close" i],
+  button[aria-label*="exit" i],
+  button[title*="close" i],
+  button[class*="close" i],
+  button[id*="close" i]
+):hover:not(:disabled) {
+  border-color: var(--primary-700);
+  background: var(--primary-50);
+  color: var(--primary-800);
+  transform: translateY(-1px);
+}
+
+:is(
+  button[aria-label*="close" i],
+  button[aria-label*="exit" i],
+  button[title*="close" i],
+  button[class*="close" i],
+  button[id*="close" i]
+):focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary-700) 38%, transparent);
+  outline-offset: 2px;
 }
 
 button:disabled,
@@ -2329,7 +2423,6 @@ button:disabled,
    ========================================================================== */
 
 .site-footer {
-  margin-top: auto;
   background: linear-gradient(135deg, #101827 0%, #1c293a 100%);
   color: #ffffff;
   border-top: 3px solid var(--primary-700);
@@ -2487,7 +2580,7 @@ button:disabled,
   .footer-mobile-colon { display: inline; }
   .footer-authors { display: flex; width: 100%; flex-wrap: wrap; gap: 2px 6px; }
   .footer-authors > a { white-space: normal; overflow-wrap: anywhere; }
-  .footer-authors > span[aria-hidden="true"] { display: none; }
+  .footer-authors > span[aria-hidden="true"] { display: inline; flex: 0 0 auto; }
 }
 
 @media (max-width: 380px) {

@@ -30,6 +30,7 @@ const publicDataCacheKeys = {
   clubs: 'miu-public-clubs-v1',
   universityContent: 'miu-public-university-content-v1',
 };
+const localClubCardImages = new Set(['utopia.jpg', 'mun.jpg', 'cdc.jpg', 'dimas.jpg', 'ieee.jpg', 'msp.jpg', 'theater.jpg', 'tuners.jpg', 'gamerslegacy.jpg', 'ihepc.jpg', 'acpc.jpg', 'tedx.jpg']);
 
 function readPublicDataCache(key) {
   try {
@@ -365,7 +366,7 @@ async function loadHomepageSettings(force = false) {
   if (!force && homepageSettingsLoadedAt && Date.now() - homepageSettingsLoadedAt < 30_000) return;
   if (!homepageSettingsLoadPromise) {
     homepageSettingsLoadPromise = (async () => {
-      const response = await fetch('/api/admin/homepage');
+      const response = await fetch('/api/site/homepage');
       if (!response.ok) return;
       const settings = await response.json();
       homePageTitle.textContent = settings.title;
@@ -377,6 +378,29 @@ async function loadHomepageSettings(force = false) {
   }
   try { await homepageSettingsLoadPromise; }
   finally { homepageSettingsLoadPromise = null; }
+}
+
+function getClubCardImageUrl(imageUrl) {
+  if (typeof imageUrl !== 'string' || !imageUrl) return imageUrl;
+  try {
+    const url = new URL(imageUrl, window.location.origin);
+    if (url.hostname === 'res.cloudinary.com' && /\/image\/upload\/v\d+\//.test(url.pathname)) {
+      // Club cards render at 120 px; 480 px keeps a 2× source for high-density screens.
+      url.pathname = url.pathname.replace('/image/upload/', '/image/upload/f_auto,q_auto,w_480,c_limit/');
+      return url.href;
+    }
+    if (url.origin === window.location.origin && /^\/assets\/img\/pics\//i.test(url.pathname)) {
+      const filename = url.pathname.split('/').pop().toLowerCase();
+      if (localClubCardImages.has(filename)) {
+        const stem = filename.slice(0, filename.lastIndexOf('.'));
+        url.pathname = `/assets/img/pics/club-thumbnails/${stem}-480.jpg`;
+        return url.href;
+      }
+    }
+    return imageUrl;
+  } catch {
+    return imageUrl;
+  }
 }
 
 async function loadApplications() {
@@ -1053,7 +1077,7 @@ function renderCategoryChips() {
   const categories = ['All', ...new Set(state.clubs.map((c) => c.category).filter(Boolean))];
   container.innerHTML = categories
     .map(
-      (cat) => `<button type="button" class="category-chip${state.activeCategory === cat ? ' active' : ''}" data-cat="${escapeHtml(cat)}">${escapeHtml(cat)}</button>`
+      (cat) => `<button type="button" class="category-chip${state.activeCategory === cat ? ' active' : ''}" data-cat="${escapeHtml(cat)}" aria-pressed="${state.activeCategory === cat}">${escapeHtml(cat)}</button>`
     )
     .join('');
 
@@ -1120,7 +1144,7 @@ function renderClubGrid() {
       (club) => `
         <article class="club-card${club.pinned ? ' is-pinned' : ''}">
           <div class="club-image-wrap">
-            <img class="club-image${club.imageFit === 'contain' ? ' club-image-contain' : ''}" src="${escapeHtml(club.image)}" alt="${escapeHtml(club.name)} activities" loading="lazy" decoding="async" />
+            <img class="club-image${club.imageFit === 'contain' ? ' club-image-contain' : ''}" src="${escapeHtml(getClubCardImageUrl(club.image))}" alt="${escapeHtml(club.name)} activities" loading="lazy" decoding="async" />
             ${club.pinned ? '<span class="club-pin-badge">PINNED</span>' : ''}
           </div>
 
@@ -1491,7 +1515,7 @@ function renderEventsSlideshow() {
       : `${item.date || ''}${item.location ? ' · ' + escapeHtml(item.location) : ''}`;
     return `
     <div class="event-slide${i === slideIndex ? ' active' : ''}" data-club="${item.clubId}" data-idx="${item.index}" data-type="${item.contentType}">
-      <img class="${item.university && item.image === '/assets/img/pics/logo.svg.png' ? 'university-brand-image' : ''}" src="${escapeHtml(item.image || item.clubImage)}" alt="${escapeHtml(item.title || 'event')}" loading="${i === slideIndex ? 'eager' : 'lazy'}" decoding="async" />
+      <img class="${item.university && (item.image || item.clubImage) === '/assets/img/pics/logo.svg.png' ? 'university-brand-image' : ''}" src="${escapeHtml(item.image || item.clubImage)}" alt="${escapeHtml(item.title || 'event')}" loading="${i === slideIndex ? 'eager' : 'lazy'}" decoding="async" />
       <div class="event-slide-copy${item.contentType === 'event' && item.attendanceEnabled === true ? ' has-attendance' : ''}">
         <span class="event-slide-club">${escapeHtml(item.clubName || '')}</span>
         <h3>${escapeHtml(item.title || 'Event')}</h3>

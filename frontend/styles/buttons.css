@@ -56,6 +56,28 @@
   color: var(--primary-800);
 }
 
+@media (max-width: 640px) {
+  .page-back-control {
+    position: static !important;
+    width: fit-content !important;
+    min-width: 0 !important;
+    max-width: calc(100vw - 24px);
+    min-height: 44px !important;
+    padding: 7px 12px !important;
+    border-radius: 999px;
+    background: var(--bg-panel);
+    box-shadow: 0 5px 16px rgba(15, 23, 42, .16);
+    font-size: .78rem;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .page-back-control:focus-visible {
+    outline: 3px solid var(--primary-700);
+    outline-offset: 3px;
+  }
+}
+
 :root[data-theme="dark"] .secondary-btn:hover {
   background-color: var(--slate-800);
   color: #fca5a5;
@@ -105,6 +127,57 @@
   background-color: var(--danger-bg);
   color: var(--danger);
   border-color: var(--danger-border);
+}
+
+/* Keep dismiss/exit controls visually consistent across public and dashboard
+   pages, even when they use page-specific class names. */
+:is(
+  button[aria-label*="close" i],
+  button[aria-label*="exit" i],
+  button[title*="close" i],
+  button[class*="close" i],
+  button[id*="close" i]
+) {
+  box-sizing: border-box;
+  display: inline-grid;
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  min-height: 42px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+  color: var(--primary-800);
+  font: 700 1.2rem/1 system-ui, sans-serif;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+:is(
+  button[aria-label*="close" i],
+  button[aria-label*="exit" i],
+  button[title*="close" i],
+  button[class*="close" i],
+  button[id*="close" i]
+):hover:not(:disabled) {
+  border-color: var(--primary-700);
+  background: var(--primary-50);
+  color: var(--primary-800);
+  transform: translateY(-1px);
+}
+
+:is(
+  button[aria-label*="close" i],
+  button[aria-label*="exit" i],
+  button[title*="close" i],
+  button[class*="close" i],
+  button[id*="close" i]
+):focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary-700) 38%, transparent);
+  outline-offset: 2px;
 }
 
 button:disabled,

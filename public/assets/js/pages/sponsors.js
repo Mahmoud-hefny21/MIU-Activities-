@@ -12,6 +12,12 @@
 
   let items = [];
 
+  function sponsorDescription(sponsor) {
+    const description = sponsor.sponsorDescription || sponsor.description || '';
+    const normalized = description.trim().replace(/\s+/g, ' ').toLowerCase();
+    return /^i don'?t know anyth(?:ing|img) blabla$/.test(normalized) ? '' : description;
+  }
+
   function renderList() {
     const sponsors = items;
     if (!sponsors.length) {
@@ -33,7 +39,7 @@
             <strong class="feed-timeline-title">${escapeHtml(sponsor.title || sponsor.sponsorName || 'Sponsor')}</strong>
             ${sponsor.sponsorCompany ? `<span class="event-timeline-location">${escapeHtml(sponsor.sponsorCompany)}</span>` : ''}
             ${sponsor.sponsorType ? `<span class="event-timeline-location">${escapeHtml(sponsor.sponsorType)}</span>` : ''}
-            ${sponsor.sponsorDescription || sponsor.description ? `<span class="feed-timeline-text">${escapeHtml(sponsor.sponsorDescription || sponsor.description)}</span>` : ''}
+              ${sponsorDescription(sponsor) ? `<span class="feed-timeline-text">${escapeHtml(sponsorDescription(sponsor))}</span>` : ''}
             ${sponsor.sponsorLogo ? `<img src="${escapeHtml(sponsor.sponsorLogo)}" alt="${escapeHtml(sponsor.sponsorName || sponsor.sponsorCompany || sponsor.title || 'Sponsor logo')}" class="feed-timeline-image" loading="lazy" decoding="async" />` : ''}
             <span class="event-timeline-link">View sponsor details →</span>
           </span>
@@ -51,7 +57,7 @@
     detailImg.src = sponsor.sponsorLogo || club.image || '';
     detailClub.textContent = club.name || '';
     detailTitle.textContent = sponsor.title || sponsor.sponsorName || 'Sponsor';
-    detailDesc.textContent = sponsor.sponsorDescription || sponsor.description || '';
+    detailDesc.textContent = sponsorDescription(sponsor);
     detailEl.classList.remove('hidden');
     detailEl.querySelector('.event-modal-panel').scrollTop = 0;
     document.body.classList.add('modal-open');

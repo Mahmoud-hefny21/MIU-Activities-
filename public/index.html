@@ -7,25 +7,26 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="/assets/js/site-loading.js?v=20261014promptqueue1"></script>
-    <script src="/assets/js/public-live-data.js?v=20261019miusync1"></script>
+    <script src="/assets/js/public-live-data.js?v=20261116initialrefresh1"></script>
     <script>if(['/club-login','/club-dashboard'].includes(location.pathname)||location.pathname==='/'&&new URLSearchParams(location.search).get('myForms')==='1')document.documentElement.classList.add('auth-route-pending');</script>
     <title>Club Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" /></noscript>
-    <link rel="stylesheet" href="/assets/css/base.css?v=20261018clubregistrations1" />
+    <link rel="stylesheet" href="/assets/css/base.css?v=20261117backflow1" />
     <link rel="stylesheet" href="/assets/css/responsive.css?v=20261015mainadmin1" />
     <link rel="stylesheet" href="/assets/css/dark.css?v=20261015mainadmin1" />
-    <link rel="stylesheet" href="/assets/css/features.css?v=20261019radialqr1" />
+    <link rel="stylesheet" href="/assets/css/features.css?v=20261117clubback1" />
     <link rel="stylesheet" href="/assets/css/event-modal.css?v=20261017mobilepopup1" />
     <link rel="icon" type="image/png" sizes="192x192" href="/assets/img/pics/pwa-icon-192.png?v=20261013favicon1">
-    <link rel="stylesheet" href="/assets/css/pages/home.css?v=20261019compacthero2" />
+    <link rel="stylesheet" href="/assets/css/pages/home.css?v=20261117stableupcoming1" />
     <link rel="stylesheet" href="/assets/css/pages/speaker-requests.css?v=20261014mobilefit1" />
       <script defer src="/assets/js/pwa-register.js?v=20261014localfresh1"></script>
-    <link rel="stylesheet" href="/assets/css/modal-controls.css?v=20261018fullwidthreviewnotice1">
+    <link rel="stylesheet" href="/assets/css/modal-controls.css?v=20261116closeunify2">
   <link rel="stylesheet" href="/assets/css/pages/event-reports.css?v=20261014mobileoptions1">
   <script src="/assets/js/feed-media.js?v=20261015videopopup1"></script>
+  <link rel="stylesheet" href="/assets/css/site-polish.css?v=20261117calendar1">
 </head>
   <body>
     <div class="page-shell">
@@ -109,7 +110,7 @@
           </div>
 
           <div class="search-filter-section" id="searchFilterSection">
-            <div id="categoryChips" class="category-chips"></div>
+            <div id="categoryChips" class="category-chips" role="group" aria-label="Filter clubs by category"></div>
           </div>
           <div id="clubGrid" class="club-grid"></div>
           <div id="emptyClubsState" class="empty-state hidden">
@@ -220,23 +221,23 @@
 
             <form id="applicationForm">
               <div class="field-group">
-                <label>First Name</label>
-                <input type="text" name="firstName" placeholder="Enter first name" autocomplete="given-name" required />
+                <label for="applicationFirstName">First Name</label>
+                <input id="applicationFirstName" type="text" name="firstName" placeholder="Enter first name" autocomplete="given-name" required />
               </div>
 
               <div class="field-group">
-                <label>Last Name</label>
-                <input type="text" name="lastName" placeholder="Enter last name" autocomplete="family-name" required />
+                <label for="applicationLastName">Last Name</label>
+                <input id="applicationLastName" type="text" name="lastName" placeholder="Enter last name" autocomplete="family-name" required />
               </div>
 
               <div class="field-group">
-                <label>University ID</label>
-                <input type="text" name="universityId" placeholder="e.g. 20/05552" autocomplete="off" required />
+                <label for="applicationUniversityId">University ID</label>
+                <input id="applicationUniversityId" type="text" name="universityId" placeholder="e.g. 20/05552" autocomplete="off" required />
               </div>
 
               <div class="field-group">
-                <label>Major</label>
-                <select name="major" autocomplete="organization-title" required>
+                <label for="applicationMajor">Major</label>
+                <select id="applicationMajor" name="major" autocomplete="organization-title" required>
                   <option value="">Choose an option</option>
                   <option>Computer Science</option>
                   <option>Business Administration</option>
@@ -247,13 +248,13 @@
               </div>
 
               <div class="field-group">
-                <label>University Email</label>
-                <input type="email" name="email" placeholder="example@miuegypt.edu.eg" autocomplete="email" required />
+                <label for="applicationEmail">University Email</label>
+                <input id="applicationEmail" type="email" name="email" placeholder="example@miuegypt.edu.eg" autocomplete="email" required />
               </div>
 
               <div class="field-group">
-                <label>Phone Number</label>
-                <input type="tel" name="phone" placeholder="012XXXXXXXXX" autocomplete="tel" required />
+                <label for="applicationPhone">Phone Number</label>
+                <input id="applicationPhone" type="tel" name="phone" placeholder="012XXXXXXXXX" autocomplete="tel" required />
               </div>
 
               <div class="field-group applicant-photo-field">
@@ -269,15 +270,15 @@
               </div>
 
               <div class="field-group">
-                <label>Committee</label>
+                <label for="applicationCommitteeInput">Committee</label>
                 <select id="applicationCommitteeInput" name="committee" required>
                   <option value="">Choose a committee</option>
                 </select>
               </div>
 
               <div class="field-group">
-                <label>Interview Slot</label>
-                <select name="slot" required>
+                <label for="applicationSlot">Interview Slot</label>
+                <select id="applicationSlot" name="slot" required>
                   <option value="">Choose a slot</option>
                   <option>Saturday 1:00 PM - 1:10 PM</option>
                   <option>Sunday 2:30 PM - 2:40 PM</option>
@@ -286,18 +287,18 @@
               </div>
 
               <div class="field-group">
-                <label>How old are you</label>
-                <input type="text" name="age" placeholder="Enter your age" />
+                <label for="applicationAge">How old are you</label>
+                <input id="applicationAge" type="text" name="age" placeholder="Enter your age" />
               </div>
 
               <div class="field-group">
-                <label>Why do you want to join this?</label>
-                <textarea name="motivation" rows="4" placeholder="Write your motivation here..."></textarea>
+                <label for="applicationMotivation">Why do you want to join this?</label>
+                <textarea id="applicationMotivation" name="motivation" rows="4" placeholder="Write your motivation here..."></textarea>
               </div>
 
               <div class="field-group">
-                <label>Notes</label>
-                <textarea name="notes" rows="3" placeholder="Optional notes"></textarea>
+                <label for="applicationNotes">Notes</label>
+                <textarea id="applicationNotes" name="notes" rows="3" placeholder="Optional notes"></textarea>
               </div>
 
               <div id="applicationCustomFields" class="application-custom-fields"></div>
@@ -857,17 +858,17 @@
     <script src="/assets/js/event-modal.js?v=20261019miusync1" defer></script>
     <script src="/assets/js/committee-sidebar.js?v=20261013lighter1" defer></script>
     <script src="/assets/js/member-dashboard.js?v=20261014eventroles1" defer></script>
-    <script src="/assets/js/app-home.js?v=20261019miusync1" defer></script>
+    <script src="/assets/js/app-home.js?v=20261117stableupcoming1" defer></script>
     <script src="/assets/js/cloudinary-upload.js?v=20261018signedresponse1" defer></script>
     <script src="/assets/js/student-feedback.js?v=20261013stagedload3" defer></script>
     <script src="/assets/js/event-info-popup.js?v=20261017clubinfo1" defer></script>
-    <script src="/assets/js/app-forms.js?v=20261018signedphoto1" defer></script>
+    <script src="/assets/js/app-forms.js?v=20261117clubback1" defer></script>
     <script src="/assets/js/app-dashboard.js?v=20261017loaderror1" defer></script>
-    <script src="/assets/js/attendance-qr-style.js?v=20261019radialqr1" defer></script>
+    <script src="/assets/js/attendance-qr-style.js?v=20261019circlecode3" defer></script>
     <script src="/assets/js/attendance-dashboard.js?v=20261019radialqr1" defer></script>
     <script src="/assets/js/entry-permit-dashboard.js?v=20261014permitmobilecards1" defer></script>
     <script src="/assets/js/member-directory.js?v=20261013stagedload3" defer></script>
-    <script src="/assets/js/layout.js?v=20261018customRoles1" defer></script>
+    <script src="/assets/js/layout.js?v=20261117backflow1" defer></script>
     <script src="/assets/js/theme.js?v=20261009c" defer></script>
     <script src="/assets/js/pages/report-downloads.js?v=20261014progressive1" defer></script>
   <script src="/assets/js/report-dashboard-panels.js?v=20261014progressive1" defer></script>

@@ -8,6 +8,7 @@ data/club-logins.generated.json
 
 # Local frontend audit snapshots, browser profiles, and screenshots.
 .frontend-audit/
+.playwright-mcp/
 
 # Temporary browser profiles and local debugging helpers.
 /.tmp-*/

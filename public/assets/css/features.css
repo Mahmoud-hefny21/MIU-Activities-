@@ -2,6 +2,37 @@
 
 .detail-club-cards{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:20px}.feed-card{min-height:0}.feed-card .club-image-wrap{width:120px;height:120px;flex-basis:120px;margin:18px auto 0}.feed-card .club-actions{margin-top:auto}
 
+/* Shared club profile content rows: category sections stay stacked while their
+   cards can be swiped on touch screens or moved with the visible controls. */
+.detail-content-section { min-width: 0; }
+.detail-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.detail-section-heading h3 { margin: 0; }
+.detail-carousel-controls { display: flex; align-items: center; gap: 8px; }
+.detail-carousel-controls[hidden] { display: none !important; }
+.detail-carousel-arrow { display: grid; width: 38px; height: 38px; place-items: center; border: 1px solid var(--border-color); border-radius: 50%; background: var(--bg-panel); color: var(--primary-700); font: inherit; font-size: 1.15rem; font-weight: 800; cursor: pointer; box-shadow: var(--shadow-sm); }
+.detail-carousel-arrow:hover:not(:disabled) { border-color: var(--primary-700); background: var(--primary-50); }
+.detail-carousel-arrow:focus-visible, .detail-club-cards:focus-visible { outline: 3px solid rgba(185, 27, 31, .35); outline-offset: 3px; }
+.detail-carousel-arrow:disabled { opacity: .42; cursor: default; }
+.detail-club-cards { min-width: 0; }
+.detail-club-cards > .club-card { min-width: 0; }
+.detail-club-cards .club-name { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; font-size: 1.02rem; line-height: 1.3; overflow-wrap: anywhere; }
+.detail-club-cards .club-tagline { min-height: 2.8em; margin-top: 9px; overflow-wrap: anywhere; }
+.detail-club-cards .event-info-btn { width: min(100%, 180px); min-height: 44px; margin-top: 12px; }
+.detail-club-cards .club-card:hover { transform: translateY(-2px); }
+.detail-content-section + .detail-content-section { padding-top: 4px; border-top: 1px solid var(--border-color); }
+@media (max-width: 900px) {
+  .detail-club-cards { display: flex; gap: 14px; overflow-x: auto; overflow-y: hidden; padding: 4px 3px 16px; scroll-snap-type: x mandatory; scroll-padding-inline: 3px; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .detail-club-cards > .club-card { flex: 0 0 clamp(245px, 68vw, 340px); scroll-snap-align: start; }
+  .detail-club-cards::-webkit-scrollbar { display: none; }
+}
+@media (max-width: 420px) {
+  .detail-section-heading { margin-bottom: 8px; }
+  .detail-carousel-arrow { width: 36px; height: 36px; }
+  .detail-club-cards > .club-card { flex-basis: min(82vw, 310px); }
+  .detail-club-cards .feed-card .club-image-wrap { width: 104px; height: 104px; flex-basis: 104px; margin-top: 14px; }
+  .detail-club-cards .club-card-content { padding: 12px 16px 16px; }
+}
+
 .detail-section{margin:14px 0 !important}.detail-description{font-size:.92rem;line-height:1.55}.detail-info{gap:10px;margin-bottom:14px}.detail-box{padding:10px 12px;border-radius:10px}.detail-box p{font-size:.72rem;margin-bottom:4px}.detail-box strong{font-size:.95rem}.detail-requirements{padding:10px 14px;margin-bottom:14px}.detail-requirements h3{font-size:.95rem}.detail-requirements p{font-size:.85rem;margin-top:4px;line-height:1.45}
 
 .club-detail-card { padding: 24px; border: 1px solid var(--border-color); border-radius: var(--radius-xl); background: var(--bg-panel); box-shadow: var(--shadow-md); }
@@ -778,9 +809,9 @@ body :is(button[aria-label*="close" i], button[aria-label*="exit" i], button[tit
 
 .attendance-qr-result h3 { margin: 0 0 14px; }
 .attendance-qr-result p { color: var(--text-muted); }
-.attendance-qr-canvas { display: grid; place-items: center; width: 250px; min-height: 250px; max-width: 100%; margin: 0 auto; padding: 10px; background: #fff; border-radius: var(--radius-md); }
+.attendance-qr-canvas { display: grid; place-items: center; width: 220px; min-height: 0; max-width: 100%; margin: 0 auto; padding: 0; background: transparent; border-radius: 0; }
 .attendance-qr-canvas canvas, .attendance-qr-canvas img { display: block; max-width: 100%; }
-.attendance-qr-canvas .attendance-qr-art { width: min(320px, 100%); max-width: 100%; height: auto; border-radius: 18px; }
+.attendance-qr-canvas .attendance-qr-art { width: min(220px, 100%); max-width: 100%; height: auto; aspect-ratio: 1; border-radius: 50%; }
 .attendance-records-section { margin-top: 28px; }
 .attendance-records-section .admin-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .attendance-records-table { width: 100%; min-width: 1245px; table-layout: fixed; border-collapse: collapse; text-align: left; }
@@ -1301,3 +1332,9 @@ body :is(button[aria-label*="close" i], button[aria-label*="exit" i], button[tit
   .feed-video-dialog h2 { font-size: 15px; }
 }
 @media (max-width: 640px) { .content-card > .content-card-media { width: 56px; height: 56px; flex-basis: 56px; } }
+
+.club-profile-back { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 36px; margin: 0 0 14px; padding: 6px 12px; border: 1px solid var(--border-color); border-radius: 999px; background: var(--bg-panel); color: var(--text-main); box-shadow: var(--shadow-sm); font: inherit; font-size: .78rem; font-weight: 650; line-height: 1.2; cursor: pointer; }
+.club-profile-back:hover { border-color: var(--primary-700); background: var(--primary-50); color: var(--primary-800); }
+.club-profile-back:focus-visible { outline: 3px solid var(--primary-700); outline-offset: 3px; }
+.club-profile-back span { color: var(--primary-700); font-size: 1rem; }
+@media (max-width: 640px) { .club-profile-back { min-height: 34px; margin-bottom: 12px; padding: 5px 10px; font-size: .74rem; } }

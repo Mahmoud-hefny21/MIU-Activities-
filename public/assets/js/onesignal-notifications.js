@@ -403,10 +403,14 @@
     try {
       let session = window.__miuAccountSession;
       if (!session) {
-        const response = await fetch('/api/site/account-session', {
-          cache: 'no-store', credentials: 'same-origin', siteStartupNonBlocking: true
-        });
-        if (response.ok) session = await response.json();
+        if (typeof window.__miuAccountSessionRequest === 'function') {
+          session = await window.__miuAccountSessionRequest();
+        } else {
+          const response = await fetch('/api/site/account-session', {
+            cache: 'no-store', credentials: 'same-origin', siteStartupNonBlocking: true
+          });
+          if (response.ok) session = await response.json();
+        }
       }
       if (session) await setSession(session);
       const OneSignal = await loadOneSignal();

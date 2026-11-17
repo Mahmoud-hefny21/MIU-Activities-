@@ -1,5 +1,22 @@
 // Shared page navigation: keep Back separate from the explicit Home links.
 (() => {
+  // Header and notification UI can initialize at the same time. Share only
+  // the in-flight read so each caller keeps the current session semantics.
+  window.__miuAccountSessionRequest = () => {
+    if (window.__miuAccountSessionRequestPromise) return window.__miuAccountSessionRequestPromise;
+    const request = fetch('/api/site/account-session', { cache: 'no-store', siteStartupNonBlocking: true })
+      .then(async response => response.ok ? response.json() : null)
+      .then(session => {
+        if (session) window.__miuAccountSession = session;
+        return session;
+      })
+      .finally(() => {
+        if (window.__miuAccountSessionRequestPromise === request) window.__miuAccountSessionRequestPromise = null;
+      });
+    window.__miuAccountSessionRequestPromise = request;
+    return request;
+  };
+
   window.loadAccountPhoto = async () => {
     const response = await fetch('/api/site/account-photo', { cache: 'no-store' });
     if (response.status === 401) return null;
@@ -61,6 +78,13 @@
       else location.assign(previous);
     } else location.assign(fallback);
   };
+  if (typeof document.querySelectorAll === 'function' && !/(?:forgot-password|reset-password)/.test(location.pathname)) {
+    document.querySelectorAll('[data-history-back]').forEach(control => {
+      if (!control.closest('.login-foot, .recovery-card') && !control.closest('[hidden], .view:not(.active)')) {
+        control.classList.add('page-back-control');
+      }
+    });
+  }
   document.addEventListener('click', event => {
     if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
     const control = event.target.closest('[data-history-back], a, button');
@@ -375,9 +399,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const requestId = ++headerAccountRequestId;
         if (attendanceUsherTaskLink) attendanceUsherTaskLink.hidden = true;
         try {
-          const response = await fetch('/api/site/account-session', { cache: 'no-store', siteStartupNonBlocking: true });
-          if (!response.ok) return;
-          const session = await response.json();
+          const session = await window.__miuAccountSessionRequest();
+          if (!session) return;
           currentHeaderSession = session;
           window.__miuAccountSession = session;
           window.dispatchEvent(new CustomEvent('miu:push-account-session-changed', { detail: session }));

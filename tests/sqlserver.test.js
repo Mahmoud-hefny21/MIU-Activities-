@@ -174,6 +174,27 @@ test('failed SQL login closes its pool and never marks the application ready', a
   await assert.rejects(runtime.connect(), { code: 'ELOGIN' });
   assert.equal(closed, true); assert.equal(runtime.connection.readyState, 0);
 });
+test('SQL pool errors discard the stale pool and allow a fresh connection', async t => {
+  const sql = require('mssql'), OriginalPool = sql.ConnectionPool;
+  const saved = Object.fromEntries(Object.keys(env).map(k => [k, process.env[k]]));
+  Object.assign(process.env, env);
+  const pools = [];
+  sql.ConnectionPool = class extends require('node:events').EventEmitter {
+    constructor(config) { super(); this.config = config; pools.push(this); }
+    async connect() { this.connected = true; }
+    async close() { this.connected = false; this.closed = true; }
+    request() { return { query: async () => ({ recordset: [{ level: 150 }] }) }; }
+  };
+  t.after(async () => { await runtime.disconnect(); sql.ConnectionPool = OriginalPool; for (const [k, value] of Object.entries(saved)) if (value === undefined) delete process.env[k]; else process.env[k] = value; });
+  await runtime.connect({ readiness: false });
+  pools[0].emit('error', Object.assign(new Error('Injected connection reset.'), { code: 'ECONNRESET' }));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(runtime.connection.readyState, 0);
+  assert.equal(pools[0].closed, true);
+  await runtime.connect({ readiness: false });
+  assert.equal(pools.length, 2);
+  assert.equal(runtime.connection.readyState, 1);
+});
 test('SQL unit of work commits successful callbacks and rolls back failures under the transaction-owned lock', async t => {
   const sql = require('mssql');
   const originals = { ConnectionPool: sql.ConnectionPool, Transaction: sql.Transaction, Request: sql.Request };

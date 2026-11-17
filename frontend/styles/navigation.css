@@ -14,6 +14,11 @@
   transition: background-color var(--transition-base), border-color var(--transition-base);
 }
 
+/* Header markup is injected after the first paint; reserve its flow slot. */
+#site-header { min-height: 80px; }
+@media (max-width: 1120px) { #site-header { min-height: 70px; } }
+@media (max-width: 520px) { #site-header { min-height: 67px; } }
+
 :root[data-theme="dark"] .topbar-nav {
   background-color: rgba(32, 32, 32, 0.94);
 }

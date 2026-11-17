@@ -1460,7 +1460,6 @@
    ========================================================================== */
 
 .site-footer {
-  margin-top: auto;
   background: linear-gradient(135deg, #101827 0%, #1c293a 100%);
   color: #ffffff;
   border-top: 3px solid var(--primary-700);
@@ -1618,7 +1617,7 @@
   .footer-mobile-colon { display: inline; }
   .footer-authors { display: flex; width: 100%; flex-wrap: wrap; gap: 2px 6px; }
   .footer-authors > a { white-space: normal; overflow-wrap: anywhere; }
-  .footer-authors > span[aria-hidden="true"] { display: none; }
+  .footer-authors > span[aria-hidden="true"] { display: inline; flex: 0 0 auto; }
 }
 
 @media (max-width: 380px) {

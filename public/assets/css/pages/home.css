@@ -124,7 +124,12 @@
   box-shadow: 0 8px 24px rgba(31, 41, 55, .045);
 }
 
-#homeView .events-slideshow-track { min-height: 78px; }
+#homeView .events-slideshow-track { min-height: 112px; }
+
+/* Hold the empty club slot open so late public data cannot pull the footer
+   from the viewport while the grid is being populated. */
+#homeView #clubGrid { min-height: 240px; }
+#homeView #searchFilterSection { min-height: 54px; box-sizing: border-box; }
 
 #homeView .events-slideshow-head h2 {
   margin-bottom: 4px;
@@ -134,6 +139,8 @@
 }
 
 #homeView .events-heading-typewriter {
+  display: inline-block;
+  min-height: 1.2em;
   white-space: nowrap;
 }
 
@@ -249,7 +256,7 @@
     overflow: hidden;
     padding: 11px 14px 8px;
   }
-  #homeView .events-slideshow-track { height: auto; }
+  #homeView .events-slideshow-track { height: auto; min-height: 166px; }
   #homeView .events-slideshow-head h2 { font-size: 1rem; }
   #homeView .event-slide {
     box-sizing: border-box;
@@ -319,6 +326,110 @@
     white-space: nowrap;
   }
   #homeView .event-slide-copy .event-slide-cta { justify-self: end; align-self: end; }
+}
+
+/* Keep the featured carousel stable as its slides auto-advance between items
+   with different amounts of text, badges, and attendance status. */
+#homeView > .events-slideshow {
+  height: 184px;
+  min-height: 184px;
+  max-height: 184px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+#homeView .events-slideshow-head { flex: 0 0 auto; }
+#homeView .events-slideshow-head h2 { min-height: 1.3em; }
+#homeView .events-slideshow-track {
+  height: 112px;
+  min-height: 112px;
+  max-height: 112px;
+  overflow: hidden;
+}
+
+#homeView .event-slide {
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+#homeView .event-slide-copy {
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+#homeView .event-slide-copy h3,
+#homeView .event-slide-meta,
+#homeView .event-slide-copy > p:not(.event-slide-meta) {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+#homeView .event-slide-copy > p:not(.event-slide-meta):not(.event-attendance-status) {
+  -webkit-line-clamp: 2;
+}
+
+#homeView .event-slide-copy .event-slide-cta {
+  min-height: 18px;
+  line-height: 18px;
+}
+
+@media (max-width: 640px) {
+  #homeView > .events-slideshow {
+    height: 230px;
+    min-height: 230px;
+    max-height: 230px;
+    padding: 11px 14px 8px;
+  }
+
+  #homeView .events-slideshow-track {
+    height: 174px;
+    min-height: 174px;
+    max-height: 174px;
+  }
+
+  #homeView .event-slide {
+    align-items: flex-start;
+    padding-inline: 8px;
+  }
+
+  #homeView .event-slide-copy {
+    height: 100%;
+    align-content: start;
+    grid-template-rows: 12px 19px 18px 17px 24px minmax(28px, 1fr) 18px;
+    row-gap: 2px;
+  }
+
+  #homeView .event-slide-copy:not(.has-attendance) {
+    grid-template-rows: 12px 19px 18px 17px minmax(28px, 1fr) 18px;
+  }
+
+  #homeView .event-slide-copy .content-type-badge,
+  #homeView .event-slide-copy .event-attendance-status {
+    align-self: center;
+    max-height: 24px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  #homeView .event-slide-copy > p:not(.event-slide-meta):not(.event-attendance-status) {
+    align-self: start;
+    -webkit-line-clamp: 2;
+    line-height: 1.25;
+  }
+
+  #homeView .event-slide-copy .event-slide-cta {
+    align-self: end;
+    min-height: 18px;
+    line-height: 18px;
+  }
 }
 .university-published-items { display: grid; gap: 10px; margin-top: 20px; }
 .university-published-item { display: grid; gap: 4px; padding: 12px 14px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--bg-soft); }

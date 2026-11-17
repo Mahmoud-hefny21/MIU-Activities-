@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+  // This bundle is shared by the SPA shell, but public home never opens these panels.
+  if (location.pathname === '/' || location.pathname === '/index.html') return;
   const adminTabs = document.getElementById('adminTabs');
   const president = document.querySelector('.president-sidebar');
   const supervisor = document.getElementById('supervisorContent');

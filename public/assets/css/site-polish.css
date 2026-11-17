@@ -1,0 +1,257 @@
+/* Shared final layer for a consistent MIU Clubs interface across page families. */
+:root {
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --shadow-sm: 0 1px 3px rgba(17, 31, 52, .06);
+  --shadow-md: 0 6px 16px rgba(17, 31, 52, .08);
+  --shadow-lg: 0 12px 30px rgba(17, 31, 52, .10);
+  --shadow-xl: 0 24px 64px rgba(17, 31, 52, .16);
+}
+:root[data-theme="dark"] {
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, .20);
+  --shadow-md: 0 6px 18px rgba(0, 0, 0, .23);
+  --shadow-lg: 0 14px 34px rgba(0, 0, 0, .28);
+  --shadow-xl: 0 24px 64px rgba(0, 0, 0, .38);
+}
+
+html { scroll-padding-top: 92px; }
+body { font-size: .96rem; line-height: 1.55; }
+:is(h1, h2, h3, h4, h5, h6) { line-height: 1.25; text-wrap: pretty; }
+h1 { letter-spacing: -.025em; }
+h2, h3 { letter-spacing: -.015em; }
+p { text-wrap: pretty; }
+.app-container { max-width: 1280px; }
+
+/* Shared surfaces keep public, account, and administration screens related. */
+body :is(
+  .welcome-box, .hero-panel, .committee-card, .app-form-card, .admin-panel,
+  .admin-settings-form, .admin-login-panel, .club-login-panel, .content-card,
+  .event-timeline-content, .feed-timeline-content, .event-page-content,
+  .event-modal-panel, .modal-card, .calendar-panel, .empty-state,
+  .summary-card, .stat-box, .stat-card, .detail-box, .application-card,
+  .head-applicant-card, .record-card, .report-card
+) {
+  border-color: var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+body :is(.welcome-box, .hero-panel) { padding: clamp(20px, 3vw, 32px); }
+body :is(.welcome-box, .hero-panel) > :is(h1, h2) { margin-top: 0; }
+body :is(.welcome-box, .hero-panel) > p { color: var(--text-muted); line-height: 1.65; }
+body :is(.admin-header, .section-header, .admin-section-heading) { row-gap: 10px; }
+body :is(.admin-panel, .admin-settings-form, .content-card, .empty-state) { min-width: 0; }
+
+/* Predictable action sizing and states; icon-only controls keep their own sizing. */
+body :is(.primary-btn, .secondary-btn, .submit-btn, .action-btn, .delete-btn, .logout-btn) {
+  min-height: 42px;
+  padding: 9px 15px;
+  border-radius: 11px;
+  font-weight: 700;
+  line-height: 1.25;
+  transition: background-color .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+body :is(.primary-btn, .submit-btn) { box-shadow: 0 3px 8px rgba(127, 29, 29, .18); }
+body :is(.primary-btn, .submit-btn):hover { box-shadow: 0 6px 14px rgba(127, 29, 29, .22); }
+body :is(button, a, input, select, textarea):focus-visible { scroll-margin-block: 100px; }
+body :is(button, a, input, select, textarea):disabled { cursor: not-allowed; }
+body :is(.secondary-btn, .action-btn:not(.danger):not(.success)) { border-color: var(--border-color); }
+
+/* Form fields use one clear shape and focus treatment throughout the app. */
+body :is(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="color"]):not([type="range"]),
+  select, textarea
+) {
+  max-width: 100%;
+  border-color: var(--border-color);
+  border-radius: 10px;
+  background-color: var(--bg-panel);
+  color: var(--text-main);
+}
+body :is(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="color"]):not([type="range"]),
+  select
+) { min-height: 42px; }
+body :is(textarea) { min-height: 96px; line-height: 1.5; }
+body :is(input, select, textarea):focus { border-color: var(--primary-700); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-700) 16%, transparent); }
+body :is(.field-group, .modal-field) > label { margin-bottom: 6px; font-weight: 650; }
+body :is(input, textarea)::placeholder { color: var(--text-light); opacity: 1; }
+
+/* Dense data tables remain readable and scroll inside their existing wrappers. */
+body table:not(.calendar-grid) { border-collapse: separate; border-spacing: 0; }
+body table:not(.calendar-grid) :is(th, td) { padding: 10px 12px; border-color: var(--border-color); vertical-align: middle; }
+body table:not(.calendar-grid) th { background: var(--bg-soft); color: var(--text-main); font-weight: 750; text-align: left; }
+body table:not(.calendar-grid) tbody tr:nth-child(even) { background: color-mix(in srgb, var(--bg-soft) 48%, transparent); }
+body :is(.badge, .status-pill, .feed-post-type) { border-radius: 999px; font-weight: 700; }
+
+/* Shared navigation refinements without changing destinations or menu behavior. */
+.topbar-nav { box-shadow: 0 1px 8px rgba(17, 31, 52, .07); }
+.nav-link { min-height: 42px; border-radius: 11px; }
+.nav-link.active { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary-700) 14%, transparent); }
+.mobile-menu-toggle, .nav-refresh-btn, .nav-profile-trigger { border-radius: 12px; }
+
+/* Event calendar modal: keep its close control separate from month navigation. */
+#calendarModal .calendar-panel {
+  display: flex;
+  width: min(720px, calc(100vw - 32px));
+  max-width: 720px;
+  max-height: min(88dvh, 820px);
+  flex-direction: column;
+  gap: 10px;
+  overflow: auto;
+  padding: clamp(16px, 3vw, 24px);
+  border: 1px solid var(--border-color);
+  border-radius: 22px;
+  background: var(--bg-panel);
+  box-shadow: var(--shadow-xl);
+}
+#calendarModal .calendar-head {
+  position: relative !important;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0 0 14px;
+  border-bottom: 1px solid var(--border-color);
+}
+#calendarModal .calendar-head-title { grid-column: 1; min-width: 0; }
+#calendarModal .calendar-head-title h2 {
+  margin: 0;
+  color: var(--text-main);
+  font-size: clamp(1.08rem, 2.5vw, 1.28rem);
+  line-height: 1.3;
+}
+#calendarModal #calendarClose {
+  position: static !important;
+  top: auto !important;
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  align-self: center;
+  width: 44px;
+  height: 44px;
+  margin: 0 !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 12px;
+  background: var(--bg-soft) !important;
+  color: var(--text-main) !important;
+  box-shadow: none;
+  font-size: 1.4rem;
+  text-shadow: none;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+#calendarModal #calendarClose:hover { border-color: var(--primary-700) !important; background: var(--primary-50) !important; color: var(--primary-800) !important; }
+#calendarModal #calendarClose:focus-visible { outline: 3px solid var(--border-focus); outline-offset: 2px; }
+#calendarModal .calendar-grid { min-width: 0; }
+#calendarModal .calendar-month-filter {
+  display: grid !important;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 10px;
+  width: min(100%, 440px);
+  margin: 0 auto 8px;
+}
+#calendarModal .calendar-month-filter > strong {
+  min-width: 0;
+  color: var(--text-main);
+  font-size: 1rem;
+  font-weight: 750;
+  text-align: center;
+}
+#calendarModal .calendar-month-filter > button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-panel);
+  color: var(--primary-800);
+  font-size: 1.55rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color .16s ease, border-color .16s ease, color .16s ease;
+}
+#calendarModal .calendar-month-filter > button:hover { border-color: var(--primary-700); background: var(--primary-50); }
+#calendarModal .calendar-month-filter > button:focus-visible { outline: 3px solid var(--border-focus); outline-offset: 2px; }
+#calendarModal .calendar-week,
+#calendarModal .calendar-days { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+#calendarModal .calendar-week { gap: 6px; margin-bottom: 6px; color: var(--text-muted); font-size: .76rem; }
+#calendarModal .calendar-week span { padding: 6px 0; }
+#calendarModal .calendar-days { align-items: stretch; gap: 6px; }
+#calendarModal .calendar-day {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: clamp(56px, 8vw, 72px);
+  max-height: none;
+  overflow: hidden;
+  padding: 7px 6px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-panel);
+  color: var(--text-main);
+  font-size: .75rem;
+}
+#calendarModal .calendar-day strong { margin: 0 0 4px; color: var(--text-main); font-size: .82rem; }
+#calendarModal .calendar-day.is-selected { border-color: var(--primary-700); box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-700) 18%, transparent); }
+#calendarModal .calendar-event {
+  min-width: 0;
+  padding: 4px 5px;
+  border: 1px solid color-mix(in srgb, var(--primary-700) 12%, transparent);
+  border-radius: 7px;
+  background: var(--primary-50);
+  color: var(--primary-800);
+  font-size: .67rem;
+  line-height: 1.3;
+}
+#calendarModal .calendar-event:hover { background: var(--primary-100); }
+#calendarModal .calendar-event img { flex: 0 0 14px; }
+#calendarModal .calendar-more { padding: 4px 2px; color: var(--primary-800); font-size: .65rem; }
+#calendarModal .calendar-month-prompt { margin: 12px 0; color: var(--text-muted); text-align: center; }
+body:has(#calendarModal:not(.hidden)) .quiz-launcher,
+body:has(#calendarModal:not(.hidden)) .site-loading-indicator {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+@media (max-width: 520px) {
+  #calendarModal .calendar-panel {
+    width: calc(100vw - 20px);
+    max-height: min(88dvh, 760px);
+    gap: 8px;
+    padding: 14px 12px calc(14px + env(safe-area-inset-bottom, 0px));
+    border-radius: 19px;
+  }
+  #calendarModal .calendar-head { grid-template-columns: minmax(0, 1fr) 42px; gap: 8px; padding-bottom: 11px; }
+  #calendarModal #calendarClose { width: 42px; height: 42px; }
+  #calendarModal .calendar-month-filter { grid-template-columns: 42px minmax(0, 1fr) 42px; gap: 7px; margin-bottom: 6px; }
+  #calendarModal .calendar-month-filter > button { width: 42px; height: 42px; }
+  #calendarModal .calendar-week { gap: 4px; margin-bottom: 4px; font-size: .69rem; }
+  #calendarModal .calendar-week span { padding: 5px 0; }
+  #calendarModal .calendar-days { gap: 4px; }
+  #calendarModal .calendar-day { min-height: clamp(54px, 14vw, 64px); padding: 6px 4px; border-radius: 10px; }
+  #calendarModal .calendar-day strong { font-size: .77rem; }
+  #calendarModal .calendar-event { padding: 3px; font-size: .59rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #calendarModal .calendar-month-filter > button { transition: none; }
+}
+
+@media (max-width: 700px) {
+  body { font-size: .94rem; }
+  .app-container { padding: 18px clamp(12px, 4vw, 20px) 34px; }
+  body :is(.welcome-box, .hero-panel) { margin-bottom: 18px; padding: 20px 17px; border-radius: 17px; }
+  body :is(.admin-panel, .admin-settings-form, .app-form-card, .content-card) { border-radius: 15px; }
+  body :is(.admin-grid, .dashboard-grid, .form-grid, .form-row) { min-width: 0; }
+  body :is(.field-group, .modal-field) { min-width: 0; }
+  body :is(.primary-btn, .secondary-btn, .submit-btn, .action-btn, .delete-btn, .logout-btn) { max-width: 100%; white-space: normal; }
+  body :is(.admin-header, .section-header, .admin-section-heading) { align-items: flex-start; }
+  body :is(.table-wrap, .table-responsive, .data-table-wrap) { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}

@@ -22,7 +22,7 @@ function browser(storage = new Map(), fetcher = async () => new Response('[]')) 
   vm.runInNewContext(fs.readFileSync('public/assets/js/public-live-data.js', 'utf8'), {
     window, document, navigator, location, Request, Response, URL, EventSource,
     localStorage: { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value) },
-    setTimeout: fn => { timers.set(++id, fn); return id; }, clearTimeout: key => timers.delete(key)
+    setTimeout: (fn, delay = 0) => { timers.set(++id, { fn, delay }); return id; }, clearTimeout: key => timers.delete(key)
   });
   return {
     window, sources, storage, document, navigator,
@@ -30,9 +30,14 @@ function browser(storage = new Map(), fetcher = async () => new Response('[]')) 
     visibility(value) { document.visibilityState = value; (documentEvents.visibilitychange || []).forEach(fn => fn()); },
     async flush() {
       for (let turn = 0; turn < 20; turn++) {
-        const tasks = [...timers.values()]; timers.clear(); tasks.forEach(fn => fn());
+        const tasks = [...timers.values()]; timers.clear(); tasks.forEach(task => task.fn());
         await new Promise(resolve => setImmediate(resolve));
       }
+    },
+    runTimer(delay) {
+      const [key, task] = [...timers].find(([, value]) => value.delay === delay) || [];
+      if (key === undefined) return false;
+      timers.delete(key); task.fn(); return true;
     },
     timers
   };
@@ -54,6 +59,19 @@ test('cached public data survives navigation and reopening without another downl
     assert.equal(app.timers.size, 0, 'There is no periodic refresh timer');
   }
   assert.equal(downloads, 0);
+});
+
+test('initial stream connection does not repeat initial reads, while a reconnect refreshes watchers', async () => {
+  const downloads = [];
+  const app = browser(seed(), async url => { downloads.push(url); return new Response('[]'); });
+  app.window.miuLiveData.watch(() => app.window.fetch('/api/clubs?media=links', { cache: 'no-store' }));
+  await app.flush();
+  assert.deepEqual(downloads, [], 'The page owns its first public-data read');
+
+  app.visibility('hidden');
+  app.visibility('visible');
+  await app.flush();
+  assert.deepEqual(downloads, ['/api/clubs?media=links'], 'A later connection still refreshes public data');
 });
 
 test('a change downloads only the affected dataset and coalesces simultaneous reads', async () => {
@@ -99,14 +117,18 @@ test('explicit fresh reads bypass saved university data even before a live inval
   assert.equal(JSON.parse(app.storage.get('miu-public-university-content-v1')).data[0].id, 3);
 });
 
-test('stream outages invalidate cached university records and enable bounded fallback; recovery stops it', async () => {
+test('transient stream reconnects keep the cache; bounded fallback refreshes only after the stream stays down', async () => {
   const app = browser(seed());
   await app.flush();
   app.sources[0].send('error');
+  assert.equal(app.storage.get('miu:public-dirty:universityContent'), undefined, 'A short reconnect gap does not invalidate usable cached content');
+  assert.equal(app.timers.size, 1, 'Only the delayed fallback timer is scheduled');
+  assert.ok(app.runTimer(30000), 'Fallback waits for the live stream to remain down');
+  assert.ok(app.storage.get('miu:public-dirty:clubs'));
   assert.ok(app.storage.get('miu:public-dirty:universityContent'));
-  assert.equal(app.timers.size, 2, 'One refresh notification and one fallback timer');
+  assert.ok(app.timers.size >= 1, 'Fallback remains bounded and will refresh again if the stream is still down');
   app.sources[0].send('error');
-  assert.equal(app.timers.size, 2, 'Repeated stream errors share the same fallback');
+  assert.ok(app.timers.size >= 1, 'Repeated stream errors share the same fallback');
   app.sources[0].send('ready');
   await app.flush();
   assert.equal(app.timers.size, 0, 'A healthy live stream needs no polling timer');

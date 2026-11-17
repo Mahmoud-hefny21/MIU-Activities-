@@ -2,6 +2,7 @@ const { AsyncLocalStorage } = require('node:async_hooks');
 const { sqlConfig, sqlPrefix } = require('./config');
 const context = new AsyncLocalStorage();
 let pool, connecting, sql, readinessValidated = false;
+let poolFailureLogged = false;
 const connection = { readyState: 0 };
 async function verifyReadiness(candidate) {
   const ready = await candidate.request().query("SELECT [version], [validatedAt] FROM [dbo].[PlatformDatabaseState] WHERE [id] = 1;");
@@ -24,14 +25,25 @@ async function connect({ readiness = true } = {}) {
     const config = sqlConfig();
     connection.readyState = 2;
     const candidate = new (driver().ConnectionPool)(config);
-    candidate.on('error', () => { if (pool === candidate) connection.readyState = 0; });
+    candidate.on('error', error => {
+      if (pool !== candidate) return;
+      if (!poolFailureLogged) console.error('SQL connection pool error:', require('./diagnostics').sqlConnectionDiagnostic(error));
+      poolFailureLogged = true;
+      // Do not keep an errored pool as the reusable connection. Otherwise a
+      // later connect() may accept pool.connected while the app remains in a
+      // failed state and never creates a fresh connection.
+      pool = undefined;
+      readinessValidated = false;
+      connection.readyState = 0;
+      void candidate.close().catch(() => {});
+    });
     try {
       await candidate.connect();
       const result = await candidate.request().query('SELECT compatibility_level AS level FROM sys.databases WHERE name = DB_NAME();');
       if (result.recordset[0]?.level < 130) throw new Error('SQL Server database compatibility level must be at least 130.');
       if (readiness) await verifyReadiness(candidate);
       readinessValidated = readiness;
-      pool = candidate; connection.readyState = 1; return pool;
+      pool = candidate; connection.readyState = 1; poolFailureLogged = false; return pool;
     } catch (error) { await candidate.close().catch(() => {}); readinessValidated = false; connection.readyState = 0; throw error; }
   })().finally(() => { connecting = null; });
   return connecting;

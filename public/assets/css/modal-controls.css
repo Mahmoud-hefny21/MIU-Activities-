@@ -238,3 +238,132 @@ body .committee-inline-panel .attendance-review-panel .attendance-review-actions
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
+
+/* One calm MIU close control replaces the sticky glass circles used by older
+   page-specific rules. Dialog rails keep their own close control reachable. */
+:root body :is(
+  button[aria-label*="close" i],
+  button[aria-label*="exit" i],
+  button[title*="close" i],
+  button[title*="exit" i],
+  button[class*="close" i],
+  button[class*="exit" i],
+  button[id*="close" i]
+) {
+  position: static !important;
+  inset: auto !important;
+  z-index: auto !important;
+  float: none !important;
+  align-self: center;
+  margin: 0 !important;
+  margin-inline-start: 0 !important;
+  box-sizing: border-box !important;
+  display: inline-grid !important;
+  width: 42px !important;
+  min-width: 42px !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  place-items: center;
+  padding: 0 !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 12px !important;
+  background: var(--bg-panel) !important;
+  color: var(--primary-800) !important;
+  font: 700 1.2rem/1 system-ui, sans-serif !important;
+  box-shadow: var(--shadow-sm) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  text-shadow: none !important;
+  transform: none;
+  transition: background-color .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+:root body :is(
+  button[aria-label*="close" i], button[aria-label*="exit" i],
+  button[title*="close" i], button[title*="exit" i],
+  button[class*="close" i], button[class*="exit" i], button[id*="close" i]
+):hover:not(:disabled) {
+  border-color: var(--primary-700) !important;
+  background: var(--primary-50) !important;
+  color: var(--primary-800) !important;
+  box-shadow: 0 4px 12px rgba(120, 24, 30, .14) !important;
+  transform: translateY(-1px);
+}
+
+:root body :is(
+  button[aria-label*="close" i], button[aria-label*="exit" i],
+  button[title*="close" i], button[title*="exit" i],
+  button[class*="close" i], button[class*="exit" i], button[id*="close" i]
+):focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary-700) 40%, transparent) !important;
+  outline-offset: 2px;
+}
+
+:root body :is(
+  button[aria-label*="close" i], button[aria-label*="exit" i],
+  button[title*="close" i], button[title*="exit" i],
+  button[class*="close" i], button[class*="exit" i], button[id*="close" i]
+):disabled { opacity: .55; cursor: not-allowed; }
+
+:root body .modal-close-rail > :is(button, .club-detail-close, .calendar-close-btn, .close-btn, .request-dialog-close, .club-review-notice-close, .club-feedback-dialog-close, .attachment-preview-close) {
+  position: relative !important;
+  top: 8px !important;
+  z-index: 1 !important;
+  align-self: flex-start;
+  margin: 0 !important;
+  margin-inline-start: auto !important;
+}
+
+:root body #clubView .club-detail-card > .club-detail-close,
+:root body #applicationView .app-form-card > .application-exit {
+  position: absolute !important;
+  top: 16px !important;
+  right: 16px !important;
+  float: none !important;
+  margin: 0 !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+:root body .club-rating-dialog > .club-detail-close {
+  position: absolute !important;
+  top: 12px !important;
+  right: 12px !important;
+  margin: 0 !important;
+}
+
+:root body .quiz-dialog > .quiz-dialog-close {
+  position: absolute !important;
+  top: 12px !important;
+  right: 12px !important;
+  margin: 0 !important;
+}
+
+:root body .club-review-notice-content > .club-review-notice-close {
+  position: relative !important;
+  float: right !important;
+  margin: 0 0 8px 8px !important;
+}
+
+:root body .event-modal-panel > .event-modal-close {
+  position: sticky !important;
+  top: var(--modal-close-safe-top) !important;
+  z-index: 20 !important;
+  justify-self: end;
+  margin: -10px -10px -42px 0 !important;
+}
+
+:root body .attachment-preview-panel > .attachment-preview-close {
+  position: absolute !important;
+  top: 10px !important;
+  right: 10px !important;
+  z-index: 2 !important;
+}
+
+@media (max-width: 700px) {
+  :root body :is(
+    button[aria-label*="close" i], button[aria-label*="exit" i],
+    button[title*="close" i], button[title*="exit" i],
+    button[class*="close" i], button[class*="exit" i], button[id*="close" i]
+  ) { width: 44px !important; min-width: 44px !important; height: 44px !important; min-height: 44px !important; }
+}

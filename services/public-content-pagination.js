@@ -83,7 +83,7 @@ async function readMongo(Club, UniversityContent, o) {
   meta = metadata(result.meta[0]?.total || 0, meta.page, o.pageSize);
   return { items: result.items.map(serialize), pagination: meta };
 }
-function registerPublicContentPagination(app, { Club, UniversityContent, readPage, ensureReady, requireLiveDatabase }) {
+function registerPublicContentPagination(app, { Club, UniversityContent, readPage, ensureReady, requireLiveDatabase, errorReason = error => error?.name || 'Database operation failed' }) {
   app.get('/api/public-content/:section', async (req, res) => {
     const o = options(req.params.section, req.query);
     if (!o) return res.status(404).json({ message: 'Unknown content section.' });
@@ -94,7 +94,7 @@ function registerPublicContentPagination(app, { Club, UniversityContent, readPag
       res.setHeader('Cache-Control', 'no-store');
       res.json(result);
     } catch (error) {
-      console.error('Public content page failed:', error.name);
+      console.error('Public content page failed:', errorReason(error));
       res.status(503).json({ message: 'Content is temporarily unavailable. Please try again.' });
     }
   });

@@ -567,6 +567,23 @@ function requireLiveDatabase(res) {
   res.status(503).json({ message: 'This form was not saved. Please try again.' });
   return false;
 }
+function databaseErrorReason(error) {
+  if (mongoose.isSqlProvider) return require('./database/diagnostics').sqlConnectionDiagnostic(error);
+  return error?.name || 'Database operation failed';
+}
+function isTransientDatabaseConnectivityError(error) {
+  const codes = new Set(['DATABASE_UNAVAILABLE', 'ETIMEOUT', 'ESOCKET', 'ECONNCLOSED', 'ENOCONN', 'ECONNRESET', 'ECONNREFUSED', 'ENOTFOUND', 'EHOSTUNREACH', 'ENOTOPEN', 'EALREADYCONNECTED', 'EINSTLOOKUP']);
+  const pending = [error];
+  const seen = new Set();
+  while (pending.length) {
+    const current = pending.shift();
+    if (!current || typeof current !== 'object' || seen.has(current)) continue;
+    seen.add(current);
+    if ((mongoose.isSqlProvider && current.name === 'ConnectionError') || codes.has(current.code)) return true;
+    pending.push(current.originalError, current.cause, ...(Array.isArray(current.precedingErrors) ? current.precedingErrors : []));
+  }
+  return false;
+}
 let homepageSettings = readJsonFile(homepageFile, {
   title: 'University Clubs',
   subtitle: 'Explore all clubs and apply to the ones that match your interests.'
@@ -838,14 +855,19 @@ async function requireAdmin(req, res, next) {
 }
 
 async function requireMiuEventsDashboard(req, res, next) {
+  const isDashboardPage = req.path === '/dashboards/miu-events-dashboard.html';
+  const deny = (status, title, message) => isDashboardPage
+    ? sendHttpErrorPage(res, status, title, message)
+    : res.status(status).json({ message });
   try {
     const account = await getClubAccountFromRequest(req, res);
     if (account?.role === 'miu_events') { req.clubAccount = account; return next(); }
     if (account?.role === 'software_development' || await isAdminSessionValid(req, res)) { req.clubAccount = account || null; return next(); }
-    return res.status(account ? 403 : 401).json({ message: account ? 'MIU Events dashboard access is not assigned to this account.' : 'Sign in with an assigned MIU Events account.' });
+    const message = account ? 'MIU Events dashboard access is not assigned to this account.' : 'Sign in with an assigned MIU Events account.';
+    return deny(account ? 403 : 401, account ? 'MIU Events dashboard access denied' : 'MIU Events dashboard sign-in required', message);
   } catch (error) {
     console.error('MIU Events session validation failed:', error.name);
-    return res.status(503).json({ message: 'MIU Events dashboard access is temporarily unavailable.' });
+    return deny(503, 'MIU Events dashboard unavailable', 'MIU Events dashboard access is temporarily unavailable.');
   }
 }
 
@@ -1135,8 +1157,10 @@ function getVisitorIpHash(ipAddress) {
   return crypto.createHmac('sha256', getVisitorTrackingSecret()).update(`visitor-ip:${ipAddress}`).digest('hex');
 }
 
+let visitorAnalyticsConnectivityFailureLogged = false;
 app.post('/api/site/visitor-ping', async (req, res) => {
   if (!mongoReady || mongoose.connection.readyState !== 1) {
+    if (mongoose.isSqlProvider) void recoverSqlConnection();
     return res.status(503).json({ message: 'Visitor analytics are temporarily unavailable.' });
   }
   const visitorToken = getVisitorToken(req);
@@ -1152,25 +1176,42 @@ app.post('/api/site/visitor-ping', async (req, res) => {
       $setOnInsert: { firstSeenAt: now },
       $set: { lastSeenAt: now, ...device, ...identity }
     };
-    const writes = [SiteVisitor.updateOne({ visitorId }, visitorUpdate, { upsert: true })];
-    if (ipHash) writes.push(SiteNetwork.updateOne(
-      { ipHash },
-      { $setOnInsert: { firstSeenAt: now }, $set: { lastSeenAt: now } },
-      { upsert: true }
-    ));
-    writes.push(SiteVisitorPresence.updateOne({ visitorId }, {
-      $set: { ipAddress, expiresAt: new Date(now.getTime() + 6 * 60 * 1000) }
-    }, { upsert: true }));
-    await Promise.all(writes);
-    // Merge records created before visitor tokens were hashed so one browser
-    // does not appear twice after the tracking format changes.
-    if (visitorToken !== visitorId) await SiteVisitor.deleteOne({ visitorId: visitorToken });
+    const networkUpdate = { $setOnInsert: { firstSeenAt: now }, $set: { lastSeenAt: now } };
+    const presenceUpdate = { $set: { ipAddress, expiresAt: new Date(now.getTime() + 6 * 60 * 1000) } };
+    if (mongoose.isSqlProvider) {
+      // SQL writes share the application write lock. Keep this ping's three
+      // records in one transaction instead of racing three independent locks.
+      const session = await mongoose.startSession();
+      try {
+        await session.withTransaction(async () => {
+          await SiteVisitor.updateOne({ visitorId }, visitorUpdate, { upsert: true, session });
+          if (ipHash) await SiteNetwork.updateOne({ ipHash }, networkUpdate, { upsert: true, session });
+          await SiteVisitorPresence.updateOne({ visitorId }, presenceUpdate, { upsert: true, session });
+          // Merge records created before visitor tokens were hashed so one
+          // browser does not appear twice after the tracking format changed.
+          if (visitorToken !== visitorId) await SiteVisitor.deleteOne({ visitorId: visitorToken }, { session });
+        });
+      } finally {
+        await session.endSession();
+      }
+    } else {
+      const writes = [SiteVisitor.updateOne({ visitorId }, visitorUpdate, { upsert: true })];
+      if (ipHash) writes.push(SiteNetwork.updateOne({ ipHash }, networkUpdate, { upsert: true }));
+      writes.push(SiteVisitorPresence.updateOne({ visitorId }, presenceUpdate, { upsert: true }));
+      await Promise.all(writes);
+      if (visitorToken !== visitorId) await SiteVisitor.deleteOne({ visitorId: visitorToken });
+    }
+    visitorAnalyticsConnectivityFailureLogged = false;
     const secure = secureCookieSuffix(req);
     res.setHeader('Set-Cookie', `miu_visitor=${visitorToken}; Max-Age=31536000; HttpOnly; SameSite=Lax; Path=/;${secure}`);
     res.setHeader('Cache-Control', 'no-store');
     res.status(204).end();
   } catch (error) {
-    console.error('Visitor analytics update failed:', error.name);
+    if (!isTransientDatabaseConnectivityError(error) || !visitorAnalyticsConnectivityFailureLogged) {
+      console.error('Visitor analytics update failed:', databaseErrorReason(error));
+    }
+    visitorAnalyticsConnectivityFailureLogged = isTransientDatabaseConnectivityError(error);
+    if (visitorAnalyticsConnectivityFailureLogged && mongoose.isSqlProvider) void recoverSqlConnection();
     res.status(503).json({ message: 'Visitor analytics are temporarily unavailable.' });
   }
 });
@@ -1481,7 +1522,58 @@ const dynamicWorkflowEngine = require('./services/workflow-engine').createWorkfl
     }
   }
 });
-const workflowDeliveryTimer = setInterval(() => { if (mongoReady) { void dynamicWorkflowEngine.deliver(); void dynamicWorkflowEngine.reconcile().catch(error => console.error('Workflow reviewer availability check failed:', error.name)); } }, 30000);
+let workflowMaintenanceRetryAt = 0;
+let workflowMaintenanceRetryDelay = 30000;
+let workflowConnectivityFailureLogged = false;
+let workflowMaintenanceRunning = false;
+const workflowDeliveryTimer = setInterval(async () => {
+  // A SQL pool may still report ready while requests time out. Back off the
+  // background jobs during connectivity failures and log once per outage.
+  if (Date.now() < workflowMaintenanceRetryAt || workflowMaintenanceRunning) return;
+  if (!mongoReady || mongoose.connection.readyState !== 1) {
+    if (!mongoose.isSqlProvider) return;
+    workflowMaintenanceRunning = true;
+    try {
+      if (!await recoverSqlConnection()) throw Object.assign(new Error('SQL Server is unavailable.'), { code: 'DATABASE_UNAVAILABLE' });
+      workflowMaintenanceRetryAt = 0;
+      workflowMaintenanceRetryDelay = 30000;
+      workflowConnectivityFailureLogged = false;
+    } catch (error) {
+      workflowMaintenanceRetryAt = Date.now() + workflowMaintenanceRetryDelay;
+      workflowMaintenanceRetryDelay = Math.min(workflowMaintenanceRetryDelay * 2, 5 * 60 * 1000);
+      if (!workflowConnectivityFailureLogged) console.error('Workflow database recovery failed:', databaseErrorReason(error));
+      workflowConnectivityFailureLogged = true;
+    } finally {
+      workflowMaintenanceRunning = false;
+    }
+    return;
+  }
+  if (workflowMaintenanceRunning) return;
+  workflowMaintenanceRunning = true;
+  try {
+    const outcomes = await Promise.allSettled([dynamicWorkflowEngine.deliver(), dynamicWorkflowEngine.reconcile()]);
+    const failure = outcomes.find(result => result.status === 'rejected');
+    if (!failure) {
+      workflowMaintenanceRetryAt = 0;
+      workflowMaintenanceRetryDelay = 30000;
+      workflowConnectivityFailureLogged = false;
+      return;
+    }
+    const error = failure.reason;
+    const label = outcomes[0].status === 'rejected' ? 'Workflow notification delivery failed:' : 'Workflow reviewer availability check failed:';
+    if (isTransientDatabaseConnectivityError(error)) {
+      workflowMaintenanceRetryAt = Date.now() + workflowMaintenanceRetryDelay;
+      workflowMaintenanceRetryDelay = Math.min(workflowMaintenanceRetryDelay * 2, 5 * 60 * 1000);
+      if (!workflowConnectivityFailureLogged) console.error(label, databaseErrorReason(error));
+      workflowConnectivityFailureLogged = true;
+      if (mongoose.isSqlProvider) void recoverSqlConnection();
+      return;
+    }
+    console.error(label, databaseErrorReason(error));
+  } finally {
+    workflowMaintenanceRunning = false;
+  }
+}, 30000);
 workflowDeliveryTimer.unref();
 const customStaffRoleService = require('./services/custom-staff-roles').createCustomRoleService({
   database: mongoose, ClubAccount, Club, AuditLog,
@@ -2171,6 +2263,7 @@ registerPublicClubMedia(app, { Club, requireLiveDatabase,
   ensureDatabaseReady: ensureReady });
 require('./services/public-content-pagination').registerPublicContentPagination(app, {
   Club, UniversityContent, ensureReady, requireLiveDatabase,
+  errorReason: databaseErrorReason,
   readPage: mongoose.isSqlProvider ? require('./database/public-content-pagination').readPublicContentPage : null
 });
 require('./services/public-data-stream').registerPublicDataStream(app, {
@@ -2252,14 +2345,15 @@ app.get('/api/clubs', async (req, res) => {
 
 app.get('/api/university-content', async (req, res) => {
   try {
-    if (!mongoReady) await ensureReady();
-    if (!mongoReady) return res.status(503).json({ message: 'University updates are temporarily unavailable.' });
+    if (mongoose.isSqlProvider && (!mongoReady || mongoose.connection.readyState !== 1)) await ensureReady();
+    if (!mongoReady || (mongoose.isSqlProvider && mongoose.connection.readyState !== 1)) return res.status(503).json({ message: 'University updates are temporarily unavailable.' });
     const records = await UniversityContent.find()
       .select(require('./services/university-content').publicFields)
       .read('primary').readConcern('majority').sort({ createdAt: -1, id: -1 }).lean();
     sendRevalidatedPublicJson(req, res, records.map(require('./services/university-content').toPublicUniversityContent));
   } catch (error) {
-    console.error('University content read failed:', error.name);
+    console.error('University content read failed:', databaseErrorReason(error));
+    if (isTransientDatabaseConnectivityError(error) && mongoose.isSqlProvider) void recoverSqlConnection();
     res.status(503).json({ message: 'University updates are temporarily unavailable.' });
   }
 });
@@ -2330,6 +2424,9 @@ require('./services/account-photo').registerAccountPhotoRoutes(app, {
 app.get('/api/site/account-session', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   try {
+    if (mongoose.isSqlProvider && (!mongoReady || mongoose.connection.readyState !== 1) && !await ensureReady()) {
+      return res.status(503).json({ authenticated: false, message: 'Account status is temporarily unavailable.' });
+    }
     // A browser may have both a student login and staff logins. Keep the
     // student identity as the primary account in the profile menu.
     const studentAccount = await getStudentAccountFromRequest(req, res, false);
@@ -2367,7 +2464,8 @@ app.get('/api/site/account-session', async (req, res) => {
     }
     return res.json({ authenticated: false });
   } catch (error) {
-    console.error('Site account session check failed:', error.name);
+    console.error('Site account session check failed:', databaseErrorReason(error));
+    if (isTransientDatabaseConnectivityError(error) && mongoose.isSqlProvider) void recoverSqlConnection();
     return res.status(503).json({ authenticated: false, message: 'Account status is temporarily unavailable.' });
   }
 });
@@ -6513,6 +6611,13 @@ require('./services/quiz-analytics').registerQuizAnalytics(app, {
   }
 });
 app.use('/api/admin', requireAdmin);
+app.get('/api/site/homepage', (req, res) => {
+  res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+  res.json({
+    title: homepageSettings.title,
+    subtitle: homepageSettings.subtitle
+  });
+});
 require('./services/security-center').registerSecurityCenter(app, { requireAdmin, AuditLog });
 app.get('/api/admin/login-settings', (req, res) => {
   res.json({ email: getConfiguredAdminEmail() || '',
@@ -8267,6 +8372,7 @@ const startServer = async () => {
 };
 
 let connectPromise = null;
+let sqlRecoveryPromise = null;
 let lastMongoConnectAttemptAt = 0;
 const MONGO_RETRY_COOLDOWN_MS = 5000;
 function ensureReady() {
@@ -8279,6 +8385,20 @@ function ensureReady() {
   connectPromise = connectMongo().then(() => mongoReady && mongoose.connection.readyState === 1)
     .finally(() => { connectPromise = null; });
   return connectPromise;
+}
+
+function recoverSqlConnection() {
+  if (!mongoose.isSqlProvider) return ensureReady();
+  if (sqlRecoveryPromise) return sqlRecoveryPromise;
+  if (connectPromise) return connectPromise;
+  mongoReady = false;
+  lastMongoConnectAttemptAt = 0;
+  sqlRecoveryPromise = (async () => {
+    await mongoose.disconnect().catch(() => {});
+    lastMongoConnectAttemptAt = 0;
+    return ensureReady();
+  })().finally(() => { sqlRecoveryPromise = null; });
+  return sqlRecoveryPromise;
 }
 
 if (require.main === module) {

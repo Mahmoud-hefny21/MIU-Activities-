@@ -8,6 +8,10 @@ test('SQL startup diagnostics explain configuration and connection failures with
   assert.match(sqlConnectionDiagnostic({ code: 'EINSTLOOKUP' }), /SQL Server Browser/);
   assert.match(sqlConnectionDiagnostic({ code: 'ELOGIN', message: 'secret-login secret-password' }), /authentication failed/);
   assert.match(sqlConnectionDiagnostic({ code: 'ESOCKET', message: 'secret-host' }), /TCP\/IP/);
+  assert.match(sqlConnectionDiagnostic(Object.assign(new Error('connection failed'), { name: 'ConnectionError' })), /SQL server could not be reached/);
+  assert.match(sqlConnectionDiagnostic({ code: 'ECONNCLOSED' }), /SQL server could not be reached/);
+  assert.match(sqlConnectionDiagnostic({ code: 'EREQUEST', cause: Object.assign(new Error('connection failed'), { name: 'ConnectionError', code: 'ECONNRESET' }) }), /SQL server could not be reached/);
+  assert.match(sqlConnectionDiagnostic({ code: 'EREQUEST', originalError: { code: 'ELOGIN' } }), /authentication failed/);
   assert.match(sqlConnectionDiagnostic({ number: 208 }), /schema is missing/);
   for (const error of [{ message: 'secret-login secret-password' }, { message: 'SQLSERVER_HOST must secret-host' }, { code: 'ELOGIN', message: 'secret-password' }]) {
     assert.doesNotMatch(sqlConnectionDiagnostic(error), /secret-/);

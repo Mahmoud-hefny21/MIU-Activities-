@@ -71,6 +71,7 @@ function respond(url, method, referer, body, scenario = '') {
   if (p === '/api/student/my-forms') return [200, { forms: [] }];
   if (p === '/api/member/attendance-assignments') return [200, []];
   if (p === '/api/site/account-session') return [200, /\/admin\/global/.test(referer) ? { authenticated: true, type: 'admin' } : { authenticated: false }];
+  if (p === '/api/site/homepage') return [200, { title: 'University Clubs', subtitle: 'Explore all clubs and apply to the ones that match your interests.' }];
   if (p === '/api/student-auth/profile') return [401, { message: 'Sign in with a university student account.' }];
   if (p === '/api/feedback/access') return [200, { club: false, university: false }];
   if (p === '/api/clubs') return [200, clubs];
