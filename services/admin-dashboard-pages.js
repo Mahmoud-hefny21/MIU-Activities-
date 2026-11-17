@@ -1,6 +1,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const toolIds = require('../public/assets/js/admin-dashboard-tools').map(tool => tool.id);
+// Keep this path static so Vercel's file tracer bundles the protected dashboard template.
+const dashboardTemplatePath = path.join(__dirname, '..', 'private', 'admin-dashboard-v2.html');
 // Reuse trusted repository templates; never fetch HTML or execute user-supplied markup.
 function element(source, tag, id) {
   const start = source.search(new RegExp(`<${tag}\\b[^>]*\\bid="${id}"[^>]*>`));
@@ -14,7 +16,7 @@ function element(source, tag, id) {
   throw new Error('Unclosed dashboard template element');
 }
 function renderDashboardPage(root, tool = '') {
-  let html = fs.readFileSync(path.join(root, 'private/admin-dashboard-v2.html'), 'utf8');
+  let html = fs.readFileSync(dashboardTemplatePath, 'utf8');
   const source = relative => fs.readFileSync(path.join(root, 'public', relative), 'utf8');
   const assets = [], scripts = [];
   let content = '';
