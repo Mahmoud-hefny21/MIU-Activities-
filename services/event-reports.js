@@ -48,7 +48,7 @@ function registerEventReports(app, deps) {
     res.setHeader('Cache-Control', 'no-store');
     try {
       if (!databaseReady()) return res.status(503).json({ message: 'Reporting database is unavailable. Please retry.' });
-      const account = await getAccount(req);
+      const account = await getAccount(req, res);
       if (!account) return res.status(401).json({ message: 'Sign in to access event reports.' });
       if (!['president', 'supervisor'].includes(account.role)) return res.status(403).json({ message: 'Club president or assigned supervisor access required.' });
       req.reportAccount = account;

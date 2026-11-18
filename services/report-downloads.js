@@ -55,7 +55,7 @@ function registerReportDownloads(app, deps) {
     res.setHeader('Cache-Control', 'no-store');
     try {
       if (!databaseReady()) return res.status(503).json({ message: 'Download database is temporarily unavailable.' });
-      const account = await getAccount(req);
+      const account = await getAccount(req, res);
       if (!account) return res.status(401).json({ message: 'Sign in before downloading.' });
       if (!['president', 'supervisor', 'pr', 'sso', 'dean', 'admin', 'software_development', 'miu_events'].includes(account.role)) return res.status(403).json({ message: 'Download access denied.' });
       req.downloadAccount = account; next();
@@ -68,7 +68,10 @@ function registerReportDownloads(app, deps) {
       const eventManager = req.downloadAccount.role === 'miu_events';
       res.json({ clubs, reports: eventManager || ['president', 'supervisor', 'dean', 'admin', 'software_development'].includes(req.downloadAccount.role),
         attendance: eventManager || ['president', 'supervisor', 'pr', 'sso', 'dean', 'admin', 'software_development'].includes(req.downloadAccount.role) });
-    } catch { res.status(503).json({ message: 'Could not load authorized clubs.' }); }
+    } catch (error) {
+      console.error('Authorized club list failed:', error.code || error.name, error.message);
+      res.status(503).json({ message: 'Could not load authorized clubs.' });
+    }
   });
   router.get(['/events', '/event-sheet.csv', '/event-sheet.xlsx'], async (req, res) => {
     if (!['president', 'supervisor', 'pr', 'sso', 'dean', 'admin', 'software_development', 'miu_events'].includes(req.downloadAccount.role)) return res.status(403).json({ message: 'Attendance sheet access denied.' });

@@ -172,6 +172,12 @@
   background: linear-gradient(115deg, #111b2b 0%, #111b2b 72%, #172438 100%) !important;
   border-color: rgba(240, 120, 128, .3) !important;
 }
+/* Keep the red accent edge on the home hero and carousel in dark mode. */
+:root[data-theme="dark"] body #homeView > .welcome-box.hero-panel,
+:root[data-theme="dark"] body #homeView > .events-slideshow { border-left-color: var(--primary-500) !important; }
+:root[data-theme="dark"] #homeView .event-slide-copy .event-slide-cta { border-color: rgba(255, 146, 153, .35); }
+:root[data-theme="dark"] #homeView .event-slide:hover .event-slide-cta,
+:root[data-theme="dark"] #homeView .events-slideshow .slide-arrow:hover { background: var(--primary-500) !important; border-color: var(--primary-500) !important; color: #fff !important; }
 :root[data-theme="dark"] #homeView .events-slideshow-head h2,
 :root[data-theme="dark"] #homeView .event-slide-copy h3 { color: var(--text-main) !important; }
 :root[data-theme="dark"] #homeView .event-slide-club,
@@ -413,3 +419,8 @@
   :root[data-theme="dark"] body .committee-sidebar::-webkit-scrollbar-thumb,
   :root[data-theme="dark"] body .president-sidebar::-webkit-scrollbar-thumb { background: #64748b; }
 }
+
+/* Readable accent text on dark surfaces (WCAG AA 4.5:1). */
+:root[data-theme="dark"] body .home-action, :root[data-theme="dark"] body .home-action:hover { background: #b42a33; color: #fff; }
+:root[data-theme="dark"] body :is(.committee-overview-panel > .committee-label, .committee-top .committee-label, .committee-label) { color: #ff9ca3; }
+:root[data-theme="dark"] body :is(.admin-eyebrow, .help-kicker, .help-eyebrow) { color: #ff8a92; }

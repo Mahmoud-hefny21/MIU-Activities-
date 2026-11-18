@@ -36,3 +36,8 @@ ses_*.json
 
 # Local workspace archive; may contain private configuration.
 /pr project LAST NEW.rar
+
+# Database backup worker output (may contain personal data).
+/miu project new.xlsx
+# Office lock files.
+~$*

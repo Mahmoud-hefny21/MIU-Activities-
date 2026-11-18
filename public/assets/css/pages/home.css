@@ -447,3 +447,68 @@
 .university-published-items { display: grid; gap: 10px; margin-top: 20px; }
 .university-published-item { display: grid; gap: 4px; padding: 12px 14px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--bg-soft); }
 .university-published-item > span, .university-published-item > small { color: var(--text-muted); font-size: .88rem; }
+
+
+/* Featured carousel polish (desktop/tablet): red accent edge matching the hero,
+   centred slide content, a clearer call to action and a pill for the active dot. */
+@media (min-width: 641px) {
+  #homeView > .events-slideshow {
+    border-left: 6px solid var(--primary-800);
+    padding-left: 22px;
+  }
+  #homeView .events-slideshow .slide-arrow {
+    width: 32px;
+    height: 32px;
+    transition: background-color .18s ease, color .18s ease, border-color .18s ease;
+  }
+  #homeView .events-slideshow .slide-arrow:hover {
+    border-color: var(--primary-800);
+    background: var(--primary-800);
+    color: #fff;
+  }
+  #homeView .event-slide { align-items: center; gap: 18px; }
+  #homeView .event-slide img {
+    width: 96px !important;
+    height: 76px !important;
+    flex-basis: 96px;
+    box-shadow: 0 4px 12px rgba(31, 41, 55, .06);
+  }
+  /* The call to action gets its own right column and attendance sits beside the
+     date, so slides with every field still fit the fixed-height carousel. */
+  #homeView .event-slide-copy,
+  #homeView .event-slide-copy:not(.has-attendance) {
+    align-self: center;
+    grid-template-columns: fit-content(260px) max-content minmax(0, 1fr) auto;
+    grid-template-areas: "club badge . cta" "title title title cta" "meta meta meta cta" "description description description cta";
+    column-gap: 10px;
+  }
+  #homeView .event-slide-copy.has-attendance {
+    grid-template-areas: "club badge . cta" "title title title cta" "meta attendance . cta" "description description description cta";
+  }
+  #homeView .event-slide-copy .event-attendance-status { justify-self: start; padding-block: 1px; font-size: .68rem; }
+  #homeView .event-slide-copy > p:not(.event-slide-meta):not(.event-attendance-status) { -webkit-line-clamp: 1; }
+  #homeView .event-slide-copy .event-slide-cta {
+    grid-row: 1 / -1;
+    align-self: center;
+    justify-self: end;
+    padding: 0 14px;
+    border: 1px solid rgba(185, 28, 28, .28);
+    border-radius: 999px;
+    line-height: 28px;
+    min-height: 30px;
+    transition: background-color .18s ease, color .18s ease;
+  }
+  #homeView .event-slide:hover .event-slide-cta {
+    background: var(--primary-800);
+    color: #fff;
+  }
+}
+
+#homeView .events-slideshow-dots button { transition: width .2s ease, background-color .2s ease; }
+#homeView .events-slideshow-dots button.active { width: 20px; border-radius: 999px; }
+
+@media (prefers-reduced-motion: reduce) {
+  #homeView .events-slideshow .slide-arrow,
+  #homeView .event-slide-copy .event-slide-cta,
+  #homeView .events-slideshow-dots button { transition: none; }
+}

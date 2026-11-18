@@ -19,6 +19,7 @@ async function fixture(t, assignedEmail) {
         ? { _id: 'active-assignment' }
         : null
     },
+    sendHttpErrorPage: (res, status, title) => res.status(status).type('html').send(title),
     path,
     __dirname: path.resolve(__dirname, '..')
   };
@@ -31,7 +32,7 @@ async function fixture(t, assignedEmail) {
   const server = await new Promise(resolve => {
     const instance = app.listen(0, '127.0.0.1', () => resolve(instance));
   });
-  t.after(() => new Promise(resolve => server.close(resolve)));
+  t.after(() => new Promise(resolve => { server.close(resolve); server.closeAllConnections(); }));
   return email => fetch(`http://127.0.0.1:${server.address().port}/pages/my-attendance-task.html`, {
     headers: email ? { 'x-test-email': email } : {}
   });

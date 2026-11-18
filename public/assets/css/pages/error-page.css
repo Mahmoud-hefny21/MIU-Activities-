@@ -104,7 +104,7 @@ h1 { margin: 0 0 10px; font-size: clamp(1.45rem, 5vw, 1.9rem); line-height: 1.2;
 .home-action { background: var(--error-accent); color: #fff; box-shadow: 0 5px 14px rgba(165, 31, 40, .18); }
 .back-action, .retry-action { border-color: var(--error-border) !important; background: #fff; color: #243248; }
 .error-actions :focus-visible { outline: 3px solid #315fbd; outline-offset: 3px; }
-.error-reference { margin: 22px 0 0; color: #8290a3; font-size: .76rem; }
+.error-reference { margin: 22px 0 0; color: #64748b; font-size: .76rem; }
 
 @keyframes error-logo-enter {
   from { opacity: .5; transform: scale(.88); }

@@ -38,6 +38,7 @@ body :is(
   box-shadow: var(--shadow-sm);
 }
 body :is(.welcome-box, .hero-panel) { padding: clamp(20px, 3vw, 32px); }
+body #homeView > .welcome-box.hero-panel { border-left-color: var(--primary-800); }
 body :is(.welcome-box, .hero-panel) > :is(h1, h2) { margin-top: 0; }
 body :is(.welcome-box, .hero-panel) > p { color: var(--text-muted); line-height: 1.65; }
 body :is(.admin-header, .section-header, .admin-section-heading) { row-gap: 10px; }

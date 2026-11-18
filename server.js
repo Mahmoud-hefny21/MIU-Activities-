@@ -9,8 +9,17 @@ const { readAdminSessionData } = require('./services/admin-session-read');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
-const nodemailer = require('nodemailer');
-const cloudinary = require('cloudinary').v2;
+// Upload and mail SDKs load on first use so serverless cold starts stay fast.
+let cloudinarySdk;
+const cloudinary = new Proxy({}, {
+  get(target, key) {
+    if (!cloudinarySdk) {
+      cloudinarySdk = require('cloudinary').v2;
+      if (cloudinaryConfigured) cloudinarySdk.config({ ...cloudinaryCredentials, secure: true });
+    }
+    return cloudinarySdk[key];
+  }
+});
 const { verifyPublicCloudinaryImage, verifyCloudinaryUploadResponse } = require('./services/cloudinary-image-validation');
 const { validateFeedMedia, MAX_FEED_VIDEO_BYTES, FEED_MEDIA_FOLDER } = require('./services/feed-video');
 const { verifyGoogleStudentCredential, decideGoogleAccount, decideGoogleLink } = require('./services/google-auth');
@@ -95,12 +104,6 @@ const cloudinaryFolders = Object.freeze({
 const uploadSignatureAttempts = new Map();
 const speakerUploadAttempts = new Map();
 
-if (cloudinaryConfigured) {
-  cloudinary.config({
-    ...cloudinaryCredentials,
-    secure: true
-  });
-}
 
 // Compress HTML, CSS, JavaScript and JSON for every route. The middleware
 // negotiates Accept-Encoding and leaves images/small responses alone.
@@ -1580,7 +1583,7 @@ const customStaffRoleService = require('./services/custom-staff-roles').createCu
   refreshAccount(account) { const index = clubAccounts.findIndex(item => item.email === account.email); if (index < 0) clubAccounts.push(account); else clubAccounts[index] = account; },
   removeAccount(account) { clubAccounts = clubAccounts.filter(item => item.email !== account.email); }
 });
-require('./services/custom-staff-role-routes').registerCustomStaffRoleRoutes(app, { service: customStaffRoleService, engine: dynamicWorkflowEngine,
+require('./services/custom-staff-role-routes').registerCustomStaffRoleRoutes(app, { sendHttpErrorPage, service: customStaffRoleService, engine: dynamicWorkflowEngine,
   actorFor: workflowActor, ready: ensureReady, sameOrigin: isSameOriginRequest, requireAdmin, root: __dirname });
 require('./services/workflow-routes').registerWorkflowRoutes(app, { engine: dynamicWorkflowEngine, actorFor: workflowActor,
   requireAdmin, ready: ensureReady, sameOrigin: isSameOriginRequest,
@@ -2170,6 +2173,32 @@ function studentApplicationOwnerFilter(account) {
 }
 
 async function initializeMongoData() {
+  // Index builds and one-time data migrations run once per deployment, not on every
+  // serverless cold start. Local and non-Vercel runs keep running them each start.
+  const deploymentVersion = process.env.VERCEL_GIT_COMMIT_SHA || process.env.VERCEL_DEPLOYMENT_ID || '';
+  const maintenanceKey = 'startup-maintenance';
+  const maintenanceDone = deploymentVersion
+    && (await SiteSetting.findOne({ key: maintenanceKey }).select('title').lean())?.title === deploymentVersion;
+  if (!maintenanceDone) await runStartupMaintenance();
+  adminAuthState = await AdminAuthState.findOne().lean();
+
+  let homepageRecord = await SiteSetting.findOne({ key: 'homepage' });
+  if (!homepageRecord) {
+    homepageRecord = await SiteSetting.create({ key: 'homepage', ...homepageSettings });
+  }
+  homepageSettings = { title: homepageRecord.title, subtitle: homepageRecord.subtitle };
+
+  // These reads are independent; keep initialization gated until all succeed.
+  const [clubRecords, applicationRecords, accountRecords] = await Promise.all([
+    Club.find().sort({ sortOrder: 1, id: 1 }).lean(),
+    Application.find().sort({ id: 1 }).lean(),
+    ClubAccount.find().sort({ clubId: 1, role: 1, committee: 1 }).lean()
+  ]);
+  ({ clubs, applications, clubAccounts } = require('./database/cache-snapshot').cacheSnapshot(
+    { clubRecords, applicationRecords, accountRecords }, toApiRecord));
+}
+
+async function runStartupMaintenance() {
   await require('./services/event-registration-indexes').removeLegacyPositionalUniqueIndex({
     EventRegistration,
     db: mongoose.connection.db
@@ -2215,14 +2244,6 @@ async function initializeMongoData() {
     { sessionVersion: { $exists: false } },
     { $set: { sessionVersion: 0 } }
   );
-  adminAuthState = await AdminAuthState.findOne().lean();
-
-  let homepageRecord = await SiteSetting.findOne({ key: 'homepage' });
-  if (!homepageRecord) {
-    homepageRecord = await SiteSetting.create({ key: 'homepage', ...homepageSettings });
-  }
-  homepageSettings = { title: homepageRecord.title, subtitle: homepageRecord.subtitle };
-
   // Legacy feed posts used the generic "post" type; normalize them to "feed".
   await ContentRequest.updateMany({ type: 'post' }, { $set: { type: 'feed' } });
 
@@ -2236,14 +2257,11 @@ async function initializeMongoData() {
     await record.save();
   }
 
-  // These reads are independent; keep initialization gated until all succeed.
-  const [clubRecords, applicationRecords, accountRecords] = await Promise.all([
-    Club.find().sort({ sortOrder: 1, id: 1 }).lean(),
-    Application.find().sort({ id: 1 }).lean(),
-    ClubAccount.find().sort({ clubId: 1, role: 1, committee: 1 }).lean()
-  ]);
-  ({ clubs, applications, clubAccounts } = require('./database/cache-snapshot').cacheSnapshot(
-    { clubRecords, applicationRecords, accountRecords }, toApiRecord));
+  const deploymentVersion = process.env.VERCEL_GIT_COMMIT_SHA || process.env.VERCEL_DEPLOYMENT_ID || '';
+  if (deploymentVersion) {
+    await SiteSetting.updateOne({ key: 'startup-maintenance' },
+      { $set: { title: deploymentVersion, subtitle: 'Startup indexes and migrations completed' } }, { upsert: true });
+  }
 }
 
 function requireClubPresident(req, res, next) {
@@ -3364,8 +3382,12 @@ async function requireAttendanceTaskAuth(req, res, next) {
     if (student) { req.attendanceTaskAccount = student; return next(); }
     const staff = await getClubAccountFromRequest(req, res);
     if (staff) { req.attendanceTaskAccount = staff; return next(); }
+    if (!req.path.startsWith('/api/')) return sendHttpErrorPage(res, 401, 'Sign in required', 'Sign in to the student or staff account assigned to this task.');
     return res.status(401).json({ message: 'Sign in to the student or staff account assigned to this task.' });
-  } catch { return res.status(503).json({ message: 'Could not verify the account assigned to this task.' }); }
+  } catch {
+    if (!req.path.startsWith('/api/')) return sendHttpErrorPage(res, 503, 'Attendance task is temporarily unavailable', 'Could not verify the account assigned to this task.');
+    return res.status(503).json({ message: 'Could not verify the account assigned to this task.' });
+  }
 }
 
 app.get('/api/miu-attendance-task', requireAttendanceTaskAuth, async (req, res) => {
@@ -3385,10 +3407,10 @@ app.get('/pages/my-attendance-task.html', requireAttendanceTaskAuth, async (req,
     const assignedTask = await AttendanceSession.exists({
       sourceType: 'miu', active: true, assignedMemberEmail: req.attendanceTaskAccount.email
     });
-    if (!assignedTask) return res.status(404).send('Attendance task not found.');
+    if (!assignedTask) return sendHttpErrorPage(res, 404, 'Attendance task not found', 'No active attendance task is assigned to this account.');
     return res.sendFile(path.join(__dirname, 'public/pages/my-attendance-task.html'));
   } catch {
-    return res.status(503).send('Attendance task is temporarily unavailable.');
+    return sendHttpErrorPage(res, 503, 'Attendance task is temporarily unavailable', 'Please try again in a moment.');
   }
 });
 
@@ -6327,7 +6349,7 @@ function getPasswordRecoveryTransport() {
   if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASSWORD || !EMAIL_FROM) return null;
   const port = Number(SMTP_PORT);
   if (!Number.isInteger(port) || port < 1 || port > 65535) return null;
-  return nodemailer.createTransport({
+  return require('nodemailer').createTransport({
     host: SMTP_HOST,
     port,
     secure: process.env.SMTP_SECURE ? process.env.SMTP_SECURE === 'true' : port === 465,
@@ -6659,7 +6681,7 @@ require('./services/miu-event-admin').registerMiuEventAdmin(app, universityPubli
 require('./services/report-downloads').registerReportDownloads(app, {
   Club, UniversityContent, ContentRequest, AttendanceRecord, AttendanceSession, EventRegistration, StudentAccount,
   databaseReady: () => mongoReady,
-  getAccount: async req => {
+  getAccount: async (req, res) => {
     const account = await getClubAccountFromRequest(req, res);
     if (account) return account.role === 'software_development' ? { role: 'admin' } : account;
     return await isAdminSessionValid(req, res) ? { role: 'admin' } : null;
@@ -8223,11 +8245,13 @@ function escapeHtml(value) {
   })[character]);
 }
 
+let httpErrorPageTemplate;
 function sendHttpErrorPage(res, status, title, detail) {
   const retryButton = status >= 500
     ? '<button class="retry-action" type="button" onclick="location.reload()">Try again</button>'
     : '';
-  const html = fs.readFileSync(path.join(__dirname, 'private', 'error-page.html'), 'utf8')
+  httpErrorPageTemplate ??= fs.readFileSync(path.join(__dirname, 'private', 'error-page.html'), 'utf8');
+  const html = httpErrorPageTemplate
     .replaceAll('{{STATUS}}', escapeHtml(status))
     .replaceAll('{{TITLE}}', escapeHtml(title))
     .replaceAll('{{DETAIL}}', escapeHtml(detail))

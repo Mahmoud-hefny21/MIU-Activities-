@@ -1,17 +1,19 @@
 const path = require('node:path');
 const P = require('./workflow-policy');
 const { customDashboardUrl, isCustomRole } = require('./staff-role-keys');
-function registerCustomStaffRoleRoutes(app, { service, engine, actorFor, ready, sameOrigin, requireAdmin, root }) {
+function registerCustomStaffRoleRoutes(app, { sendHttpErrorPage, service, engine, actorFor, ready, sameOrigin, requireAdmin, root }) {
   const safe = handler => async (req, res) => {
     res.set('Cache-Control', 'no-store');
+    const page = !req.path.startsWith('/api/') && sendHttpErrorPage;
     try {
-      if (!await ready()) return res.status(503).json({ message: 'Role storage is temporarily unavailable.' });
+      if (!await ready()) return page ? page(res, 503, 'Role storage is temporarily unavailable', 'Please try again in a moment.') : res.status(503).json({ message: 'Role storage is temporarily unavailable.' });
       const actor = await actorFor(req, res);
-      if (!actor) return res.status(401).json({ message: 'Sign in with your assigned MIU staff account.' });
+      if (!actor) return page ? page(res, 401, 'Sign in required', 'Sign in with your assigned MIU staff account.') : res.status(401).json({ message: 'Sign in with your assigned MIU staff account.' });
       if (req.method !== 'GET' && !sameOrigin(req)) P.fail(403, 'Reload and try again.');
       await handler(req, res, actor);
     } catch (error) {
       if (!error.status) console.error('Custom staff role operation failed:', error.name);
+      if (page) return page(res, error.status || 503, error.status ? 'Access unavailable' : 'Dashboard is temporarily unavailable', error.status ? error.message : 'Please try again in a moment.');
       res.status(error.status || 503).json({ message: error.status ? error.message : 'Role changes could not be confirmed. Reload before retrying.' });
     }
   };

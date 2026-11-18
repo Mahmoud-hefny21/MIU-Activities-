@@ -14,6 +14,13 @@
   transition: background-color var(--transition-base), border-color var(--transition-base);
 }
 
+/* Touch devices: skip the live blur behind the sticky header. It repaints on every
+   scroll frame and is barely visible behind a near-opaque background. */
+@media (hover: none), (max-width: 760px) {
+  .topbar-nav { backdrop-filter: none; -webkit-backdrop-filter: none; background-color: rgba(255, 255, 255, .97); }
+  :root[data-theme="dark"] .topbar-nav { backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+
 /* Header markup is injected after the first paint; reserve its flow slot. */
 #site-header { min-height: 80px; }
 @media (max-width: 1120px) { #site-header { min-height: 70px; } }

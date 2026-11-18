@@ -19,7 +19,7 @@ function registerSupervisorDashboard(app, deps) {
     res.setHeader('Cache-Control', 'no-store');
     try {
       if (!databaseReady()) return res.status(503).json({ message: 'Supervisor data is temporarily unavailable.' });
-      const account = await getAccount(req);
+      const account = await getAccount(req, res);
       if (!account) return res.status(401).json({ message: 'Sign in to your supervisor account.' });
       if (account.role !== 'supervisor') return res.status(403).json({ message: 'Supervisor access required.' });
       req.supervisor = account;

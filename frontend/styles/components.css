@@ -1538,6 +1538,9 @@
 }
 
 .footer-links .footer-author-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
   color: #e2e8f0;
   font-size: .88rem;
   font-weight: 600;

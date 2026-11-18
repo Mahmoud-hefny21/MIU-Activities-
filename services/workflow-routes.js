@@ -170,6 +170,7 @@ function registerWorkflowRoutes(app, { engine, actorFor, requireAdmin, ready, sa
     // Old CV links must pass the same inspectable-field checks as the new page.
     const privateCv = /^\/api\/speaker-requests\/([a-f0-9]{24})\/cv$/i.exec(req.path);
     if (req.method === 'GET' && privateCv) {
+      if (!await ready()) return next();
       try {
         const row = await engine.modelFor('speaker').findOne(engine.filterFor('speaker', privateCv[1])).lean();
         if (!row?.workflow) return next();
@@ -181,6 +182,8 @@ function registerWorkflowRoutes(app, { engine, actorFor, requireAdmin, ready, sa
     const speaker = /^\/api\/(?:club\/|dean\/)?speaker-requests\/([a-f0-9]{24})\/(?:decision|resubmit)/i.exec(req.path);
     const supervisor = /^\/api\/supervisor\/clubs\/\d+\/decisions\/(content|speaker)\/([a-f0-9]+)$/i.exec(req.path);
     if (!content && !speaker && !supervisor) return next();
+    // Without storage the route's own handler answers immediately; querying here would stall.
+    if (!await ready()) return next();
     try {
       const kind = content ? 'content' : speaker ? 'speaker' : supervisor[1], id = content?.[1] || speaker?.[1] || supervisor[2];
       const row = await engine.modelFor(kind).findOne(engine.filterFor(kind, id)).select('id clubId assignedHeadEmail requesterEmail workflow').lean();
