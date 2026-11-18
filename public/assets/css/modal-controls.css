@@ -314,15 +314,14 @@ body .committee-inline-panel .attendance-review-panel .attendance-review-actions
   margin-inline-start: auto !important;
 }
 
+/* Full-page views scroll with the window, so the close stays below the sticky site header. */
 :root body #clubView .club-detail-card > .club-detail-close,
 :root body #applicationView .app-form-card > .application-exit {
-  position: absolute !important;
-  top: 16px !important;
-  right: 16px !important;
-  float: none !important;
-  margin: 0 !important;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
+  position: sticky !important;
+  top: calc(var(--sticky-site-header-height, 72px) + 8px) !important;
+  right: auto !important;
+  float: right !important;
+  margin: 0 0 -44px 8px !important;
 }
 
 :root body .club-rating-dialog > .club-detail-close {

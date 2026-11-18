@@ -61,7 +61,10 @@ const clubSchema = new mongoose.Schema({
   events: { type: [mongoose.Schema.Types.Mixed], default: [] },
   posts: { type: [mongoose.Schema.Types.Mixed], default: [] },
   sponsors: { type: [mongoose.Schema.Types.Mixed], default: [] },
-  booths: { type: [mongoose.Schema.Types.Mixed], default: [] }
+  booths: { type: [mongoose.Schema.Types.Mixed], default: [] },
+  // Yearly activity plan uploaded by the president as an Excel sheet.
+  yearPlan: { type: [mongoose.Schema.Types.Mixed], default: [] },
+  yearPlanUpdatedAt: { type: Date, default: null }
 }, { timestamps: true });
 
 const applicationSchema = new mongoose.Schema({
@@ -175,11 +178,13 @@ const clubAccountSchema = new mongoose.Schema({
 const contentRequestSchema = new mongoose.Schema({
   attendanceSettings: { type: mongoose.Schema.Types.Mixed, default: undefined },
   workflow: { type: mongoose.Schema.Types.Mixed, default: undefined },
+  // Year plan requests carry the parsed Excel activities until the Dean publishes them.
+  yearPlanEntries: { type: [mongoose.Schema.Types.Mixed], default: undefined },
   id: { type: Number, required: true, unique: true, index: true },
   clubId: { type: Number, required: true, index: true },
   clubName: { type: String, default: '' },
   assignedHeadEmail: { type: String, default: '', lowercase: true, trim: true },
-  type: { type: String, enum: ['event', 'feed', 'sponsor', 'booth', 'entry_permit'], required: true },
+  type: { type: String, enum: ['event', 'feed', 'sponsor', 'booth', 'entry_permit', 'year_plan'], required: true },
   title: { type: String, required: true, trim: true },
   description: { type: String, default: '' },
   date: { type: String, default: '' },

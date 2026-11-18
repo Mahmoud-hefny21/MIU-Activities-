@@ -2,7 +2,7 @@ const ExcelJS = require('exceljs');
 
 async function eventReportWorkbook(rows, range, undatedEvents = 0) {
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'MIU Clubs';
+  workbook.creator = 'MIU Activities';
   const data = rows.slice(1);
   function sheet(name, headings, widths) {
     const ws = workbook.addWorksheet(name, { views: [{ state: 'frozen', ySplit: 1 }] });

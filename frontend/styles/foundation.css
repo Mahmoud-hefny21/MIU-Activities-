@@ -151,7 +151,7 @@ html.site-startup-pending::after {
   background-size: 136px auto;
   box-shadow: var(--shadow-lg);
   color: var(--text-main);
-  content: "MIU Clubs\A Loading your page...";
+  content: "MIU Activities\A Loading your page...";
   font-size: .9rem;
   font-weight: 700;
   line-height: 1.8;
@@ -195,7 +195,7 @@ html.site-startup-pending .site-startup-ring::after {
   html.site-startup-pending .site-startup-ring::after { animation-duration: 2.4s; }
 }
 /* A thin bar along the top edge of the screen: shows loading without covering any content.
-   The "Loading MIU Clubs" text stays available to screen readers. */
+   The "Loading MIU Activities" text stays available to screen readers. */
 .site-loading-indicator {
   top: 0;
   left: 0;

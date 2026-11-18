@@ -33,10 +33,8 @@
       const button = document.createElement('button'); button.type = 'button'; button.className = 'dashboard-drawer-toggle secondary-btn';
       button.textContent = '☰ Dashboard menu'; button.setAttribute('aria-controls', sidebar.id); button.setAttribute('aria-expanded', 'false');
       sidebar.before(button);
-      const dismiss = document.createElement('button'); dismiss.type = 'button'; dismiss.className = 'dashboard-drawer-close'; dismiss.textContent = '×';
-      dismiss.setAttribute('aria-label', 'Close dashboard menu');
       const heading = document.createElement('div'); heading.className = 'dashboard-drawer-heading';
-      const title = document.createElement('strong'); title.textContent = 'Dashboard'; heading.append(title, dismiss);
+      const title = document.createElement('strong'); title.textContent = 'Dashboard'; heading.append(title);
       sidebar.prepend(heading);
       const entry = { sidebar, button }; drawers.push(entry); sidebar.inert = mobile.matches;
       let touchStartY = null;
@@ -51,12 +49,13 @@
           suppressTapUntil = performance.now() + 450;
         }
       }, { passive: true });
-      dismiss.addEventListener('click', close);
       button.addEventListener('click', () => {
         if (active === entry) { close(); return; }
         close(); active = entry; sidebar.inert = false;
         sidebar.classList.add('drawer-open'); overlay.hidden = false;
-        document.body.classList.add('dashboard-drawer-open'); button.setAttribute('aria-expanded', 'true'); dismiss.focus();
+        document.body.classList.add('dashboard-drawer-open'); button.setAttribute('aria-expanded', 'true');
+        // Tap outside, Escape or choosing an item closes the drawer.
+        sidebar.querySelector('a[href], button:not(:disabled)')?.focus();
       });
       sidebar.addEventListener('click', event => {
         if (mobile.matches && performance.now() < suppressTapUntil) {
@@ -64,7 +63,7 @@
           event.stopPropagation();
           return;
         }
-        if (mobile.matches && !event.target.closest('.dashboard-drawer-close') && event.target.closest('a, button')) {
+        if (mobile.matches && event.target.closest('a, button')) {
           // Let existing dashboard selection handlers finish before closing.
           window.setTimeout(close, 0);
         }

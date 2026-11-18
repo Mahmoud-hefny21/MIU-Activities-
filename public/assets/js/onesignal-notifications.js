@@ -49,7 +49,7 @@
       welcomeDialog.setAttribute('aria-labelledby', 'notificationWelcomeTitle');
       welcomeDialog.innerHTML = `
         <div class="notification-welcome-icon" aria-hidden="true">🔔</div>
-        <h2 id="notificationWelcomeTitle">Stay up to date with MIU Clubs</h2>
+        <h2 id="notificationWelcomeTitle">Stay up to date with MIU Activities</h2>
         <p>Get a notification when a club posts an announcement, event, or update. You can turn this off any time from your account menu.</p>
         <p class="notification-welcome-feedback" role="status" aria-live="polite"></p>
         <div class="notification-welcome-actions">

@@ -8,7 +8,7 @@
     const data = await api('/api/custom-dashboard/' + encodeURIComponent(key));
     document.getElementById('customRoleTitle').textContent = data.name;
     document.getElementById('customRoleDescription').textContent = data.description;
-    document.title = data.name + ' · MIU Clubs';
+    document.title = data.name + ' · MIU Activities';
     document.getElementById('customRoleScope').textContent = data.scope === 'global' ? 'Review tools for all clubs, within this role’s permissions.' : 'Review tools for your assigned clubs.';
     const panels = { overview: 'customOverviewPanel', requests: 'customRequestsPanel', notifications: 'customNotificationsPanel' }, loaded = new Set();
     async function show(name) {

@@ -90,7 +90,7 @@
     }).join('')}</div>`;
   }
   function renderClubRequest(item) {
-    const type = ({ event: 'Event', booth: 'Booth', feed: 'Feed post', entry_permit: 'Entry permit' })[item.type] || text(item.type);
+    const type = ({ event: 'Event', booth: 'Booth', feed: 'Feed post', entry_permit: 'Entry permit', year_plan: 'Year plan' })[item.type] || text(item.type);
     const meta = [item.clubName, type, item.date].filter(Boolean).map(escape).join(' · ');
     const image = item.clubImage || '/assets/img/pics/logo.svg.png';
     return `<article class="supervisor-record req-card supervisor-request-card"><img src="${escape(image)}" alt="${escape(item.clubName || 'Club')} logo" loading="lazy"><div class="req-summary supervisor-request-heading"><strong>${escape(item.title || 'Untitled request')}</strong><div class="req-meta">${meta}</div><span class="badge-status">${text(item.status)}</span></div>${item.clubNotice ? `<details class="supervisor-request-notice"><summary title="Open the full review update">Review update</summary><p>${escape(item.clubNotice)}</p></details>` : ''}${decisionForm('content', item.id, item.status, item.workflowRevision ? { revision: item.workflowRevision, actions: item.workflowActions, editableFields: item.workflowEditableFields } : null)}</article>`;
@@ -109,7 +109,7 @@
     requestDetailImage.alt = `${item.clubName || 'Club'} logo`;
     requestDetails.replaceChildren();
     appendRequestDetail('Club', item.clubName);
-    appendRequestDetail('Type', ({ event: 'Event', booth: 'Booth', feed: 'Feed post', entry_permit: 'Entry permit' })[item.type] || item.type);
+    appendRequestDetail('Type', ({ event: 'Event', booth: 'Booth', feed: 'Feed post', entry_permit: 'Entry permit', year_plan: 'Year plan' })[item.type] || item.type);
     appendRequestDetail('Status', text(item.status));
     if (item.type === 'booth') {
       appendRequestDetail('Booth name', item.boothName || item.title);

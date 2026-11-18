@@ -3,7 +3,7 @@ const { staffRoleAssignments } = require('./staff-google-auth');
 
 function canCommitteeAccess(role, type) {
   if (role === 'security') return type === 'entry_permit';
-  if (role === 'english') return ['event', 'feed', 'sponsor', 'booth'].includes(type);
+  if (role === 'english') return ['event', 'feed', 'sponsor', 'booth', 'year_plan'].includes(type);
   return ['pr', 'dean'].includes(role);
 }
 

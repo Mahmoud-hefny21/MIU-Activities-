@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Misr International University Clubs",
-  "short_name": "MIU Clubs",
-  "description": "Discover university clubs, events, and activities at Misr International University.",
+  "name": "MIU Activities",
+  "short_name": "MIU Activities",
+  "description": "Discover clubs, events, and student activities at Misr International University.",
   "lang": "en",
   "start_url": "/",
   "scope": "/",

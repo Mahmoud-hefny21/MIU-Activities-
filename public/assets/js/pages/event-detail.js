@@ -170,7 +170,7 @@
         .catch(() => { feedbackEl.textContent = 'Registration controls could not load. Please reload.'; });
       statusEl.hidden = true;
       contentEl.hidden = false;
-      document.title = `${event.title || 'Event'} - MIU Clubs`;
+      document.title = `${event.title || 'Event'} - MIU Activities`;
     })
     .catch(() => {
       statusEl.textContent = 'Could not load this event right now.';

@@ -1,12 +1,18 @@
 const { WorkflowError } = require('./workflow-policy');
 
-async function publishApprovedContent(record, session, { Club, contentClubField, buildPublishedItem }) {
+async function publishApprovedContent(record, session, { Club, contentClubField, buildPublishedItem, publishYearPlan }) {
   if (record.type === 'entry_permit') return;
 
   // Archived clubs stay hidden from public queries, but an in-flight request
   // must still be reviewable and publishable so it is present if the club is restored.
   const club = await Club.findOne({ id: record.clubId }).session(session);
   if (!club) throw new WorkflowError(409, 'The club record was removed. Restore or recreate it before final approval.');
+
+  if (record.type === 'year_plan') {
+    publishYearPlan(club, record);
+    await club.save({ session });
+    return;
+  }
 
   const field = contentClubField[record.type];
   const previous = (club[field] || []).find(item => Number(item.requestId) === Number(record.id));

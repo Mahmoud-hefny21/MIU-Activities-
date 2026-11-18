@@ -14,6 +14,7 @@
     "backup:restore": "node scripts/restore-database-backup.js",
     "sql:schema:generate": "node scripts/sqlserver-schema.cjs",
     "sql:schema:apply": "node scripts/sqlserver-migrate.cjs --schema",
+    "sql:year-plan:apply": "node scripts/year-plan-schema.cjs --apply",
     "sql:live:schema:apply": "node scripts/sqlserver-live-schema.cjs --apply",
     "sql:export": "node scripts/sqlserver-migrate.cjs --export",
     "sql:dry-run": "node scripts/sqlserver-migrate.cjs --dry-run",

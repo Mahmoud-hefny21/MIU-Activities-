@@ -1,6 +1,6 @@
 const { isDeepStrictEqual } = require('node:util');
 const roles = ['admin', 'software_development', 'president', 'vice_president', 'head', 'supervisor', 'pr', 'english', 'security', 'sso', 'dean', 'miu_events'];
-const types = ['event', 'feed', 'sponsor', 'booth', 'entry_permit', 'speaker', 'speaker_miu', 'speaker_public'];
+const types = ['event', 'feed', 'sponsor', 'booth', 'entry_permit', 'year_plan', 'speaker', 'speaker_miu', 'speaker_public'];
 const actions = ['approve', 'reject', 'request_changes', 'comment', 'forward', 'assign', 'history', 'view_all'];
 const common = { title: ['Title', 'text', 140, true], description: ['Description', 'textarea', 2000], date: ['Date', 'date', 40], time: ['Time', 'time', 40], location: ['Location', 'text', 140], image: ['Image', 'image', 4194304] };
 const fields = {
@@ -9,6 +9,8 @@ const fields = {
   sponsor: Object.fromEntries(['sponsorName', 'sponsorCompany', 'sponsorContact', 'sponsorEmail', 'sponsorPhone', 'sponsorType', 'sponsorAmount', 'sponsorBenefits', 'sponsorDescription', 'sponsorLogo', 'sponsorAttachment', 'sponsorNotes'].map(key => [key, [key.replace(/^sponsor/, '').replace(/([A-Z])/g, ' $1').trim(), key === 'sponsorLogo' ? 'image' : key === 'sponsorAttachment' ? 'file' : key.includes('Description') || key.includes('Notes') || key.includes('Benefits') ? 'textarea' : 'text', ['sponsorLogo', 'sponsorAttachment'].includes(key) ? 4194304 : 2000, key === 'sponsorName']])),
   booth: { ...common, ...Object.fromEntries(['boothName', 'boothPurpose', 'boothDescription', 'boothLocation', 'boothSize', 'boothEquipment', 'boothSetupDate', 'boothOpenDate', 'boothCloseDate', 'boothContact', 'boothNotes'].map(key => [key, [key.replace(/^booth/, '').replace(/([A-Z])/g, ' $1').trim(), key.includes('Date') ? 'date' : key.includes('Description') || key.includes('Notes') ? 'textarea' : 'text', 2000, key === 'boothName']])) },
   entry_permit: { title: common.title, description: common.description, date: common.date, time: common.time, location: common.location, permitItems: ['Permit items', 'permit', 0, true] },
+  // The activities come from the uploaded Excel sheet; reviewers read them in the description and request changes to replace the file.
+  year_plan: { title: common.title, description: ['Plan activities', 'textarea', 20000] },
   speaker: Object.fromEntries(['speakerName', 'jobTitleCompany', 'linkedinProfile', 'proposedTopic', 'speakerSelectionReason', 'expectedStudentBenefit', 'shortBio', 'sessionFormat', 'availability', 'specialRequirements', 'speakerAttachments'].map(key => [key, [key.replace(/([A-Z])/g, ' $1').trim(), key === 'speakerAttachments' ? 'speaker_files' : ['speakerSelectionReason', 'expectedStudentBenefit', 'shortBio', 'specialRequirements'].includes(key) ? 'textarea' : 'text', ['speakerName'].includes(key) ? 160 : ['linkedinProfile', 'availability'].includes(key) ? 500 : ['jobTitleCompany', 'proposedTopic'].includes(key) ? 300 : 2000, ['speakerName', 'jobTitleCompany', 'proposedTopic'].includes(key)]]))
 };
 fields.speaker_miu = fields.speaker;

@@ -31,8 +31,8 @@
     dialog.setAttribute('aria-labelledby', 'installWelcomeTitle');
     dialog.innerHTML = `
       <div class="notification-welcome-icon" aria-hidden="true">⇩</div>
-      <h2 id="installWelcomeTitle">Install MIU Clubs</h2>
-      <p>Keep MIU Clubs on your home screen or desktop for quick access.</p>
+      <h2 id="installWelcomeTitle">Install MIU Activities</h2>
+      <p>Keep MIU Activities on your home screen or desktop for quick access.</p>
       <p class="notification-welcome-feedback" role="status" aria-live="polite"></p>
       <div class="notification-welcome-actions">
         <button class="notification-welcome-enable" type="button">${promptEvent ? 'Install app' : ios && navigator.share ? 'Add to Home Screen' : 'How to install'}</button>
@@ -46,7 +46,7 @@
         if (ios && typeof navigator.share === 'function') {
           button.disabled = true;
           try {
-            await navigator.share({ title: 'MIU Clubs', url: location.href });
+            await navigator.share({ title: 'MIU Activities', url: location.href });
             dialog.close();
           } catch (error) {
             // Closing the share sheet is not an installation failure.
@@ -67,7 +67,7 @@
       try {
         await currentPrompt.prompt();
         const choice = await currentPrompt.userChoice;
-        if (choice?.outcome === 'accepted') feedback.textContent = 'MIU Clubs is being installed on your device.';
+        if (choice?.outcome === 'accepted') feedback.textContent = 'MIU Activities is being installed on your device.';
         dialog.close();
       } catch {
         feedback.textContent = 'Installation could not start. Try the install option in your browser menu.';

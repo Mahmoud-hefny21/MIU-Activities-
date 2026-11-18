@@ -176,7 +176,7 @@
     if (!tool) return;
     const version = ++panelVersion;
     $('toolTitle').textContent = tool.title; $('toolEyebrow').textContent = categories[tool.category];
-    document.title = `${tool.title} · Admin Dashboard · MIU Clubs`;
+    document.title = `${tool.title} · Admin Dashboard · MIU Activities`;
     if (specialized.has(id)) return;
     feedback('toolFeedback'); $('toolContent').innerHTML = '<p class="v2-panel-note" role="status">Loading…</p>';
     try {

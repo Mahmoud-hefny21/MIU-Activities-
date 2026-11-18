@@ -1338,3 +1338,22 @@ body :is(button[aria-label*="close" i], button[aria-label*="exit" i], button[tit
 .club-profile-back:focus-visible { outline: 3px solid var(--primary-700); outline-offset: 3px; }
 .club-profile-back span { color: var(--primary-700); font-size: 1rem; }
 @media (max-width: 640px) { .club-profile-back { min-height: 34px; margin-bottom: 12px; padding: 5px 10px; font-size: .74rem; } }
+
+/* Club page header: one chip row, a single tagline, and actions side by side. */
+.club-detail-hero { align-items: start; padding-bottom: 20px; border-bottom: 1px solid var(--border-color); }
+.detail-chip-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.detail-chip-row .status-pill, .detail-chip-row .detail-pinned-label { margin: 0; }
+.club-detail-hero .detail-title { margin: 10px 0 6px; }
+.club-detail-hero .detail-tagline { max-width: 60ch; margin: 0; }
+.club-detail-actions { flex-direction: row; flex-wrap: wrap; align-items: center; margin-top: 18px; }
+.club-detail-actions .club-detail-apply, .club-detail-actions .club-rate-button { width: auto; min-width: 132px; }
+.club-calendar-button svg { flex: none; color: var(--primary-700); }
+@media (max-width: 560px) {
+  .club-detail-hero { padding-bottom: 16px; }
+  .club-detail-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .club-detail-actions .club-detail-apply { grid-column: 1 / -1; }
+  .club-detail-actions .club-detail-apply, .club-detail-actions .club-rate-button { width: 100%; min-width: 0; }
+}
+
+/* Year plan activities in the calendar day list are informational, not links. */
+.calendar-day-event-option.is-year-plan { cursor: default; }

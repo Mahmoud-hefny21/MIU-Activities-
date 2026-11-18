@@ -2,7 +2,7 @@
 // Each module page assigns its own content type automatically — the user never picks a type.
 const ContentStudio = (() => {
   const reviewerNames = { pr: 'PR Department', english: 'English Department', security: 'Security Office', dean: 'Dean' };
-  const typeLabels = { event: 'Event', feed: 'Feed', sponsor: 'Sponsor', booth: 'Booth', entry_permit: 'Entry Permit' };
+  const typeLabels = { event: 'Event', feed: 'Feed', sponsor: 'Sponsor', booth: 'Booth', entry_permit: 'Entry Permit', year_plan: 'Year Plan' };
 
   function escapeHtml(value) { return window.MiuUI.escapeHtml(value); }
 

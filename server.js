@@ -1496,7 +1496,7 @@ const dynamicWorkflowEngine = require('./services/workflow-engine').createWorkfl
     if (record.type === 'entry_permit') return;
     if (missingRequiredPublicContentImage(record.type, record)) throw new (require('./services/workflow-policy').WorkflowError)(422, 'Add the required image before final approval.');
     await require('./services/workflow-content-publisher').publishApprovedContent(record, session, {
-      Club, contentClubField, buildPublishedItem
+      Club, contentClubField, buildPublishedItem, publishYearPlan
     });
   },
   validatePatch: async (record, patch, actor, session) => {
@@ -2579,7 +2579,7 @@ async function dispatchAcceptedApplicationPush(application) {
     appId,
     apiKey,
     externalId,
-    title: 'MIU Clubs',
+    title: 'MIU Activities',
     message: 'Your club application status has been updated. Sign in to view it.',
     url: notificationUrl
   }));
@@ -2588,7 +2588,7 @@ async function dispatchAcceptedApplicationPush(application) {
       appId,
       apiKey,
       externalId,
-      subject: 'MIU Clubs: application update',
+      subject: 'MIU Activities: application update',
       message: 'Your club application status has been updated.',
       url: notificationUrl
     }));
@@ -2645,7 +2645,7 @@ async function dispatchSpeakerRequestStatusPush(request) {
       appId,
       apiKey,
       externalId: String(student._id),
-      title: 'MIU Clubs · Speaker request',
+      title: 'MIU Activities · Speaker request',
       message: typeof statusMessages[request.status] === 'function' ? statusMessages[request.status](request) : statusMessages[request.status],
       url: notificationUrl
     });
@@ -2663,6 +2663,8 @@ async function dispatchSpeakerRequestStatusPush(request) {
 }
 
 async function dispatchPublishedContentNotifications({ source, contentId, revision, type, title }) {
+  // A year plan updates the club calendar; it is not a feed item to announce.
+  if (type === 'year_plan') return;
   const appId = String(process.env.ONESIGNAL_APP_ID || '').trim();
   const apiKey = String(process.env.ONESIGNAL_REST_API_KEY || '').trim();
   const configuredBaseUrl = String(process.env.ONESIGNAL_SITE_URL || '').trim();
@@ -2719,7 +2721,7 @@ async function dispatchPublishedContentNotifications({ source, contentId, revisi
     appId,
     apiKey,
     externalIds: allStudentIds,
-    title: 'MIU Clubs',
+    title: 'MIU Activities',
     message,
     url: feedUrl
   }));
@@ -4441,6 +4443,136 @@ app.put('/api/club/committee-availability', requireClubAuth, requireClubPresiden
   await updateCommitteeAvailability(req.clubAccount.clubId, req.body.committees, res);
 });
 
+const { parseYearPlanWorkbook, buildYearPlanTemplate, YearPlanError } = require('./services/club-year-plan');
+
+async function readClubYearPlan(clubId) {
+  const club = await Club.findOne({ id: clubId, archivedAt: null })
+    .select('id yearPlan yearPlanUpdatedAt').read('primary').lean();
+  if (!club) return null;
+  return { entries: Array.isArray(club.yearPlan) ? club.yearPlan : [], updatedAt: club.yearPlanUpdatedAt || null };
+}
+
+app.get('/api/clubs/:id/year-plan', async (req, res) => {
+  const clubId = Number(req.params.id);
+  if (!Number.isSafeInteger(clubId)) return res.status(400).json({ message: 'Invalid club.' });
+  if (!requireLiveDatabase(res)) return;
+  try {
+    const plan = await readClubYearPlan(clubId);
+    if (!plan) return res.status(404).json({ message: 'Club not found.' });
+    res.setHeader('Cache-Control', 'no-store');
+    res.json(plan);
+  } catch (error) {
+    console.error('Year plan lookup failed:', error.name);
+    res.status(503).json({ message: 'Could not load the club calendar right now.' });
+  }
+});
+
+const YEAR_PLAN_IN_REVIEW = ['pending_supervisor', 'pending_pr', 'pending_english', 'pending_dean'];
+
+function yearPlanReviewSummary(entries) {
+  // Reviewers read the activities as plain lines in the request description.
+  return entries.map((entry) => `${entry.date}: ${entry.title} — ${entry.description}`).join('\n').slice(0, 20000);
+}
+
+async function latestYearPlanRequest(clubId) {
+  const record = await ContentRequest.findOne({ clubId, type: 'year_plan', status: { $ne: 'deleted' } })
+    .sort({ id: -1 }).select('id status clubNotice createdAt yearPlanEntries').lean();
+  if (!record) return null;
+  return { id: record.id, status: record.status, notice: record.clubNotice || '', submittedAt: record.createdAt,
+    count: Array.isArray(record.yearPlanEntries) ? record.yearPlanEntries.length : 0 };
+}
+
+app.get('/api/club/year-plan', requireClubAuth, requireClubPresident, async (req, res) => {
+  if (!requireLiveDatabase(res)) return;
+  try {
+    const [plan, request] = await Promise.all([
+      readClubYearPlan(req.clubAccount.clubId), latestYearPlanRequest(req.clubAccount.clubId)
+    ]);
+    if (!plan) return res.status(404).json({ message: 'Club not found.' });
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ ...plan, request });
+  } catch (error) {
+    console.error('Year plan lookup failed:', error.name);
+    res.status(503).json({ message: 'Could not load the year plan right now.' });
+  }
+});
+
+app.get('/api/club/year-plan/template', requireClubAuth, requireClubPresident, async (req, res) => {
+  try {
+    const buffer = await buildYearPlanTemplate();
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="club-year-plan-template.xlsx"');
+    res.send(Buffer.from(buffer));
+  } catch (error) {
+    console.error('Year plan template failed:', error.name);
+    res.status(500).json({ message: 'Could not create the template right now.' });
+  }
+});
+
+app.put('/api/club/year-plan', requireClubAuth, requireClubPresident, async (req, res) => {
+  const fileData = String(req.body?.file || '').replace(/^data:[^,]*,/, '');
+  let parsed;
+  try {
+    parsed = await parseYearPlanWorkbook(Buffer.from(fileData, 'base64'));
+  } catch (error) {
+    if (error instanceof YearPlanError) return res.status(400).json({ message: error.message });
+    console.error('Year plan parse failed:', error.name);
+    return res.status(400).json({ message: 'This Excel file could not be read.' });
+  }
+  if (!requireLiveDatabase(res)) return;
+  try {
+    const clubId = req.clubAccount.clubId;
+    const inReview = await ContentRequest.findOne({ clubId, type: 'year_plan', status: { $in: YEAR_PLAN_IN_REVIEW } }).select('id').lean();
+    if (inReview) return res.status(409).json({ message: 'A year plan is already waiting for approval. Wait for the review to finish before uploading a new one.' });
+    const club = clubs.find((item) => item.id === clubId);
+    const last = await ContentRequest.findOne().sort({ id: -1 }).select('id').lean();
+    const first = parsed.entries[0].date, finish = parsed.entries[parsed.entries.length - 1];
+    const values = {
+      id: (last?.id || 0) + 1,
+      clubId,
+      clubName: club?.name || '',
+      type: 'year_plan',
+      title: `${club?.name || 'Club'} year plan (${parsed.entries.length} activities)`,
+      description: yearPlanReviewSummary(parsed.entries),
+      date: first,
+      location: '',
+      yearPlanEntries: parsed.entries,
+      status: 'pending_supervisor',
+      clubNotice: `Club submitted a year plan (${first} to ${finish.date}) for supervisor review.`
+    };
+    // Same review chain as other club content: supervisor, PR, English, then the Dean publishes.
+    const managed = typeof dynamicWorkflowEngine !== 'undefined';
+    const record = managed
+      ? await dynamicWorkflowEngine.createNew('content', values, { email: req.clubAccount.email, role: req.clubAccount.role })
+      : await ContentRequest.create(values);
+    if (!managed) {
+      appendWorkflowEvent(record, 'club', 'submitted', 'draft', 'pending_supervisor', '', req.clubAccount);
+      await record.save();
+      await notifyContentRequest(record);
+    }
+    res.status(201).json({ request: await latestYearPlanRequest(clubId), skipped: parsed.skipped });
+  } catch (error) {
+    console.error('Year plan submit failed:', error.name);
+    res.status(error.status || 503).json({ message: error.status ? error.message : 'Could not submit the year plan right now.' });
+  }
+});
+
+app.delete('/api/club/year-plan', requireClubAuth, requireClubPresident, async (req, res) => {
+  if (!requireLiveDatabase(res)) return;
+  try {
+    const saved = await Club.findOneAndUpdate(
+      { id: req.clubAccount.clubId },
+      { $set: { yearPlan: [], yearPlanUpdatedAt: new Date() } },
+      { new: true }
+    ).select('id').lean();
+    if (!saved) return res.status(404).json({ message: 'Club not found.' });
+    res.json({ entries: [] });
+  } catch (error) {
+    console.error('Year plan clear failed:', error.name);
+    res.status(503).json({ message: 'Could not clear the year plan right now.' });
+  }
+});
+
 app.get('/api/club/heads', requireClubAuth, requireClubPresident, async (req, res) => {
   if (!mongoReady) return res.status(503).json({ message: 'Committee head records need the database.' });
   try {
@@ -4911,20 +5043,26 @@ const committeeRoleLabels = { pr: 'PR Department', english: 'English Department'
 
 function committeeCanAccessRequest(role, type) {
   if (role === 'security') return type === 'entry_permit';
-  if (role === 'english') return ['event', 'feed', 'sponsor', 'booth'].includes(type);
+  if (role === 'english') return ['event', 'feed', 'sponsor', 'booth', 'year_plan'].includes(type);
   return ['pr', 'dean'].includes(role);
 }
 
 // Dedicated content types. Each module (Event, Feed, Sponsor, Booth) assigns its own type.
 const CONTENT_TYPES = ['event', 'feed', 'sponsor', 'booth', 'entry_permit'];
-const contentTypeLabels = { event: 'Event', feed: 'Feed', sponsor: 'Sponsor', booth: 'Booth', entry_permit: 'Entry Permit' };
+const contentTypeLabels = { event: 'Event', feed: 'Feed', sponsor: 'Sponsor', booth: 'Booth', entry_permit: 'Entry Permit', year_plan: 'Year Plan' };
 const contentHomeLabels = {
   event: 'Upcoming Event',
   feed: 'Latest Feed',
   sponsor: 'Upcoming Sponsor',
   booth: 'Booth Opening Soon'
 };
-const contentSingular = { event: 'event', feed: 'feed post', sponsor: 'sponsor request', booth: 'booth request', entry_permit: 'entry permit' };
+const contentSingular = { event: 'event', feed: 'feed post', sponsor: 'sponsor request', booth: 'booth request', entry_permit: 'entry permit', year_plan: 'year plan' };
+
+// An approved year plan replaces the club's public calendar as a whole.
+function publishYearPlan(club, record) {
+  club.yearPlan = Array.isArray(record.yearPlanEntries) ? record.yearPlanEntries : [];
+  club.yearPlanUpdatedAt = new Date();
+}
 const contentClubField = { event: 'events', feed: 'posts', sponsor: 'sponsors', booth: 'booths' };
 
 function isContentType(value) {
@@ -5763,7 +5901,10 @@ app.post('/api/committee/requests/:id/action', requireClubAuth, requireCommittee
     if (nextStatus === 'published' && record.type !== 'entry_permit') {
       record.publishedAt = new Date();
       const club = await Club.findOne({ id: record.clubId });
-      if (club) {
+      if (club && record.type === 'year_plan') {
+        publishYearPlan(club, record);
+        await club.save();
+      } else if (club) {
         const item = buildPublishedItem(record, club);
         const field = contentClubField[record.type];
         club[field] = club[field] || [];

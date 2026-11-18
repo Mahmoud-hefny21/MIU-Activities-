@@ -113,12 +113,47 @@ window.formatSiteTime = (value) => {
   return `${hours}:${minutes} ${suffix}`;
 };
 
+// Keep the page's Back control reachable: once it scrolls under the header, a floating copy appears.
+const initFloatingBack = () => {
+  if (/(?:forgot-password|reset-password)/.test(location.pathname)) return;
+  const backSelector = '[data-history-back], .club-profile-back, .event-back-link, #backHomeBtn, #myFormsBackHomeBtn, a.secondary-btn, button.secondary-btn';
+  const isBackLabel = (el) => /^(?:←\s*)?Back(?:\b|$)/i.test(el.textContent.trim());
+  const floating = document.createElement('button');
+  floating.type = 'button';
+  floating.className = 'floating-back-control';
+  floating.hidden = true;
+  floating.innerHTML = '<span aria-hidden="true">←</span> Back';
+  document.body.append(floating);
+  let target = null;
+  floating.addEventListener('click', () => target?.click());
+
+  const headerOffset = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sticky-site-header-height')) || 72;
+  const findBack = () => [...document.querySelectorAll(backSelector)].find((el) =>
+    el !== floating && el.getClientRects().length && isBackLabel(el)
+    && !el.closest('#site-header, header.site-header, dialog, .modal, .event-modal, .login-foot, .recovery-card'));
+
+  let queued = false;
+  const update = () => {
+    queued = false;
+    target = findBack() || null;
+    const hidden = !target || target.getBoundingClientRect().bottom > headerOffset();
+    if (floating.hidden !== hidden) floating.hidden = hidden;
+    if (target) floating.setAttribute('aria-label', target.textContent.trim().replace(/^←\s*/, ''));
+  };
+  const queue = () => { if (!queued) { queued = true; requestAnimationFrame(update); } };
+  window.addEventListener('scroll', queue, { passive: true });
+  window.addEventListener('resize', queue);
+  document.addEventListener('click', () => setTimeout(queue, 50));
+  update();
+};
+
 document.addEventListener('DOMContentLoaded', () => {
   window.MiuUI.initModalControls();
+  initFloatingBack();
 
   const navigationScript = document.createElement('script'); navigationScript.src = '/assets/js/dashboard-navigation.js?v=20261014freshvisit1'; document.head.append(navigationScript);
   const drawerStyles = document.createElement('link'); drawerStyles.rel = 'stylesheet'; drawerStyles.href = '/assets/css/mobile-sidebars.css?v=20261014hidescrollbar1';
-  const drawerScript = document.createElement('script'); drawerScript.src = '/assets/js/mobile-sidebars.js?v=20261014unifieddrawer2';
+  const drawerScript = document.createElement('script'); drawerScript.src = '/assets/js/mobile-sidebars.js?v=20261118noclose1';
   let drawerStarted = false;
   const loadMobileDrawers = () => { if (drawerStarted) return; drawerStarted = true; document.head.append(drawerScript); };
   drawerStyles.addEventListener('load', loadMobileDrawers, { once: true });
@@ -565,7 +600,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  inject('site-header', '/components/site-header.html?v=20261019hideAskAi1');
+  inject('site-header', '/components/site-header.html?v=20261118feedicon1');
   inject('site-footer', '/components/site-footer.html?v=20261017mobilecolon1');
   const workflowShortcuts = document.createElement('script');
   workflowShortcuts.src = '/assets/js/workflow-shortcuts.js?v=20261018workflowNavigation1';

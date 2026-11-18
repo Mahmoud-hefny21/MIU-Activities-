@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MIU CLUBS - CORE DESIGN SYSTEM & BASE STYLES
+   MIU ACTIVITIES - CORE DESIGN SYSTEM & BASE STYLES
    ========================================================================== */
 
 /* Static page text should not show a typing caret. Keep form editing visible. */
@@ -293,7 +293,7 @@ html.site-startup-pending::after {
   background-size: 136px auto;
   box-shadow: var(--shadow-lg);
   color: var(--text-main);
-  content: "MIU Clubs\A Loading your page...";
+  content: "MIU Activities\A Loading your page...";
   font-size: .9rem;
   font-weight: 700;
   line-height: 1.8;
@@ -337,7 +337,7 @@ html.site-startup-pending .site-startup-ring::after {
   html.site-startup-pending .site-startup-ring::after { animation-duration: 2.4s; }
 }
 /* A thin bar along the top edge of the screen: shows loading without covering any content.
-   The "Loading MIU Clubs" text stays available to screen readers. */
+   The "Loading MIU Activities" text stays available to screen readers. */
 .site-loading-indicator {
   top: 0;
   left: 0;
@@ -722,6 +722,32 @@ html.site-startup-pending .site-loading-indicator { opacity: 0; visibility: hidd
   border-color: var(--slate-300);
   color: var(--primary-800);
 }
+
+.floating-back-control {
+  position: fixed;
+  top: calc(var(--sticky-site-header-height, 72px) + 8px);
+  left: max(16px, env(safe-area-inset-left));
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 7px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-panel);
+  color: var(--text-main);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .18);
+  font: inherit;
+  font-size: .82rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.floating-back-control[hidden] { display: none; }
+.floating-back-control span { color: var(--primary-700); font-size: 1rem; }
+.floating-back-control:hover { border-color: var(--primary-700); background: var(--primary-50); color: var(--primary-800); }
+.floating-back-control:focus-visible { outline: 3px solid var(--primary-700); outline-offset: 3px; }
 
 @media (max-width: 640px) {
   .page-back-control {
@@ -2196,6 +2222,10 @@ button:disabled,
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 24px;
+}
+
+.club-card.is-clickable {
+  cursor: pointer;
 }
 
 .club-card {

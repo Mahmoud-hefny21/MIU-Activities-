@@ -39,7 +39,7 @@ function createContentRequestNotifier({ ClubAccount, NotificationDispatch, env =
           const path = ['president', 'head'].includes(role) ? '/club-login' : `/dashboards/${role}-dashboard.html`;
           const result = await send({ appId: env.ONESIGNAL_APP_ID, apiKey: env.ONESIGNAL_REST_API_KEY,
             externalIds: accounts.filter(account => account.role === role).map(clubExternalId),
-            title: 'MIU Clubs · Request update',
+            title: 'MIU Activities · Request update',
             message: `Your ${record.type.replace(/_/g, ' ')} request #${record.id} ${action}. Open your dashboard for details.`,
             url: new URL(path, base).toString() });
           await NotificationDispatch.updateOne({ eventKey: key }, { $set: {

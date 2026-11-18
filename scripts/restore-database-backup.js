@@ -42,7 +42,7 @@ async function main() {
   const EJSON = mongoose.mongo.BSON.EJSON;
   const snapshot = EJSON.parse((await gunzip(compressed)).toString('utf8'));
   if (snapshot.format !== 'miu-clubs-mongodb-snapshot-v1' || !Array.isArray(snapshot.collections)) {
-    throw new Error('The decrypted file is not a valid MIU Clubs database snapshot.');
+    throw new Error('The decrypted file is not a valid MIU Activities database snapshot.');
   }
 
   await mongoose.connect(config.mongoUri, { serverSelectionTimeoutMS: 15000 });

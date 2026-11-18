@@ -9,12 +9,15 @@
     <title>Club Content Studio</title>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" /></noscript>
-    <link rel="stylesheet" href="/assets/css/base.css?v=20261117backflow1" />
+    <link rel="stylesheet" href="/assets/css/base.css?v=20261118floatback1" />
     <link rel="stylesheet" href="/assets/css/responsive.css?v=20261015mainadmin1" />
     <link rel="stylesheet" href="/assets/css/dark.css?v=20261015mainadmin1" />
     <link rel="stylesheet" href="/assets/css/features.css?v=20261018fullwidthreviewnotice1" />
     <link rel="icon" type="image/png" sizes="192x192" href="/assets/img/pics/pwa-icon-192.png?v=20261013favicon1">
-    <link rel="stylesheet" href="/assets/css/pages/club-content.css?v=20261014reviewcontrast2" />
+    <link rel="apple-touch-icon" href="/assets/img/pics/pwa-icon-192.png?v=20261013favicon1">
+    <meta name="apple-mobile-web-app-title" content="MIU Activities">
+    <meta name="application-name" content="MIU Activities">
+    <link rel="stylesheet" href="/assets/css/pages/club-content.css?v=20261118yearplan1" />
       <script defer src="/assets/js/pwa-register.js?v=20261014localfresh1"></script>
     <link rel="stylesheet" href="/assets/css/modal-controls.css?v=20261116closeunify2">
   <script src="/assets/js/feed-media.js?v=20261015videopopup1"></script>
@@ -63,6 +66,21 @@
               <a href="/pages/booth-form.html">Booths</a>
             </div>
           </div>
+          <div class="panel year-plan-panel" id="yearPlanPanel" hidden>
+            <h2>Year plan calendar</h2>
+            <p class="meta">Upload your club's plan for the year as an Excel sheet. It goes through the same approval as your events (supervisor, PR, English, then the Dean) and appears in the calendar on your club's page once the Dean approves it. A new approved plan replaces the old one.</p>
+            <p class="meta">Each row is one event and must have all three columns: <strong>Event Name</strong>, <strong>Date</strong> and <strong>Description</strong>.</p>
+            <div class="year-plan-actions">
+              <a class="secondary-btn" href="/api/club/year-plan/template" download>Download template</a>
+              <label class="primary-btn year-plan-upload">
+                <input id="yearPlanFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden />
+                Upload Excel plan
+              </label>
+              <button id="yearPlanClear" class="secondary-btn" type="button" hidden>Remove from calendar</button>
+            </div>
+            <p id="yearPlanStatus" class="admin-feedback" role="status" aria-live="polite"></p>
+            <ul id="yearPlanSkipped" class="year-plan-skipped" hidden></ul>
+          </div>
           <div class="panel">
             <h2>Your content</h2>
             <div class="content-list" id="contentList"></div>
@@ -71,12 +89,13 @@
       </section>
     </main>
     <div id="site-footer"></div>
-    <script src="/assets/js/content-studio.js?v=20261018compactreviewupdates1"></script>
+    <script src="/assets/js/content-studio.js?v=20261118yearplan1"></script>
     <script>
       // The studio hub shows every content type with its own label.
       ContentStudio.init({ type: null, pageTitle: 'Content Studio' });
     </script>
-    <script src="/assets/js/layout.js?v=20261117backflow1" defer></script>
+    <script src="/assets/js/year-plan-studio.js?v=20261118yearplan1" defer></script>
+    <script src="/assets/js/layout.js?v=20261118floatback1" defer></script>
     <script src="/assets/js/theme.js?v=20261009c" defer></script>
   </body>
 </html>

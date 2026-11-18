@@ -1142,7 +1142,7 @@ function renderClubGrid() {
   clubGrid.innerHTML = getOrderedClubs(filteredClubs)
     .map(
       (club) => `
-        <article class="club-card${club.pinned ? ' is-pinned' : ''}">
+        <article class="club-card is-clickable${club.pinned ? ' is-pinned' : ''}" data-club-id="${club.id}">
           <div class="club-image-wrap">
             <img class="club-image${club.imageFit === 'contain' ? ' club-image-contain' : ''}" src="${escapeHtml(getClubCardImageUrl(club.image))}" alt="${escapeHtml(club.name)} activities" loading="lazy" decoding="async" />
             ${club.pinned ? '<span class="club-pin-badge">PINNED</span>' : ''}
@@ -1181,6 +1181,14 @@ function renderClubGrid() {
       event.preventDefault();
       event.stopPropagation();
       const clubId = Number(btn.dataset.id);
+      if (Number.isSafeInteger(clubId) && typeof openClubDetail === 'function') openClubDetail(clubId);
+    });
+  });
+
+  clubGrid.querySelectorAll('.club-card[data-club-id]').forEach((card) => {
+    card.addEventListener('click', (event) => {
+      if (event.target.closest('button, a')) return;
+      const clubId = Number(card.dataset.clubId);
       if (Number.isSafeInteger(clubId) && typeof openClubDetail === 'function') openClubDetail(clubId);
     });
   });
@@ -1569,23 +1577,58 @@ document.addEventListener('DOMContentLoaded', () => {
   const dayEventsList = document.getElementById('calendarDayEventsList');
   const dayEventsClose = document.getElementById('calendarDayEventsClose');
   let selectedCalendarDay = null, calendarYear = new Date().getFullYear(), calendarMonth = new Date().getMonth();
-  const openCalendar = async () => {
+  // When set, the calendar shows one club: its events plus its approved year plan.
+  let calendarClub = null;
+  const openCalendar = async (options = {}) => {
+    calendarClub = options?.club ? { club: options.club, plan: Array.isArray(options.plan) ? options.plan : [] } : null;
     window.MiuUI.modals.open(calendarModal);
     selectedCalendarDay = null;
     calendarGrid.innerHTML = '<p class="calendar-month-prompt">Loading events...</p>';
     try {
       await Promise.allSettled([clubsLoadPromise || (!clubsLoaded ? loadClubs() : Promise.resolve()), loadUniversityContentInBackground()]);
       const today = new Date();
-      renderCalendar(today.getFullYear(), today.getMonth());
+      let start = new Date(today.getFullYear(), today.getMonth(), 1);
+      if (calendarClub) {
+        // Open on this month if the club has something in it, otherwise on its next activity.
+        const startOfMonth = start.getTime();
+        const dates = getCalendarEvents().map((event) => event.parsed).sort((a, b) => a - b);
+        const thisMonth = dates.some((date) => date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth());
+        const upcoming = dates.find((date) => date.getTime() >= startOfMonth) || dates[dates.length - 1];
+        if (!thisMonth && upcoming) start = upcoming;
+      }
+      renderCalendar(start.getFullYear(), start.getMonth());
     } catch {
       calendarGrid.innerHTML = '<p class="calendar-month-prompt" role="status">Events could not be loaded. Close the calendar and try again.</p>';
     }
   };
 
   const parseDate = (value) => {
-    const d = new Date(value);
+    // Plain YYYY-MM-DD dates are calendar days, not UTC instants.
+    const plain = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const d = plain ? new Date(+plain[1], +plain[2] - 1, +plain[3]) : new Date(value);
     return Number.isNaN(d.getTime()) ? null : d;
   };
+
+  function getCalendarEvents() {
+    const all = getAllEvents().map((event) => ({ ...event, parsed: parseDate(event.date) })).filter((event) => event.parsed);
+    if (!calendarClub) return all;
+    const { club, plan } = calendarClub;
+    const planDays = plan.flatMap((entry) => {
+      const first = parseDate(entry.date);
+      if (!first) return [];
+      const last = parseDate(entry.endDate) || first;
+      const days = [];
+      for (let day = new Date(first); day <= last && days.length < 62; day.setDate(day.getDate() + 1)) {
+        days.push({ ...entry, yearPlan: true, clubId: club.id, clubName: club.name, clubImage: club.image, parsed: new Date(day) });
+      }
+      return days;
+    });
+    return [...all.filter((event) => Number(event.clubId) === Number(club.id)), ...planDays];
+  }
+
+  function yearPlanDetail(event) {
+    return ['Year plan', event.description].filter(Boolean).join(' · ');
+  }
 
   function closeDayEventsModal() {
     dayEventsModal?.classList.add('hidden');
@@ -1619,10 +1662,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const title = document.createElement('strong');
       title.textContent = event.title || 'Event';
       const meta = document.createElement('span');
-      meta.textContent = [event.clubName, window.formatSiteTime(event.time), event.location].filter(Boolean).join(' · ');
+      meta.textContent = event.yearPlan
+        ? yearPlanDetail(event)
+        : [event.clubName, window.formatSiteTime(event.time), event.location].filter(Boolean).join(' · ');
       copy.append(title, meta);
       option.append(copy);
+      // Year plan activities are fully described here; they have no event page to open.
+      if (event.yearPlan) option.classList.add('is-year-plan');
       option.addEventListener('click', () => {
+        if (event.yearPlan) return;
         closeDayEventsModal();
         if (typeof window.openEventModal === 'function') window.openEventModal(event);
       });
@@ -1636,12 +1684,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderCalendar(year = new Date().getFullYear(), month = new Date().getMonth()) {
     calendarYear = year; calendarMonth = month;
-    const events = getAllEvents().map((e) => ({ ...e, parsed: parseDate(e.date) })).filter((e) => e.parsed);
+    const events = getCalendarEvents();
     const monthDate = new Date(year, month, 1);
     year = monthDate.getFullYear();
     month = monthDate.getMonth();
     const monthLabel = monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    if (calendarTitle) calendarTitle.textContent = 'Events calendar';
+    if (calendarTitle) calendarTitle.textContent = calendarClub ? `${calendarClub.club.name} calendar` : 'Events calendar';
     const monthNavigation = `<div class="calendar-month-filter"><button type="button" data-calendar-shift="-1" aria-label="Previous month">&lsaquo;</button><strong aria-live="polite">${monthLabel}</strong><button type="button" data-calendar-shift="1" aria-label="Next month">&rsaquo;</button></div>`;
 
     const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -1666,9 +1714,12 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('click', () => {
           const event = events[Number(btn.dataset.idx)];
           if (event) {
-            selectedCalendarDay = Number(btn.dataset.day);
+            const day = Number(btn.dataset.day);
+            selectedCalendarDay = day;
             renderCalendar(year, month);
-            if (typeof window.openEventModal === 'function') window.openEventModal(event);
+            if (event.yearPlan) {
+              openDayEventsModal(events.filter((item) => item.parsed.getFullYear() === year && item.parsed.getMonth() === month && item.parsed.getDate() === day), year, month, day);
+            } else if (typeof window.openEventModal === 'function') window.openEventModal(event);
           }
         });
       });
@@ -1709,7 +1760,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  window.openClubCalendar = (club, plan) => openCalendar({ club, plan });
   window.openCalendarAt = (year, month, day) => {
+    calendarClub = null;
     window.MiuUI.modals.open(calendarModal);
     selectedCalendarDay = Number.isInteger(day) ? day : null;
     renderCalendar(year, month);
@@ -1719,8 +1772,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (calendarModal.classList.contains('hidden')) return;
     renderCalendar(calendarYear, calendarMonth);
     if (dayEventsModal && !dayEventsModal.classList.contains('hidden') && selectedCalendarDay) {
-      const events = getAllEvents().map(event => ({ ...event, parsed: parseDate(event.date) })).filter(event => event.parsed
-        && event.parsed.getFullYear() === calendarYear && event.parsed.getMonth() === calendarMonth && event.parsed.getDate() === selectedCalendarDay);
+      const events = getCalendarEvents().filter(event => event.parsed.getFullYear() === calendarYear && event.parsed.getMonth() === calendarMonth && event.parsed.getDate() === selectedCalendarDay);
       openDayEventsModal(events, calendarYear, calendarMonth, selectedCalendarDay);
     }
   };

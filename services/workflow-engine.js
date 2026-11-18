@@ -340,7 +340,7 @@ function createWorkflowEngine({ database, ContentRequest, SpeakerRequest, ClubAc
           continue;
         }
         try {
-          const delivery = await sender.sendMail({ from: env.EMAIL_FROM, to: job.recipientEmail, subject: 'MIU Clubs: ' + job.title, text: job.message + (job.kind === 'message' && job.delivery?.channel === 'email' ? '' : '\n\n' + new URL(job.link, origin).toString()), messageId: `<workflow-${job.eventKey}@miu-clubs.local>` });
+          const delivery = await sender.sendMail({ from: env.EMAIL_FROM, to: job.recipientEmail, subject: 'MIU Activities: ' + job.title, text: job.message + (job.kind === 'message' && job.delivery?.channel === 'email' ? '' : '\n\n' + new URL(job.link, origin).toString()), messageId: `<workflow-${job.eventKey}@miu-clubs.local>` });
           if (delivery.rejected?.length || Array.isArray(delivery.accepted) && !delivery.accepted.length) throw new Error('EMAIL_REJECTED');
           await transaction(async session => {
             await notifications.updateOne({ _id: job._id, leaseId }, { $set: { emailStatus: 'sent', leaseUntil: null, errorCode: '', providerMessageId: delivery.messageId || '' } }).session(session);

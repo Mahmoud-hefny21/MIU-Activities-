@@ -435,20 +435,22 @@ function openClubDetail(clubId) {
   state.selectedClub = club;
   clubDetail.innerHTML = `
     <button class="club-profile-back" data-action="go-home" type="button"><span aria-hidden="true">←</span> Back to clubs</button>
-    <button class="club-detail-close" data-action="go-home" type="button" aria-label="Close club details" title="Close">&times;</button>
     <div class="club-detail-hero">
       <div class="detail-logo-frame">
         <img class="detail-logo${club.imageFit === 'contain' ? ' detail-logo-contain' : ''}" src="${escapeHtml(club.image)}" alt="${escapeHtml(club.name)} logo" />
       </div>
       <div class="detail-hero-copy">
-        <span class="club-tag">${escapeHtml(club.category)}</span>
+        <div class="detail-chip-row">
+          <span class="status-pill status-${escapeHtml(club.status)}">${escapeHtml(getClubStatusLabel(club.status))}</span>
+          <span class="club-tag">${escapeHtml(club.category)}</span>
+          ${club.committee && club.committee !== club.category ? `<span class="club-tag">${escapeHtml(club.committee)}</span>` : ''}
+          ${club.pinned ? '<span class="detail-pinned-label">Featured club</span>' : ''}
+        </div>
         <h2 class="detail-title">${escapeHtml(club.name)}</h2>
-        <p class="detail-tagline">${escapeHtml(club.tagline || club.category)}</p>
-        <div class="detail-meta">${escapeHtml(club.committee)}</div>
-        <span class="status-pill status-${escapeHtml(club.status)}">${escapeHtml(getClubStatusLabel(club.status))}</span>
-        ${club.pinned ? '<span class="detail-pinned-label">Featured club</span>' : ''}
+        ${club.tagline && club.tagline !== club.category ? `<p class="detail-tagline">${escapeHtml(club.tagline)}</p>` : ''}
         <div class="club-detail-actions">
           <button class="primary-btn club-detail-apply" data-action="apply-club" data-id="${club.id}" ${canApply ? '' : 'disabled'}>${canApply ? 'Apply Now' : escapeHtml(getClubActionLabel(club.status))}</button>
+          <button class="secondary-btn club-rate-button club-calendar-button" data-action="show-year-plan" type="button"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Calendar</button>
           <button class="secondary-btn club-rate-button" data-action="rate-club" type="button" aria-haspopup="dialog"><span aria-hidden="true">&#9734;</span> Rate this club</button>
         </div>
       </div>
@@ -532,6 +534,18 @@ function openClubDetail(clubId) {
     });
   };
   window.addEventListener('resize', clubDetailCarouselResizeHandler, { passive: true });
+  // Opens the site calendar filtered to this club: its events plus its approved year plan.
+  clubDetail.querySelector('[data-action="show-year-plan"]').addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    button.setAttribute('aria-busy', 'true');
+    let plan = [];
+    try {
+      const response = await fetch(`/api/clubs/${encodeURIComponent(normalizedClubId)}/year-plan`, { cache: 'no-store' });
+      if (response.ok) plan = (await response.json()).entries || [];
+    } catch { /* Still open the calendar with the club's events. */ }
+    button.removeAttribute('aria-busy');
+    window.openClubCalendar?.(club, plan);
+  });
   clubDetail.querySelectorAll('.event-info-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const section = CLUB_CONTENT_SECTIONS.find(section => section.key === btn.dataset.contentSection);
@@ -551,6 +565,13 @@ document.getElementById('applicationBackHomeBtn').addEventListener('click', () =
 async function openApplicationForm(clubId, allowClosedClub = false) {
   const club = state.clubs.find((item) => item.id === clubId);
   if (!club || (!allowClosedClub && club.status !== 'open')) return;
+  // Applying needs a student account; send guests to sign in, then straight back to this form.
+  const signedIn = await fetch('/api/student-auth/session', { cache: 'no-store', credentials: 'same-origin' })
+    .then((response) => response.ok).catch(() => false);
+  if (!signedIn) {
+    window.location.assign(`/pages/applicant-login.html?redirect=${encodeURIComponent(`/?apply=${club.id}`)}`);
+    return;
+  }
   applicationFormVersion++;
   clearTimeout(applicationAutoCloseTimer);
 

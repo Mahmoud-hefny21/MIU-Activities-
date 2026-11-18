@@ -4,7 +4,7 @@ async function attendanceWorkbook(rows, details = {}) {
   const removed = new Set(['From time', 'To time', 'Type']);
   const keep = (rows[0] || []).map((heading, index) => removed.has(heading) ? -1 : index).filter(index => index >= 0);
   rows = rows.map(row => keep.map(index => row[index]));
-  const workbook = new ExcelJS.Workbook(); workbook.creator = 'MIU Clubs';
+  const workbook = new ExcelJS.Workbook(); workbook.creator = 'MIU Activities';
   const headings = rows[0] || [], records = rows.slice(1);
   const index = name => headings.indexOf(name);
   const value = (row, name) => index(name) < 0 ? '' : row[index(name)];

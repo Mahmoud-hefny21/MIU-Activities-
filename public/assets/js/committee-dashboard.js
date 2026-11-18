@@ -58,8 +58,8 @@ function clearRequestsSnapshot() {
   try { sessionStorage.removeItem(requestsCacheKey()); } catch { /* Session storage is optional. */ }
 }
 
-const CONTENT_TYPE_LABELS = { event: 'Event', feed: 'Feed', sponsor: 'Sponsor', booth: 'Booth', entry_permit: 'Entry Permit' };
-const CONTENT_ITEM_LABELS = { event: 'event', feed: 'feed post', sponsor: 'sponsor request', booth: 'booth request', entry_permit: 'Entry Permit' };
+const CONTENT_TYPE_LABELS = { event: 'Event', feed: 'Feed', sponsor: 'Sponsor', booth: 'Booth', entry_permit: 'Entry Permit', year_plan: 'Year Plan' };
+const CONTENT_ITEM_LABELS = { event: 'event', feed: 'feed post', sponsor: 'sponsor request', booth: 'booth request', entry_permit: 'Entry Permit', year_plan: 'year plan' };
 const CLOSED_REQUEST_STATUSES = new Set(['draft', 'approved', 'rejected', 'published', 'deleted']);
 
 function isActiveCommitteeRequest(item) {

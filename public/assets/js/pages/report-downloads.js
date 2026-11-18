@@ -30,7 +30,7 @@ window.mountReportDownloads = function (root, kind, audienceOverride) {
     }
   }
   $('downloadTitle').textContent = attendance ? openAudience ? 'Open event attendance sheets' : 'Club member attendance sheets' : 'Download event reports';
-  if (root === document) document.title = $('downloadTitle').textContent + ' · MIU Clubs';
+  if (root === document) document.title = $('downloadTitle').textContent + ' · MIU Activities';
   $('downloadButton').textContent = attendance ? 'Show events' : 'Download Excel report';
   if ($('downloadIntro')) $('downloadIntro').textContent = attendance
     ? openAudience ? 'Choose a published MIU or club event with open student attendance.' : 'Choose a published club event to download member attendance.'

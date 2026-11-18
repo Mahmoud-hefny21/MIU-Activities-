@@ -31,7 +31,7 @@ function createClubOpeningNotifier({ StudentAccount, ClubAccount, NotificationDi
           const claimed = await claimOneSignalDispatch(eventKey, key => NotificationDispatch.create({ eventKey: key, status: 'sending' }));
           if (!claimed) continue;
           const result = await send({ appId: env.ONESIGNAL_APP_ID, apiKey: env.ONESIGNAL_REST_API_KEY,
-            externalIds, title: 'MIU Clubs · Applications open',
+            externalIds, title: 'MIU Activities · Applications open',
             message: `${name} is now open for applications. Check it now!`,
             url: new URL(`/?apply=${encodeURIComponent(club.id)}`, origin).toString() });
           await NotificationDispatch.updateOne({ eventKey }, { $set: {
