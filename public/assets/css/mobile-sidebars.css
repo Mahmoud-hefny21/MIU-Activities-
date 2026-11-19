@@ -468,10 +468,10 @@ html.swipe-back-active body { overflow-x: hidden; box-shadow: -12px 0 28px rgba(
 
 /* ===== Bottom bar: one sizing system for every page (overrides the earlier layered sizes) ===== */
 @media (max-width: 1024px) {
-  :root { --bb-gap: 10px; --bb-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--bb-gap)); --bb-col: clamp(58px, 17vw, 76px); --bb-item-h: 52px; --bb-icon: 22px; }
+  :root { --bb-gap: 10px; --bb-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--bb-gap)); --bb-col: clamp(56px, 16vw, 68px); --bb-item-h: 48px; --bb-icon: 21px; }
   .bottom-bar:not(.is-inline) {
     bottom: var(--bb-bottom); width: auto; max-width: calc(100vw - 24px);
-    grid-auto-columns: var(--bb-col); gap: 2px; padding: 5px; border-radius: 28px;
+    grid-auto-columns: var(--bb-col); gap: 2px; padding: 4px; border-radius: 26px;
   }
   .bottom-bar:not(.is-inline) .bottom-bar-item { min-height: var(--bb-item-h); padding: 5px 2px; gap: 3px; border-radius: 22px; font-size: .7rem; font-weight: 650; }
   .bottom-bar .bottom-bar-icon, .bottom-bar .bottom-bar-icon svg { width: var(--bb-icon); height: var(--bb-icon); }
