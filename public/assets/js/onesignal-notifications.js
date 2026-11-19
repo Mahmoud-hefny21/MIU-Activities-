@@ -37,11 +37,27 @@
     catch (_) { try { return Boolean(sessionStorage.getItem(key)); } catch (_) { return false; } }
   }
 
+  let autoAskTried = false;
   function maybeShowNotificationWelcome() {
     if (!oneSignalInstance || !oneSignalInstance.Notifications.isPushSupported()) return;
     if (oneSignalInstance.User.PushSubscription.optedIn) return;
     if (typeof Notification !== 'undefined' && Notification.permission === 'denied') return;
     if (hasSeenWelcome()) return;
+
+    // Ask the device directly when it allows it: browsers only show their permission prompt from a tap, so the
+    // first tap anywhere on the page asks. The in-page card below is the fallback when that cannot work.
+    if (!autoAskTried && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      autoAskTried = true;
+      const ask = (event) => {
+        if (event.target.closest?.('a[href], dialog, input, textarea, select')) return;
+        document.removeEventListener('click', ask, true);
+        Promise.resolve(oneSignalInstance.User.PushSubscription.optIn())
+          .then(() => { markWelcomeSeen(); render(); })
+          .catch(() => { if (Notification.permission === 'default') window.setTimeout(maybeShowNotificationWelcome, 400); });
+      };
+      document.addEventListener('click', ask, true);
+      return;
+    }
 
     if (!welcomeDialog) {
       welcomeDialog = document.createElement('dialog');

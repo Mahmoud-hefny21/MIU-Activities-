@@ -4,7 +4,10 @@
 (() => {
   'use strict';
   const small = window.matchMedia('(max-width: 1024px)');
-  if (document.querySelector('.bottom-bar') || /(?:forgot-password|reset-password)/.test(location.pathname)) return;
+  // Sign-in, password and error pages are single-purpose screens: no bottom bar there.
+  const standalone = /(?:forgot-password|reset-password|applicant-login|admin-login|club-login|\/login|404|500|offline)(?:\.html)?$/.test(location.pathname)
+    || document.querySelector('.home-action, .retry-action, .error-reference');
+  if (document.querySelector('.bottom-bar') || standalone) return;
 
   const ICONS = {
     back: '<path d="M15 18l-6-6 6-6"/>',
@@ -92,7 +95,7 @@ hub: '<path d="M3 10 12 4l9 6"/><path d="M5 10v9M9.5 10v9M14.5 10v9M19 10v9M3 21
     const PRIORITY = [/^my clubs/i, /^pending requests/i, /^club requests/i, /^applicants/i, /^all requests/i, /^attendance approvals/i,
       /^entry permits/i, /^miu events & posts/i, /^registrations/i, /^take miu event attendance/i, /^post-event reports/i];
     const rank = (el) => { const index = PRIORITY.findIndex((pattern) => pattern.test(labelOf(el))); return index < 0 ? 99 : index; };
-    const picks = [...rest].sort((a, b) => rank(a) - rank(b)).slice(0, 1);
+    const picks = [...rest].sort((a, b) => rank(a) - rank(b)).slice(0, 2);
     // Each sidebar has its own menu toggle; the club dashboard page holds several dashboards.
     const toggle = () => document.querySelector(`.dashboard-drawer-toggle[aria-controls="${sidebar.id}"]`) || sidebar.previousElementSibling;
     // Sections with work waiting move to the top of the menu under "Needs your attention".
@@ -134,8 +137,8 @@ hub: '<path d="M3 10 12 4l9 6"/><path d="M5 10v9M9.5 10v9M14.5 10v9M19 10v9M3 21
     return items;
   }
 
-  // Visitors and students: the four main sections plus Menu. Menu holds everything else
-  // (Back on inner pages, Calendar, Sponsors, Booths, Ask AI), so nothing appears twice.
+  // Visitors and students: Back (inner pages), the four main sections and Menu. Menu holds everything else
+  // (Calendar, Sponsors, Booths, Ask AI), so nothing appears twice.
   const siteMenu = document.createElement('div');
   siteMenu.className = 'bottom-bar-menu'; siteMenu.hidden = true; siteMenu.id = 'bottomBarMenu';
   siteMenu.setAttribute('role', 'menu'); siteMenu.setAttribute('aria-label', 'More pages');
@@ -153,7 +156,6 @@ hub: '<path d="M3 10 12 4l9 6"/><path d="M5 10v9M9.5 10v9M14.5 10v9M19 10v9M3 21
     };
     const askAi = document.querySelector('#navLinks a[href="/pages/ask-ai.html"]');
     return [
-      ...(onHome ? [] : [entry('Back', 'back', '', () => (window.miuGoBack ? window.miuGoBack('/') : history.back()))]),
       entry('Calendar', 'calendar', '/#calendar'),
       entry('Sponsors', 'sponsors', '/pages/sponsors.html'),
       entry('Booths', 'booths', '/pages/booths.html'),
@@ -172,6 +174,8 @@ hub: '<path d="M3 10 12 4l9 6"/><path d="M5 10v9M9.5 10v9M14.5 10v9M19 10v9M3 21
     menuButton.dataset.siteMenu = ''; menuButton.setAttribute('aria-haspopup', 'menu'); menuButton.setAttribute('aria-controls', siteMenu.id); menuButton.setAttribute('aria-expanded', 'false');
     if (!siteMenu.isConnected) document.body.append(siteMenu);
     return [
+      // Every page except Home starts with Back, the same as the dashboards.
+      ...(onHome ? [] : [back()]),
       makeItem({ label: 'Home', icon: 'home', href: '/', active: onHome }),
       makeItem({ label: 'MIU Hub', icon: 'hub', href: '/pages/miu-hub.html', active: path === '/pages/miu-hub.html' }),
       makeItem({ label: 'Feed', icon: 'feed', href: '/pages/feed.html', active: path === '/pages/feed.html' }),
@@ -186,10 +190,21 @@ hub: '<path d="M3 10 12 4l9 6"/><path d="M5 10v9M9.5 10v9M14.5 10v9M19 10v9M3 21
     const items = (sidebar && dashboardItems(sidebar)) || siteItems();
     bar.replaceChildren(...items);
     bar.dataset.kind = sidebar ? 'dashboard' : 'site';
+    bar.style.setProperty('--bb-count', String(items.length));
+    requestAnimationFrame(fitLabels);
     // The site bar replaces the header's mobile menu, so that menu is hidden to avoid showing links twice.
     document.body.classList.toggle('bottom-bar-site', !sidebar);
     if (sidebar) closeSiteMenu?.();
   }
+
+  // A label that is still too wide for its button gets slightly smaller text instead of being cut off.
+  function fitLabels() {
+    bar.querySelectorAll('.bottom-bar-label').forEach((label) => {
+      label.style.fontSize = '';
+      for (let size = 0.95; label.scrollWidth > label.clientWidth + 1 && size >= 0.75; size -= 0.05) label.style.fontSize = `${size.toFixed(2)}em`;
+    });
+  }
+  window.addEventListener('resize', () => requestAnimationFrame(fitLabels));
 
   build();
   document.body.append(bar);

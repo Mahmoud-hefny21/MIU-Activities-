@@ -775,3 +775,12 @@ body .quiz-dialog > .quiz-dialog-close:hover {
     transition: none !important;
   }
 }
+
+/* Result card: the View Club button never squeezes; on phones it sits full width under the text. */
+.quiz-result-card .quiz-view-club { flex: none; white-space: nowrap; }
+.quiz-result-card > :nth-child(2) { flex: 1 1 auto; min-width: 0; }
+@media (max-width: 560px) {
+  .quiz-result-card { flex-wrap: wrap; padding: 16px; gap: 12px; }
+  .quiz-result-card > :nth-child(2) { flex: 1 1 calc(100% - 50px); }
+  .quiz-result-card .quiz-view-club { flex: 1 1 100%; min-height: 44px; }
+}

@@ -1277,6 +1277,21 @@ async function getSpeakerRequester(req, res) {
   return require('./services/speaker-manager-access').speakerManagerIdentity(await getClubAccountFromRequest(req, res));
 }
 
+// Staff and signed-in tools: a visitor with no session at all gets the styled sign-in page instead of an
+// empty page shell whose data calls all fail. Signed-in users still reach the page; each API checks the role.
+const SIGNED_IN_PAGES = new Set([
+  '/dashboards/dean-dashboard.html', '/dashboards/english-dashboard.html', '/dashboards/pr-dashboard.html',
+  '/dashboards/security-dashboard.html', '/dashboards/sso-dashboard.html', '/dashboards/staff-management.html',
+  '/dashboards/supervisor-dashboard.html', '/dashboards/supervisor-management.html',
+  '/pages/post-event-reports.html', '/pages/report-downloads.html', '/pages/workflow.html', '/pages/event-reports.html',
+  '/pages/miu-attendance.html', '/pages/attendance-qr.html', '/pages/attendance-scanner.html',
+  '/pages/my-attendance-task.html', '/speaker-request.html'
+]);
+app.use((req, res, next) => {
+  if (req.method !== 'GET' || !SIGNED_IN_PAGES.has(req.path)) return next();
+  if (/(?:^|;\s*)miu_(?:admin|club|student)=[^;]+/.test(req.headers.cookie || '')) return next();
+  return sendHttpErrorPage(res, 401, 'Sign in required', 'Sign in with your MIU account to open this page.');
+});
 const requireSpeakerManager = require('./services/speaker-manager-access').createSpeakerManagerGuard({
   getClubAccountFromRequest, getStudentAccountFromRequest, Club, requireLiveDatabase,
   deny(req, res, status, message) {
@@ -2370,6 +2385,8 @@ app.get('/api/clubs', async (req, res) => {
 // MIU Hub: all official MIU and faculty events and announcements, for every visitor.
 // Upcoming events first (soonest first), then everything else newest first.
 app.get('/api/miu-hub', async (req, res) => {
+  if (req.query.type !== undefined && !['', 'event', 'announcement'].includes(req.query.type)) return res.status(400).json({ message: 'type must be event or announcement.' });
+  if (req.query.page !== undefined && !/^[1-9]\d{0,4}$/.test(String(req.query.page))) return res.status(400).json({ message: 'page must be a positive whole number.' });
   try {
     if (mongoose.isSqlProvider && (!mongoReady || mongoose.connection.readyState !== 1)) await ensureReady();
     if (!mongoReady || (mongoose.isSqlProvider && mongoose.connection.readyState !== 1)) return res.status(503).json({ message: 'MIU Hub is temporarily unavailable.' });
@@ -3406,6 +3423,12 @@ app.post('/api/member/attendance-assignments/:id/session', requireStudentAuth, a
   }
 });
 
+// ?optional=1: a page only checking "am I signed in?" gets 204 instead of a 401 console error.
+function skipWhenSignedOut(req, res, next) {
+  if (req.query.optional === '1' && !/(?:^|;\s*)miu_student=[^;]+/.test(req.headers.cookie || '')) return res.status(204).end();
+  return next();
+}
+
 async function requireAttendanceTaskAuth(req, res, next) {
   try {
     const student = await getStudentAccountFromRequest(req, res);
@@ -3498,7 +3521,7 @@ async function bindUsherDevice(session, email, req, res) {
   return result.modifiedCount === 1;
 }
 
-const ATTENDANCE_QR_PERIOD_MS = 20_000;
+const ATTENDANCE_QR_PERIOD_MS = 15_000;
 const ATTENDANCE_SCAN_PROOF_TTL_MS = 3 * 60 * 1000;
 
 function attendanceQrChallenge(token) {
@@ -6260,7 +6283,7 @@ app.post('/api/student-auth/google/link', requireStudentAuth, async (req, res) =
   }
 });
 
-app.get('/api/student-auth/session', requireStudentAuth, (req, res) => {
+app.get('/api/student-auth/session', skipWhenSignedOut, requireStudentAuth, (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.json({ authenticated: true, name: req.studentAccount.name, email: req.studentAccount.email });
 });
@@ -6276,7 +6299,7 @@ function toStudentProfile(account) {
   };
 }
 
-app.get('/api/student-auth/profile', requireStudentAuth, (req, res) => {
+app.get('/api/student-auth/profile', skipWhenSignedOut, requireStudentAuth, (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.json(toStudentProfile(req.studentAccount));
 });
@@ -6814,6 +6837,8 @@ require('./services/quiz-analytics').registerQuizAnalytics(app, {
   }
 });
 app.use('/api/admin', requireAdmin);
+require('./services/admin-member-import').registerAdminMemberImport(app, { Club, requireLiveDatabase, isSameOriginRequest });
+require('./services/drive-logo').registerDriveLogoImport(app, { cloudinary, cloudinaryConfigured: () => cloudinaryConfigured, folder: cloudinaryFolders.club, isSameOriginRequest });
 app.get('/api/site/homepage', (req, res) => {
   res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
   res.json({
@@ -7210,8 +7235,26 @@ app.post('/api/admin/clubs/import/cleanup', async (req, res) => {
 const clubImportUndoAction = 'club_import_undo_state';
 const clubImportUndoService = require('./services/club-import-undo');
 const clubImportUndoFields = club => ({ name: club.name, category: club.category, description: club.description,
-  image: club.image, imagePublicId: club.imagePublicId || '', updatedAt: club.updatedAt || null });
+  image: club.image, imagePublicId: club.imagePublicId || '', profile: club.profile || {}, officers: club.officers || {}, updatedAt: club.updatedAt || null });
 const clubImportUndoId = () => crypto.randomUUID();
+const clubImportUndoDoneAction = 'club_import_undo_done';
+async function readClubImportUndo(importId) {
+  const records = await AuditLog.find({ action: clubImportUndoAction, targetId: importId }).sort({ timestamp: 1 }).read('primary').lean();
+  if (!records.length) return null;
+  const snapshot = { version: 1, clubs: [], accounts: [], undoneAt: null };
+  for (const record of records) {
+    const part = clubImportUndoService.open(record.details, sessionSecret);
+    if (part.undoneAt || part.supersededAt) snapshot.undoneAt = part.undoneAt || part.supersededAt; // records written before this change
+    snapshot.clubs.push(...(part.clubs || []));
+    for (const entry of part.accounts || []) {
+      const existing = snapshot.accounts.find(item => item.email === entry.email);
+      if (existing) existing.afterFingerprint = entry.afterFingerprint; // keep the first "before", latest "after"
+      else snapshot.accounts.push({ ...entry });
+    }
+  }
+  if (await AuditLog.exists({ action: clubImportUndoDoneAction, targetId: importId })) snapshot.undoneAt = snapshot.undoneAt || 'done';
+  return { snapshot, latestRecord: records[records.length - 1] };
+}
 const clubImportUndoAuditId = () => Date.now() * 1000 + Math.floor(Math.random() * 1000);
 
 app.get('/api/admin/clubs/import/undo/latest', async (req, res) => {
@@ -7220,8 +7263,8 @@ app.get('/api/admin/clubs/import/undo/latest', async (req, res) => {
   try {
     const record = (await AuditLog.find({ action: clubImportUndoAction }).sort({ timestamp: -1 }).limit(1).read('primary').lean())[0];
     if (!record) return res.json({ available: false });
-    const snapshot = clubImportUndoService.open(record.details, sessionSecret);
-    if (snapshot.undoneAt || snapshot.supersededAt) return res.json({ available: false });
+    const { snapshot } = await readClubImportUndo(record.targetId);
+    if (snapshot.undoneAt) return res.json({ available: false });
     return res.json({ available: true, importId: record.targetId, imported: snapshot.clubs.length,
       timestamp: record.timestamp, hasRoleChanges: snapshot.accounts.length > 0 });
   } catch (error) {
@@ -7238,11 +7281,11 @@ app.post('/api/admin/clubs/import/undo', async (req, res) => {
   if (!/^[0-9a-f-]{36}$/i.test(importId)) return res.status(400).json({ message: 'Choose a valid import to undo.' });
   const removedImages = [];
   try {
-    const record = await AuditLog.findOne({ action: clubImportUndoAction, targetId: importId }).read('primary').lean();
-    if (!record) return res.status(404).json({ message: 'This import is no longer available to undo.' });
-    const snapshot = clubImportUndoService.open(record.details, sessionSecret);
+    const stored = await readClubImportUndo(importId);
+    if (!stored) return res.status(404).json({ message: 'This import is no longer available to undo.' });
+    const { snapshot } = stored;
     const latest = (await AuditLog.find({ action: clubImportUndoAction }).sort({ timestamp: -1 }).limit(1).read('primary').lean())[0];
-    if (latest?.targetId !== importId || snapshot.undoneAt || snapshot.supersededAt) {
+    if (latest?.targetId !== importId || snapshot.undoneAt) {
       return res.status(409).json({ message: 'Only the latest completed import can be undone. A later import has replaced this undo option.' });
     }
     const session = await mongoose.startSession();
@@ -7294,8 +7337,9 @@ app.post('/api/admin/clubs/import/undo', async (req, res) => {
           restoredAccounts.set(entry.email, restored?.toObject ? restored.toObject() : restored);
         } else restoredAccounts.set(entry.email, null);
       }
-      snapshot.undoneAt = new Date().toISOString();
-      await AuditLog.findOneAndUpdate({ id: record.id }, { $set: { details: clubImportUndoService.seal(snapshot, sessionSecret) } }, { new: true, session }).lean();
+      await AuditLog.create([{ id: clubImportUndoAuditId(), actorEmail: adminAuthState?.email || getConfiguredAdminEmail() || 'admin',
+        actorRole: 'admin', action: clubImportUndoDoneAction, targetType: 'club_import', targetId: importId,
+        targetName: `Undo of ${snapshot.clubs.length} clubs`, details: '', timestamp: new Date() }], { session });
       await session.commitTransaction();
     } catch (error) {
       await session.abortTransaction().catch(() => {});
@@ -7318,7 +7362,7 @@ app.post('/api/admin/clubs/import/undo', async (req, res) => {
     if (cloudinaryConfigured) await Promise.all([...new Set(removedImages)].map(id => cloudinary.uploader.destroy(id, { resource_type: 'image' }).catch(() => null)));
     return res.json({ undone: snapshot.clubs.length, message: `Restored ${snapshot.clubs.length} clubs to their pre-import state.` });
   } catch (error) {
-    console.error('Club spreadsheet undo failed:', error.name);
+    console.error('Club spreadsheet undo failed:', error.name, error.message);
     return res.status(error.status || 503).json({ message: error.status ? error.message : 'The import could not be safely undone.' });
   }
 });
@@ -7345,6 +7389,7 @@ app.post('/api/admin/clubs/import', async (req, res) => {
   let commitAttempted = false;
   try {
     const normalized = [];
+    const existingClubNames = new Set((await Club.find({}).select('name').read('primary').lean()).flatMap(club => [normalizeName(club.name), importKey(club.name)]));
     for (let index = 0; index < records.length; index += 1) {
       const row = records[index] || {};
       const rowNumber = Number.isSafeInteger(row.rowNumber) && row.rowNumber >= 2 && row.rowNumber <= 1048576 ? row.rowNumber : index + 2;
@@ -7367,14 +7412,22 @@ app.post('/api/admin/clubs/import', async (req, res) => {
       }
       const category = cleanText(row.category, 80);
       const description = cleanText(row.description, 1200);
-      if (!description || !row.image || typeof row.image.url !== 'string' || !isTemporaryClubImageId(row.image.publicId)) {
-        throw Object.assign(new Error(`Description and an embedded club image are required on data row ${rowNumber}.`), { status: 400 });
+      // Existing clubs are updated: a blank description or a missing logo keeps what is already saved.
+      const existingForRow = existingClubNames.has(normalizeName(name)) || existingClubNames.has(importKey(name));
+      const hasImage = row.image && typeof row.image.url === 'string' && isTemporaryClubImageId(row.image.publicId);
+      if (!existingForRow && (!description || !hasImage)) {
+        throw Object.assign(new Error(`New clubs need a description and an embedded club logo (data row ${rowNumber}).`), { status: 400 });
       }
-      const image = await readCloudinaryAsset(row.image.url, row.image.publicId, cloudinaryFolders.club);
-      if (!image) throw Object.assign(new Error(`The club image could not be verified on data row ${rowNumber}. Upload it again and retry.`), { status: 400 });
+      const image = hasImage ? await readCloudinaryAsset(row.image.url, row.image.publicId, cloudinaryFolders.club) : null;
+      if (hasImage && !image) throw Object.assign(new Error(`The club image could not be verified on data row ${rowNumber}. Upload it again and retry.`), { status: 400 });
+      const supervisorEmail = String(row.supervisorEmail || '').trim().toLowerCase();
+      if (supervisorEmail && (!validEmail(supervisorEmail) || [presidentEmail, vicePresidentEmail].includes(supervisorEmail) || emailMatches(supervisorEmail))) {
+        throw Object.assign(new Error(`Check the supervisor MIU email on data row ${rowNumber} (it must differ from the President and Vice President).`), { status: 400 });
+      }
+      const details = require('./services/club-import-details').importDetails(row);
       const newDetails = row.newClub && typeof row.newClub === 'object' ? row.newClub : row;
       normalized.push({ name, category, description, image, presidentEmail, vicePresidentEmail,
-        presidentName, vicePresidentName,
+        presidentName, vicePresidentName, supervisorEmail, details,
         newClub: {
           committee: cleanText(newDetails.committee, 100) || name,
           tagline: cleanText(newDetails.tagline, 140) || description.slice(0, 140),
@@ -7382,7 +7435,7 @@ app.post('/api/admin/clubs/import', async (req, res) => {
         } });
     }
 
-    const currentClubs = await Club.find({}).select('id name archivedAt image imagePublicId sortOrder members memberRoster committeeAvailability applicants applicationFields').read('primary').lean();
+    const currentClubs = await Club.find({}).select('id name category description archivedAt image imagePublicId sortOrder members memberRoster committeeAvailability applicants applicationFields profile officers updatedAt').read('primary').lean();
     const byName = new Map(currentClubs.map(club => [normalizeName(club.name), club]));
     const findClubByImportName = name => byName.get(normalizeName(name)) || byName.get(importKey(name)) || null;
     for (const row of normalized) {
@@ -7409,7 +7462,9 @@ app.post('/api/admin/clubs/import', async (req, res) => {
         if (club) {
           const before = clubImportUndoFields(club);
           const previousNameKey = normalizeName(club.name);
-          const clubUpdate = { name: row.name, description: row.description, image: row.image.url, imagePublicId: row.image.publicId };
+          const clubUpdate = { name: row.name, ...require('./services/club-import-details').mergeDetails(club, row.details) };
+          if (row.description) clubUpdate.description = row.description;
+          if (row.image) { clubUpdate.image = row.image.url; clubUpdate.imagePublicId = row.image.publicId; }
           if (row.category) clubUpdate.category = row.category;
           const updated = await Club.findOneAndUpdate({ id: club.id, archivedAt: null }, { $set: clubUpdate }, { new: true, runValidators: true, session }).lean();
           if (!updated) throw Object.assign(new Error(`Could not update ${row.name}.`), { status: 409 });
@@ -7424,6 +7479,7 @@ app.post('/api/admin/clubs/import', async (req, res) => {
           club = await makeClub(payload, null, nextId, row.image);
           if (!club) throw Object.assign(new Error(`Complete the new-club details for ${row.name}.`), { status: 400 });
           club.applicationCycleStartedAt = new Date();
+          Object.assign(club, require('./services/club-import-details').mergeDetails({}, row.details));
           club.createdAt = new Date(); club.updatedAt = club.createdAt;
           const [createdClub] = await Club.create([club], { session });
           if (createdClub) club = createdClub.toObject ? createdClub.toObject() : createdClub;
@@ -7455,6 +7511,7 @@ app.post('/api/admin/clubs/import', async (req, res) => {
       }
       for (const { row, club } of preparedRows) {
         if (row.presidentEmail) { await captureAccount(row.presidentEmail, session); savedAccounts.push(await assignNewClubRole({ ClubAccount, session, email: row.presidentEmail, clubId: club.id, role: 'president' })); }
+        if (row.supervisorEmail) { await captureAccount(row.supervisorEmail, session); savedAccounts.push(await assignNewClubRole({ ClubAccount, session, email: row.supervisorEmail, clubId: club.id, role: 'supervisor' })); }
         if (row.vicePresidentEmail) { await captureAccount(row.vicePresidentEmail, session); savedAccounts.push(await assignNewClubRole({ ClubAccount, session, email: row.vicePresidentEmail, clubId: club.id, role: 'vice_president' })); }
       }
       const undoAccounts = [];
@@ -7462,33 +7519,13 @@ app.post('/api/admin/clubs/import', async (req, res) => {
         const after = await ClubAccount.findOne({ email }).session(session).lean();
         undoAccounts.push({ email, before, afterFingerprint: after ? clubImportUndoService.fingerprint(after) : null });
       }
-      const currentUndo = await AuditLog.findOne({ action: clubImportUndoAction, targetId: importId }).session(session).lean();
-      const latestUndo = (await AuditLog.find({ action: clubImportUndoAction }).sort({ timestamp: -1 }).limit(1).session(session).lean())[0];
-      let undoSnapshot = currentUndo ? clubImportUndoService.open(currentUndo.details, sessionSecret) : { version: 1, clubs: [], accounts: [] };
-      if (latestUndo && latestUndo.targetId !== importId) {
-        try {
-          const priorSnapshot = clubImportUndoService.open(latestUndo.details, sessionSecret);
-          if (!priorSnapshot.undoneAt && !priorSnapshot.supersededAt) {
-            priorSnapshot.supersededAt = new Date().toISOString();
-            await AuditLog.findOneAndUpdate({ id: latestUndo.id }, { $set: { details: clubImportUndoService.seal(priorSnapshot, sessionSecret) } }, { new: true, session }).lean();
-          }
-        } catch (error) { console.error('Previous club import undo could not be retired:', error.name); }
-      }
-      undoSnapshot.clubs.push(...undoClubs);
-      for (const entry of undoAccounts) {
-        const existing = undoSnapshot.accounts.findIndex(item => item.email === entry.email);
-        if (existing < 0) undoSnapshot.accounts.push(entry);
-        else undoSnapshot.accounts[existing].afterFingerprint = entry.afterFingerprint;
-      }
-      const sealedUndo = clubImportUndoService.seal(undoSnapshot, sessionSecret);
-      if (currentUndo) {
-        await AuditLog.findOneAndUpdate({ id: currentUndo.id }, { $set: { details: sealedUndo, timestamp: new Date() } }, { new: true, session }).lean();
-      } else {
-        const [undoRecord] = await AuditLog.create([{ id: clubImportUndoAuditId(), actorEmail: adminAuthState?.email || getConfiguredAdminEmail() || 'admin',
-          actorRole: 'admin', action: clubImportUndoAction, targetType: 'club_import', targetId: importId,
-          targetName: `Import of ${undoSnapshot.clubs.length} clubs`, details: sealedUndo, timestamp: new Date() }], { session });
-        if (!undoRecord) throw Object.assign(new Error('Could not save an undo point for this import.'), { status: 503 });
-      }
+      // The audit log is append-only (SQL Server denies UPDATE on it), so every batch adds its own undo record;
+      // readClubImportUndo() merges all records of one import when undoing.
+      const batchSnapshot = { version: 1, clubs: undoClubs, accounts: undoAccounts };
+      const [undoRecord] = await AuditLog.create([{ id: clubImportUndoAuditId(), actorEmail: adminAuthState?.email || getConfiguredAdminEmail() || 'admin',
+        actorRole: 'admin', action: clubImportUndoAction, targetType: 'club_import', targetId: importId,
+        targetName: `Import of ${undoClubs.length} clubs`, details: clubImportUndoService.seal(batchSnapshot, sessionSecret), timestamp: new Date() }], { session });
+      if (!undoRecord) throw Object.assign(new Error('Could not save an undo point for this import.'), { status: 503 });
       commitAttempted = true;
       await session.commitTransaction();
       committed = true;
@@ -7516,7 +7553,7 @@ app.post('/api/admin/clubs/import', async (req, res) => {
       try {
         const priorSnapshot = clubImportUndoService.open(priorUndo.details, sessionSecret);
         const supersededImageIds = new Set(priorSnapshot.clubs.map(entry => entry.before?.imagePublicId).filter(Boolean));
-        const currentImageIds = new Set(normalized.map(row => row.image.publicId));
+        const currentImageIds = new Set(normalized.map(row => row.image?.publicId).filter(Boolean));
         if (cloudinaryConfigured) await Promise.all([...supersededImageIds].filter(id => !currentImageIds.has(id))
           .map(id => cloudinary.uploader.destroy(id, { resource_type: 'image' }).catch(() => null)));
       } catch (error) { console.error('Superseded club images could not be removed:', error.name); }
@@ -8471,7 +8508,8 @@ function sendHttpErrorPage(res, status, title, detail) {
     .replaceAll('{{STATUS}}', escapeHtml(status))
     .replaceAll('{{TITLE}}', escapeHtml(title))
     .replaceAll('{{DETAIL}}', escapeHtml(detail))
-    .replace('{{RETRY_BUTTON}}', retryButton);
+    .replace('{{RETRY_BUTTON}}', retryButton)
+    .replace('<a class="home-action" href="/">Go to home</a>', status === 401 ? '<a class="home-action" href="/pages/applicant-login.html">Sign in</a> <a class="home-action" href="/">Go to home</a>' : '<a class="home-action" href="/">Go to home</a>');
   return res.status(status).type('html').send(html);
 }
 

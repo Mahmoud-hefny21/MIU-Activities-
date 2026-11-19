@@ -109,10 +109,13 @@ function createImportHarness({ clubs = [], accounts = [], failCommit = false } =
         } };
       },
       find(filter) {
-        let active, limit = Infinity;
-        return { session(value) { active = value; return this; }, read() { return this; }, sort() { return this; }, limit(value) { limit = value; return this; }, lean: async () =>
-          [...state.undoRecords, ...(active?.pendingUndoRecords || [])].filter(item => Object.entries(filter).every(([key, value]) => item[key] === value)).slice(-limit).reverse() };
+        let active, limit = Infinity, ascending = false;
+        return { session(value) { active = value; return this; }, read() { return this; }, sort(spec) { ascending = spec?.timestamp === 1; return this; }, limit(value) { limit = value; return this; }, lean: async () => {
+          const rows = [...state.undoRecords, ...(active?.pendingUndoRecords || [])].filter(item => Object.entries(filter).every(([key, value]) => item[key] === value));
+          return ascending ? rows.slice(0, limit) : rows.slice(-limit).reverse();
+        } };
       },
+      exists: async (filter) => state.undoRecords.some(item => Object.entries(filter).every(([key, value]) => item[key] === value)),
       findOneAndUpdate(filter, operation, options) {
         const current = [...state.undoRecords, ...(options.session?.pendingUndoRecords || [])].find(item => item.id === filter.id);
         if (!current) return query(null);
@@ -133,16 +136,16 @@ function createImportHarness({ clubs = [], accounts = [], failCommit = false } =
     StudentInterest: { countDocuments: () => ({ session() { return this; }, then(resolve) { resolve(0); } }) },
     adminAuthState: { email: 'admin@miuegypt.edu.eg' }, getConfiguredAdminEmail: () => 'admin@miuegypt.edu.eg',
     require: name => name === './services/new-club-accounts' ? accountsService
-      : name === './services/club-import-undo' ? require('../services/club-import-undo') : require(name)
+      : name.startsWith('./services/') ? require('.' + name) : require(name)
   };
   vm.createContext(context);
   const start = source.indexOf("app.post('/api/admin/clubs/import/cleanup'");
   const end = source.indexOf("app.get('/api/admin/applications'", start);
   vm.runInContext(source.slice(start, end), context);
-  async function importBatch(records) {
+  async function importBatch(records, importId) {
     const res = { statusCode: 200, headers: {}, status(code) { this.statusCode = code; return this; },
       setHeader(key, value) { this.headers[key] = value; }, json(body) { this.body = body; return this; } };
-    await routes.get('POST /api/admin/clubs/import')({ body: { records } }, res);
+    await routes.get('POST /api/admin/clubs/import')({ body: { records, ...(importId ? { importId } : {}) } }, res);
     return res;
   }
   async function undoImport(importId) {
@@ -340,4 +343,20 @@ test('ambiguous transaction commit keeps uploaded images and tells the admin to 
   assert.equal(harness.state.clubs.length, 0);
   assert.equal(harness.state.accounts.length, 0);
   assert.deepEqual(harness.state.imagesDeleted, []);
+});
+
+test('a two-batch import adds one undo record per batch and undo restores both without updating the audit log', async () => {
+  const first = { id: 40, name: 'First Club', category: 'Arts', description: 'Old first', image: 'old-1', imagePublicId: 'clubs/old-1', archivedAt: null };
+  const second = { id: 41, name: 'Second Club', category: 'Arts', description: 'Old second', image: 'old-2', imagePublicId: 'clubs/old-2', archivedAt: null };
+  const harness = createImportHarness({ clubs: [first, second] });
+  const importId = '11111111-2222-4333-8444-555555555555';
+  assert.equal((await harness.importBatch([{ name: 'First Club', description: 'New first', image: image(40) }], importId)).statusCode, 200);
+  assert.equal((await harness.importBatch([{ name: 'Second Club', description: 'New second', image: image(41) }], importId)).statusCode, 200);
+  assert.equal(harness.state.undoRecords.filter(record => record.targetId === importId).length, 2);
+  const undone = await harness.undoImport(importId);
+  assert.equal(undone.statusCode, 200);
+  assert.equal(undone.body.undone, 2);
+  assert.equal(harness.state.clubs.find(club => club.id === 40).description, 'Old first');
+  assert.equal(harness.state.clubs.find(club => club.id === 41).description, 'Old second');
+  assert.equal((await harness.latestUndo()).body.available, false);
 });

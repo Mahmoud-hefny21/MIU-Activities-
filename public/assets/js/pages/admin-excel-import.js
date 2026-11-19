@@ -2,7 +2,7 @@
   'use strict';
   window.mountAdminExcelImport = ({ read, request, escape, invalidate, refresh }) => {
     const $ = id => document.getElementById(id);
-    $('toolContent').innerHTML = `<section class="v2-excel-review"><p class="v2-panel-note">Upload a workbook with club name, description and one embedded logo image per row. President and Vice President email columns are optional; only supplied MIU emails are assigned dashboard roles. Existing clubs are matched by exact name or the known name variants shown in the review. Matching rows update the existing club using the workbook name and description; they do not create a duplicate. Nothing changes until you confirm the import. Up to 2,000 club rows; workbook limit 50 MB. For new clubs, missing category defaults to “Other”, committee to the club name, tagline to the start of its description, and requirements to “Contact the club for current application requirements.” These defaults are shown in the review. Social links and officers’ names, IDs, phones and faculty/year are not stored by the current website data model.</p><div id="excelReviewUndo" class="v2-panel-note" role="status"></div><label>Club workbook (.xlsx)<input id="excelReviewFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label><p id="excelReviewStatus" class="v2-panel-note" role="status">Choose the workbook to start a local review.</p><div id="excelReviewPreview"></div></section>`;
+    $('toolContent').innerHTML = `<section class="v2-excel-review"><p class="v2-panel-note">Upload the clubs workbook: Club Name, Club Description, Mission, Vision, Faculty Advisor Name, Club Number, Category, Official Social Media Links, Club Logo (a Google Drive link shared as “Anyone with the link”, or one embedded image), President and Vice President details (full name, MIU ID, MIU email, phone / WhatsApp, faculty and academic year), and Supervisor Name and Supervisor MIU Email. Columns are matched by their names, so the order does not matter. Every club is matched by name: a club that already exists is updated, never duplicated, and blank cells keep the saved value (an existing club keeps its logo if the row has none). President, Vice President and Supervisor emails automatically receive their dashboard roles for that club. Mission, vision, advisor, social links and officer details are saved for internal use only; the public club card does not change. Nothing changes until you confirm, and the latest import can be undone. Up to 2,000 rows; workbook limit 50 MB.</p><div id="excelReviewUndo" class="v2-panel-note" role="status"></div><label>Club workbook (.xlsx)<input id="excelReviewFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label><p id="excelReviewStatus" class="v2-panel-note" role="status">Choose the workbook to start a local review.</p><div id="excelReviewPreview"></div></section>`;
     const input = $('excelReviewFile'), status = $('excelReviewStatus'), preview = $('excelReviewPreview'), undoHost = $('excelReviewUndo');
     let activeLogRows = [], activeImportId, renderActiveLog = () => {};
     const displayUndo = (importId, count) => {
@@ -64,14 +64,28 @@
     async function review(workbook, sheet) {
       const headers = new Map();
       sheet.getRow(1).eachCell((cell, index) => headers.set(normalize(cellText(cell.value)), index));
-      const getColumn = name => headers.get(normalize(name));
-      const col = {
-        name:getColumn('Club Name'), description:getColumn('Club Description'), category:getColumn('category') || getColumn('Club Category'),
-        committee:getColumn('Club Committee'), tagline:getColumn('Tagline'), requirements:getColumn('Requirements'),
-        presidentName:getColumn('President Full Name'), presidentEmail:getColumn('President MIU Email'),
-        viceName:getColumn('Vice President Full Name'), viceEmail:getColumn('Vice President MIU Email')
-      };
-      const missing = ['name', 'description'].filter(name => !col[name]);
+      // Columns are matched loosely (case, extra words like "E.g (2ND)" or "/ WhatsApp"), so small header changes still work.
+      const entries = [...headers.entries()];
+      const used = new Set();
+      const find = (test) => { const hit = entries.find(([label, index]) => !used.has(index) && test(label)); if (hit) used.add(hit[1]); return hit?.[1]; };
+      const vp = label => /vice/.test(label);
+      const pres = label => /president/.test(label) && !vp(label);
+      const sup = label => /supervisor/.test(label);
+      const col = {};
+      // Most specific columns first, so "President MIU Email" is never taken by a general match.
+      col.viceEmail = find(l => vp(l) && /e-?mail/.test(l)); col.viceId = find(l => vp(l) && /\bid\b/.test(l)); col.vicePhone = find(l => vp(l) && /phone|whats/.test(l));
+      col.viceFacultyYear = find(l => vp(l) && /faculty|year/.test(l)); col.viceName = find(l => vp(l) && /name/.test(l));
+      col.presidentEmail = find(l => pres(l) && /e-?mail/.test(l)); col.presidentId = find(l => pres(l) && /\bid\b/.test(l)); col.presidentPhone = find(l => pres(l) && /phone|whats/.test(l));
+      col.presidentFacultyYear = find(l => pres(l) && /faculty|year/.test(l)); col.presidentName = find(l => pres(l) && /name/.test(l));
+      col.supervisorEmail = find(l => sup(l) && /mail/.test(l)); col.supervisorName = find(l => sup(l) && /name/.test(l));
+      col.facultyAdvisor = find(l => /advis/.test(l));
+      col.name = find(l => /club name|^name$/.test(l)); col.description = find(l => /description/.test(l));
+      col.mission = find(l => /mission/.test(l)); col.vision = find(l => /vision/.test(l));
+      col.clubNumber = find(l => /club (number|no)|^number$/.test(l)); col.category = find(l => /categor/.test(l));
+      col.logoLink = find(l => /logo|image|photo/.test(l));
+      col.socialLinks = find(l => /social|handle|instagram|facebook|link/.test(l));
+      col.committee = find(l => /committee/.test(l)); col.tagline = find(l => /tagline/.test(l)); col.requirements = find(l => /requirement/.test(l));
+      const missing = ['name'].filter(name => !col[name]);
       if (missing.length) throw new Error(`This is not the club officers workbook. Missing columns: ${missing.join(', ')}.`);
       status.textContent = 'Matching club names with the website…';
       const [active, archived] = await Promise.all([read('/api/clubs?media=links'), read('/api/admin/clubs/archived')]);
@@ -92,6 +106,11 @@
           rowNumber, name, key:normalize(name), category:get('category'), committee:get('committee'), tagline:get('tagline'), requirements:get('requirements'), description:get('description'),
           presidentName:get('presidentName'), presidentEmail:get('presidentEmail').toLowerCase(),
           vicePresidentName:get('viceName'), vicePresidentEmail:get('viceEmail').toLowerCase(),
+          presidentUniversityId:get('presidentId'), presidentPhone:get('presidentPhone'), presidentFacultyYear:get('presidentFacultyYear'),
+          vicePresidentUniversityId:get('viceId'), vicePresidentPhone:get('vicePhone'), vicePresidentFacultyYear:get('viceFacultyYear'),
+          supervisorName:get('supervisorName'), supervisorEmail:get('supervisorEmail').toLowerCase(),
+          logoLink:(() => { const value = col.logoLink ? row.getCell(col.logoLink).value : null; return String(value?.hyperlink || cellText(value) || '').trim(); })(),
+          mission:get('mission'), vision:get('vision'), facultyAdvisor:get('facultyAdvisor'), clubNumber:get('clubNumber'), socialLinks:get('socialLinks'),
           imageFile:imagesByRow.get(rowNumber) || null, imageCount:imageCounts.get(rowNumber) || 0,
           existing:findExisting(websiteClubs,name), errors:[], newClub:null
         };
@@ -101,13 +120,19 @@
         if (item.name.length > 80) fail('club name is longer than 80 characters');
         if (item.identityKey && names.has(item.identityKey)) fail('club name, including its known existing-name variant, appears more than once');
         if (item.identityKey) names.add(item.identityKey);
-        if (!item.description || item.description.length > 1200) fail('description is missing or too long');
+        if (item.description.length > 1200) fail('description is longer than 1,200 characters');
+        if (!item.existing && !item.description) fail('new clubs need a description');
         if (item.category.length > 80) fail('category is longer than 80 characters');
         if (item.committee.length > 100 || item.tagline.length > 140 || item.requirements.length > 600) fail('optional club detail exceeds its field limit');
         if (item.presidentEmail && (!validEmail(item.presidentEmail) || item.presidentName.length > 120)) fail('President MIU email or name is invalid');
         if (item.vicePresidentEmail && (!validEmail(item.vicePresidentEmail) || item.vicePresidentName.length > 120)) fail('Vice President MIU email or name is invalid');
         if (item.presidentEmail && item.presidentEmail === item.vicePresidentEmail) fail('President and Vice President need different emails');
-        if (!item.imageFile || item.imageCount !== 1) fail('add exactly one embedded JPG, PNG or WebP image (up to 10 MB)');
+        // Existing clubs keep their saved logo when the row has none; new clubs need one.
+        if (item.imageCount > 1) fail('add only one embedded logo image in this row');
+        else if (item.imageCount === 1 && !item.imageFile) fail('the logo must be a JPG, PNG or WebP image up to 10 MB');
+        else if (item.logoLink && !item.imageFile && !/^https:\/\/(drive|docs)\.google\.com\//i.test(item.logoLink)) fail('Club Logo must be a Google Drive link (https://drive.google.com/...)');
+        else if (!item.existing && !item.imageFile && !item.logoLink) fail('new clubs need a Club Logo (Google Drive link or embedded JPG, PNG or WebP image)');
+        if (item.supervisorEmail && (!validEmail(item.supervisorEmail) || [item.presidentEmail, item.vicePresidentEmail].includes(item.supervisorEmail))) fail('Supervisor MIU email is invalid or the same as the President / Vice President');
         if (item.existing?.archivedAt) fail('club is archived; restore it before importing');
         for (const [role,email] of [['President',item.presidentEmail],['Vice President',item.vicePresidentEmail]]) {
           if (!validEmail(email)) continue;
@@ -122,9 +147,9 @@
       if (!rows.length) throw new Error('No club rows were found below the header.');
       if (rows.length > 2000) throw new Error('The maximum is 2,000 club rows per workbook.');
       const newRows = rows.filter(item => !item.existing);
-      const previewRows = rows.slice(0,20).map(item => `<tr><td>${escape(item.rowNumber)}</td><td>${escape(item.name)}</td><td>${item.existing ? `Update ${escape(item.existing.name)}${normalize(item.existing.name)!==normalize(item.name)?` · use workbook name “${escape(item.name)}”`:''}` : 'Create new'}</td><td>${escape(item.presidentEmail || 'Not assigned')}</td><td>${escape(item.vicePresidentEmail || 'Not assigned')}</td><td>${item.imageFile ? 'Ready' : 'Missing'}</td></tr>`).join('');
-      const roleAssignments = rows.reduce((count, item) => count + Boolean(item.presidentEmail) + Boolean(item.vicePresidentEmail), 0);
-      preview.innerHTML = `<div class="v2-excel-review-summary"><strong>${rows.length.toLocaleString()} rows checked</strong><span>${rows.length-newRows.length} existing · ${newRows.length} new clubs</span><span>${rows.filter(item=>item.imageFile).length} images</span><span>${roleAssignments} optional role assignments</span><span class="${errors.length?'is-error':''}">${errors.length} errors</span></div><p class="v2-panel-note">New clubs use the defaults shown above when optional fields are missing. Omitted officer emails leave existing role assignments unchanged.</p><div class="v2-excel-table-wrap"><table class="v2-excel-table"><thead><tr><th>Row</th><th>Club</th><th>Action</th><th>President</th><th>Vice President</th><th>Image</th></tr></thead><tbody>${previewRows}</tbody></table></div>${rows.length>20?`<p class="v2-panel-note">Showing 20 of ${rows.length.toLocaleString()}; all rows were validated.</p>`:''}${errors.length?`<details class="v2-excel-errors"><summary>Validation details</summary><ul>${errors.slice(0,100).map(error=>`<li>${escape(error)}</li>`).join('')}</ul>${errors.length>100?`<p>And ${errors.length-100} more errors.</p>`:''}</details>`:''}<div id="excelNewClubFields"></div><p id="excelImportProgress" class="v2-panel-note" role="status"></p><button id="excelImportConfirm" class="v2-action" type="button" ${errors.length?'disabled':''}>${errors.length?'Fix errors before importing':'Review and import clubs'}</button>`;
+      const previewRows = rows.slice(0,20).map(item => `<tr><td>${escape(item.rowNumber)}</td><td>${escape(item.name)}</td><td>${item.existing ? `Update ${escape(item.existing.name)}${normalize(item.existing.name)!==normalize(item.name)?` · use workbook name “${escape(item.name)}”`:''}` : 'Create new'}</td><td>${escape(item.presidentEmail || 'Not assigned')}</td><td>${escape(item.vicePresidentEmail || 'Not assigned')}</td><td>${escape(item.supervisorEmail || 'Not assigned')}</td><td>${item.imageFile ? 'New logo' : item.logoLink ? 'Drive link' : item.existing ? 'Keep current' : 'Missing'}</td></tr>`).join('');
+      const roleAssignments = rows.reduce((count, item) => count + Boolean(item.presidentEmail) + Boolean(item.vicePresidentEmail) + Boolean(item.supervisorEmail), 0);
+      preview.innerHTML = `<div class="v2-excel-review-summary"><strong>${rows.length.toLocaleString()} rows checked</strong><span>${rows.length-newRows.length} existing · ${newRows.length} new clubs</span><span>${rows.filter(item=>item.imageFile||item.logoLink).length} logos</span><span>${roleAssignments} optional role assignments</span><span class="${errors.length?'is-error':''}">${errors.length} errors</span></div><p class="v2-panel-note">New clubs use the defaults shown above when optional fields are missing. Omitted officer emails leave existing role assignments unchanged.</p><div class="v2-excel-table-wrap"><table class="v2-excel-table"><thead><tr><th>Row</th><th>Club</th><th>Action</th><th>President</th><th>Vice President</th><th>Supervisor</th><th>Logo</th></tr></thead><tbody>${previewRows}</tbody></table></div>${rows.length>20?`<p class="v2-panel-note">Showing 20 of ${rows.length.toLocaleString()}; all rows were validated.</p>`:''}${errors.length?`<details class="v2-excel-errors"><summary>Validation details</summary><ul>${errors.slice(0,100).map(error=>`<li>${escape(error)}</li>`).join('')}</ul>${errors.length>100?`<p>And ${errors.length-100} more errors.</p>`:''}</details>`:''}<div id="excelNewClubFields"></div><p id="excelImportProgress" class="v2-panel-note" role="status"></p><button id="excelImportConfirm" class="v2-action" type="button" ${errors.length?'disabled':''}>${errors.length?'Fix errors before importing':'Review and import clubs'}</button>`;
       const fieldHost = preview.querySelector('#excelNewClubFields');
        fieldHost.innerHTML = '';
       const confirm = preview.querySelector('#excelImportConfirm');
@@ -168,12 +193,12 @@
             const batch=rows.slice(offset,offset+chunkSize), uploaded=[];let cursor=0,submitted=false;
             try{
               progress.textContent=`Uploading images for clubs ${offset+1}-${offset+batch.length} of ${rows.length}…`;
-              const uploads=await Promise.allSettled(Array.from({length:Math.min(3,batch.length)},async()=>{while(cursor<batch.length){const item=batch[cursor++];setRow(item,'uploading','Uploading the embedded club image.');try { item.image=await window.uploadImageToCloudinary(item.imageFile,'club');uploaded.push(item.image.publicId);setRow(item,'uploaded','Image uploaded. Waiting for this batch to save.'); } catch(error) { setRow(item,'failed','Image upload failed: '+(error.message || 'The image could not be uploaded.')); throw error; }}}));
+              const uploads=await Promise.allSettled(Array.from({length:Math.min(3,batch.length)},async()=>{while(cursor<batch.length){const item=batch[cursor++];if(!item.imageFile&&item.logoLink){setRow(item,'uploading','Downloading the logo from Google Drive.');try{item.image=await request('/api/admin/clubs/import/drive-logo',{method:'POST',body:JSON.stringify({url:item.logoLink})});uploaded.push(item.image.publicId);setRow(item,'uploaded','Drive logo uploaded. Waiting for this batch to save.');}catch(error){setRow(item,'failed','Drive logo failed: '+(error.message||'The Drive file could not be read.'));throw error;}continue;}if(!item.imageFile){item.image=null;continue;}setRow(item,'uploading','Uploading the embedded club image.');try { item.image=await window.uploadImageToCloudinary(item.imageFile,'club');uploaded.push(item.image.publicId);setRow(item,'uploaded','Image uploaded. Waiting for this batch to save.'); } catch(error) { setRow(item,'failed','Image upload failed: '+(error.message || 'The image could not be uploaded.')); throw error; }}}));
               const uploadFailure=uploads.find(result=>result.status==='rejected');if(uploadFailure)throw uploadFailure.reason;
               submitted=true;
               for (const item of batch) { item.logState='saving'; item.logReason='Saving club details and supplied role assignments.'; } renderLog();
-               const result=await request('/api/admin/clubs/import',{method:'POST',body:JSON.stringify({importId,records:batch.map(({rowNumber,name,category,committee,tagline,requirements,description,presidentName,presidentEmail,vicePresidentName,vicePresidentEmail,image})=>({rowNumber,name,category,committee,tagline,requirements,description,presidentName,presidentEmail,vicePresidentName,vicePresidentEmail,image}))})});
-               const expectedRoles=batch.reduce((count,item)=>count+Boolean(item.presidentEmail)+Boolean(item.vicePresidentEmail),0);
+               const result=await request('/api/admin/clubs/import',{method:'POST',body:JSON.stringify({importId,records:batch.map(({rowNumber,name,category,committee,tagline,requirements,description,presidentName,presidentEmail,vicePresidentName,vicePresidentEmail,image,presidentUniversityId,presidentPhone,presidentFacultyYear,vicePresidentUniversityId,vicePresidentPhone,vicePresidentFacultyYear,supervisorName,supervisorEmail,mission,vision,facultyAdvisor,clubNumber,socialLinks})=>({rowNumber,name,category,committee,tagline,requirements,description,presidentName,presidentEmail,vicePresidentName,vicePresidentEmail,image,presidentUniversityId,presidentPhone,presidentFacultyYear,vicePresidentUniversityId,vicePresidentPhone,vicePresidentFacultyYear,supervisorName,supervisorEmail,mission,vision,facultyAdvisor,clubNumber,socialLinks}))})});
+               const expectedRoles=batch.reduce((count,item)=>count+Boolean(item.presidentEmail)+Boolean(item.vicePresidentEmail)+Boolean(item.supervisorEmail),0);
                if(result.imported!==batch.length||!Number.isSafeInteger(result.created)||!Number.isSafeInteger(result.updated)||result.created+result.updated!==batch.length||result.rolesAssigned!==expectedRoles||result.importId!==importId||result.undoAvailable!==true){const error=new Error('The server response did not confirm every club, supplied role assignment and undo point.');error.commitUncertain=true;throw error;}
               if (!Array.isArray(result.rowResults) || result.rowResults.length !== batch.length || batch.some(item => result.rowResults.filter(row => row.rowNumber === item.rowNumber && row.name === item.name && ['inserted','updated'].includes(row.status)).length !== 1)) { const error = new Error('The server did not confirm an individual result for every Excel row.'); error.commitUncertain = true; throw error; }
               for (const item of batch) { const resultRow=result.rowResults.find(row=>row.rowNumber===item.rowNumber); item.logState=resultRow.status; item.logReason=resultRow.reason; } renderLog();

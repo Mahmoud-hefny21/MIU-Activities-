@@ -177,10 +177,10 @@ document.addEventListener('DOMContentLoaded', () => {
   initFloatingBack();
 
   const navigationScript = document.createElement('script'); navigationScript.src = '/assets/js/dashboard-navigation.js?v=20261119swipe1'; document.head.append(navigationScript);
-  const drawerStyles = document.createElement('link'); drawerStyles.rel = 'stylesheet'; drawerStyles.href = '/assets/css/mobile-sidebars.css?v=20261119bar3';
+  const drawerStyles = document.createElement('link'); drawerStyles.rel = 'stylesheet'; drawerStyles.href = '/assets/css/mobile-sidebars.css?v=20261119fix6';
   const drawerScript = document.createElement('script'); drawerScript.src = '/assets/js/mobile-sidebars.js?v=20261119bar5';
   let drawerStarted = false;
-  const bottomBarScript = document.createElement('script'); bottomBarScript.src = '/assets/js/bottom-bar.js?v=20261119bar9';
+  const bottomBarScript = document.createElement('script'); bottomBarScript.src = '/assets/js/bottom-bar.js?v=20261119fix5';
   // The bottom bar starts after the drawer script so dashboards can open their menu from it.
   const swipeBackScript = document.createElement('script'); swipeBackScript.src = '/assets/js/swipe-back.js?v=20261119bar3';
   drawerScript.addEventListener('load', () => { document.head.append(bottomBarScript); document.head.append(swipeBackScript); }, { once: true });
@@ -211,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
           initHeader();
           if (!document.querySelector('script[data-miu-push-client]')) {
             const pushClient = document.createElement('script');
-            pushClient.src = '/assets/js/onesignal-notifications.js?v=20261014promptqueue1';
+            pushClient.src = '/assets/js/onesignal-notifications.js?v=20261119fix5';
             pushClient.async = true;
             pushClient.dataset.miuPushClient = 'true';
             document.head.appendChild(pushClient);

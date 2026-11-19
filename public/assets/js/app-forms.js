@@ -502,7 +502,13 @@ function openClubDetail(clubId) {
   clubDetail.querySelector('[data-action="apply-club"]').addEventListener('click', () => openApplicationForm(normalizedClubId));
   clubDetail.querySelectorAll('[data-action="go-home"]').forEach(button => button.addEventListener('click', () => showView('home')));
   const ratingDialog = clubDetail.querySelector('.club-rating-dialog');
-  clubDetail.querySelector('[data-action="rate-club"]').addEventListener('click', () => ratingDialog.showModal());
+  // Rating needs a signed-in student: guests go to sign in, then come straight back to this rating.
+  clubDetail.querySelector('[data-action="rate-club"]').addEventListener('click', async () => {
+    const signedIn = await fetch('/api/student-auth/session?optional=1', { cache: 'no-store', credentials: 'same-origin' })
+      .then((response) => response.status === 200).catch(() => false);
+    if (!signedIn) { window.location.assign(`/pages/applicant-login.html?redirect=${encodeURIComponent(`/?rate=${normalizedClubId}`)}`); return; }
+    ratingDialog.showModal();
+  });
   clubDetail.querySelector('[data-action="close-rating"]').addEventListener('click', () => ratingDialog.close());
   ratingDialog.addEventListener('click', (event) => {
     if (event.target !== ratingDialog) return;

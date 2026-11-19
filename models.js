@@ -64,7 +64,10 @@ const clubSchema = new mongoose.Schema({
   booths: { type: [mongoose.Schema.Types.Mixed], default: [] },
   // Yearly activity plan uploaded by the president as an Excel sheet.
   yearPlan: { type: [mongoose.Schema.Types.Mixed], default: [] },
-  yearPlanUpdatedAt: { type: Date, default: null }
+  yearPlanUpdatedAt: { type: Date, default: null },
+  // From the clubs Excel import, internal only (admin and roles): never sent in public club data.
+  profile: { type: mongoose.Schema.Types.Mixed, default: {} },
+  officers: { type: mongoose.Schema.Types.Mixed, default: {} }
 }, { timestamps: true });
 
 const applicationSchema = new mongoose.Schema({

@@ -22,7 +22,8 @@ function attendanceStore(seed = {}) {
         if(faults[name])throw new Error('Injected '+name+' failure');
         const created=[];
         for(const value of values){
-          for(const key of ['accountEventKey','registrationKey','deviceHash'])if(value[key]&&rows[name].some(row=>row[key]===value[key]))throw Object.assign(new Error('Duplicate'),{code:11000});
+          // AttendanceRecord.deviceHash is unique per event, like the SQL index (clubId, itemType, eventRequestId, deviceHash).
+          for(const key of ['accountEventKey','registrationKey','deviceHash'])if(value[key]&&rows[name].some(row=>row[key]===value[key]&&(key!=='deviceHash'||name!=='AttendanceRecord'||(row.clubId===value.clubId&&row.itemType===value.itemType&&row.eventRequestId===value.eventRequestId))))throw Object.assign(new Error('Duplicate'),{code:11000});
           const row={...clone(value),_id:crypto.randomBytes(12).toString('hex')};rows[name].push(row);created.push(row);
         }
         return created;

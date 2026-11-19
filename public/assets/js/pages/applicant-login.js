@@ -40,8 +40,8 @@
             fallbackButton.hidden = false;
             return;
           }
-          const sessionResponse = await fetch('/api/student-auth/session', { cache: 'no-store' });
-          const linkExistingAccount = sessionResponse.ok;
+          const sessionResponse = await fetch('/api/student-auth/session?optional=1', { cache: 'no-store' });
+          const linkExistingAccount = sessionResponse.status === 200;
           if (linkExistingAccount) hint.hidden = true;
           const studentSession = linkExistingAccount ? await sessionResponse.json() : null;
           const script = document.createElement('script');

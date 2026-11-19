@@ -20,3 +20,16 @@
 .reverse-attendance-page [hidden] { display: none; }
 .reverse-attendance-page [data-ra-settings] { border-top: 1px solid var(--border-color); margin-top: 24px; padding-top: 12px; }
 @media(max-width:600px) { .reverse-attendance-page { width: calc(100% - 24px); margin: 16px auto; padding: 16px; box-sizing: border-box; } .reverse-attendance-page h1 { font-size: 1.5rem; } }
+/* Scanner verdict: a large coloured headline with an icon, readable from arm's length. */
+.ra-verdict { display: flex; align-items: center; gap: 14px; margin: -4px 0 12px; }
+.ra-verdict-icon { display: grid; place-items: center; flex: none; width: 56px; height: 56px; border-radius: 50%; color: #fff; font-size: 1.8rem; font-weight: 900; }
+.ra-verdict b { display: block; font-size: 1.35rem; letter-spacing: .02em; line-height: 1.2; }
+.ra-verdict span:not(.ra-verdict-icon) { display: block; margin-top: 2px; font-size: .95rem; }
+.reverse-attendance-result[data-color=green] .ra-verdict-icon { background: #15803d; }
+.reverse-attendance-result[data-color=red] .ra-verdict-icon { background: #b91c1c; }
+.reverse-attendance-result[data-color=yellow] .ra-verdict-icon { background: #a16207; }
+.reverse-attendance-result { border-width: 3px; scroll-margin-top: 90px; }
+/* Colour key shown above the scanner. */
+.ra-legend { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; padding: 0; list-style: none; font-size: .85rem; }
+.ra-legend li { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 999px; background: var(--bg-panel); }
+.ra-legend i { width: 12px; height: 12px; border-radius: 50%; }

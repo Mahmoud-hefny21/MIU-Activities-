@@ -1,4 +1,6 @@
-const { fail } = require('./event-attendance-context');
+const { fail, attendanceWindow } = require('./event-attendance-context');
+// The student dashboard opens check-in by itself: it needs each event's window (opens 30 minutes before the start).
+const checkInWindow = (event) => { try { const w = attendanceWindow(event); return { state: w.state, opensAt: w.opensAt, startsAt: w.startsAt, endsAt: w.endsAt, serverNow: w.serverNow }; } catch { return null; } };
 function registerReverseAttendance(app, deps) {
   const { service, requireStudentAuth, actorFor, ready, sameOrigin, Club, UniversityContent, EventRegistration } = deps;
   const buckets = new Map();
@@ -27,7 +29,7 @@ function registerReverseAttendance(app, deps) {
     for (const registration of registrations) {
       const reference = { source: registration.clubId === 0 ? 'miu' : 'club', clubId: registration.clubId, eventIndex: registration.eventIndex };
       if (reference.source === 'club' && registration.eventRequestId > 0) { const club = await Club.findOne({ id: registration.clubId, archivedAt: null }).select('events').lean(); reference.eventIndex = club?.events?.findIndex(event => Number(event.requestId) === Number(registration.eventRequestId)); }
-      try { const ctx = await service.context.resolve(reference); items.push({ ...reference, eventRequestId: ctx.eventRequestId, title: ctx.event.title, date: ctx.event.date, time: ctx.event.time, source: ctx.source, logo: ctx.source === 'miu' ? '/assets/img/pics/logo.svg.png' : ctx.club.image, logoLabel: ctx.source === 'miu' ? 'MIU' : ctx.club.name }); } catch (error) { if (![400, 404].includes(error.status) && error.code !== 'EVENT_ID_MIGRATION_REQUIRED') throw error; }
+      try { const ctx = await service.context.resolve(reference); items.push({ ...reference, eventRequestId: ctx.eventRequestId, title: ctx.event.title, date: ctx.event.date, time: ctx.event.time, source: ctx.source, logo: ctx.source === 'miu' ? '/assets/img/pics/logo.svg.png' : ctx.club.image, logoLabel: ctx.source === 'miu' ? 'MIU' : ctx.club.name, checkIn: checkInWindow(ctx.event) }); } catch (error) { if (![400, 404].includes(error.status) && error.code !== 'EVENT_ID_MIGRATION_REQUIRED') throw error; }
     }
     res.json({ items });
   }));

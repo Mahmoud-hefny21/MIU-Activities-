@@ -69,4 +69,12 @@ function registerUsherSelfCheckin(app, deps) {
     }
   });
 }
-module.exports = { eventRoleLabel, attendanceCategory, membershipSnapshot, registerUsherSelfCheckin };
+// How the check-in was confirmed, for the attendance sheet: own device, account switch checked by ID card, or self check-in.
+function checkInVerification(record) {
+  const scan = record?.reverseAttendance;
+  if (scan?.verifiedSwitch) return 'Account switch on this device - ID card checked by staff' + (scan.verificationNote ? ` (${scan.verificationNote})` : '');
+  if (scan?.scannedBy) return 'Own device - personal QR scanned by staff';
+  return 'Self check-in with the event QR';
+}
+const checkInScannedBy = record => record?.reverseAttendance?.scannedBy || '';
+module.exports = { eventRoleLabel, attendanceCategory, checkInVerification, checkInScannedBy, membershipSnapshot, registerUsherSelfCheckin };

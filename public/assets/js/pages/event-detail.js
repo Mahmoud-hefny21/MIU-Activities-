@@ -11,8 +11,8 @@
   const registrationForm = document.getElementById('regForm');
   const feedbackEl = document.getElementById('regFeedback');
 
-  fetch('/api/student-auth/profile', { cache: 'no-store' })
-    .then((response) => response.ok ? response.json() : null)
+  fetch('/api/student-auth/profile?optional=1', { cache: 'no-store' })
+    .then((response) => response.status === 200 ? response.json() : null)
     .then((profile) => {
       if (!profile) return;
       const nameInput = document.getElementById('regName');
@@ -99,14 +99,14 @@
       registrationForm.dataset.studentManaged = event.attendanceAudience === 'members' ? 'true' : 'false';
       const ticket = ++generation;
       if (event.registrationEnabled === true && event.attendanceAudience === 'members') {
-        import('/assets/js/student-event-registration.js?v=20261019reverseQR1').then(() => {
+        import('/assets/js/student-event-registration.js?v=20261119checkin1').then(() => {
           if (ticket === generation) window.mountStudentEventRegistration(registrationForm, feedbackEl, '/api/university-content/' + event.id + '/registrations');
         }).catch(() => { feedbackEl.textContent = 'Registration controls could not load. Please reload.'; });
       }
-      if (event.registrationEnabled === true && event.attendanceAudience !== 'members') import('/assets/js/student-event-registration.js?v=20261019reverseQR1').then(() => {
+      if (event.registrationEnabled === true && event.attendanceAudience !== 'members') import('/assets/js/student-event-registration.js?v=20261119checkin1').then(() => {
         if (ticket === generation) window.mountPublicEventCapacity(registrationForm, '/api/university-content/' + event.id + '/registrations');
       }).catch(() => { feedbackEl.textContent = 'Registration availability could not load. Please reload.'; });
-      document.title = (event.title || 'University Event') + ' - MIU';
+      document.title = (event.title || 'University Event') + ' · MIU Activities';
     }
     function refreshUniversityEvent() {
       if (pending) return pending;
@@ -166,11 +166,11 @@
       }
       registrationForm.hidden = event.registrationEnabled === false;
       registrationForm.dataset.studentManaged = 'false';
-          import('/assets/js/student-event-registration.js?v=20261019reverseQR1').then(() => window.mountStudentEventRegistration(registrationForm, feedbackEl, `/api/events/${clubId}/${eventIndex}/registrations${event.requestId > 0 ? '?eventRequestId=' + event.requestId : ''}`))
+          import('/assets/js/student-event-registration.js?v=20261119checkin1').then(() => window.mountStudentEventRegistration(registrationForm, feedbackEl, `/api/events/${clubId}/${eventIndex}/registrations${event.requestId > 0 ? '?eventRequestId=' + event.requestId : ''}`))
         .catch(() => { feedbackEl.textContent = 'Registration controls could not load. Please reload.'; });
       statusEl.hidden = true;
       contentEl.hidden = false;
-      document.title = `${event.title || 'Event'} - MIU Activities`;
+      document.title = `${event.title || 'Event'} · MIU Activities`;
     })
     .catch(() => {
       statusEl.textContent = 'Could not load this event right now.';

@@ -63,8 +63,11 @@
   let category = new URLSearchParams(location.search).get('category') || 'all';
   if (category !== 'all' && !categories[category]) category = 'all';
   async function request(url, options = {}) {
-    const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', ...options,
+    const send = () => fetch(url, { credentials: 'same-origin', cache: 'no-store', ...options,
       headers: { 'Content-Type': 'application/json', ...options.headers } });
+    let response = await send();
+    // A busy database can answer 503 once; reads (never writes) retry once before showing an error.
+    if (response.status === 503 && (!options.method || options.method === 'GET')) { await new Promise(resolve => setTimeout(resolve, 900)); response = await send(); }
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
       const error = new Error(response.status === 401 || response.status === 403
@@ -206,6 +209,8 @@
         }));
       } else if (id === 'excel-review') {
         window.mountAdminExcelImport({ read, request, escape, invalidate, refresh: () => overview(true) });
+      } else if (id === 'member-import') {
+        window.mountAdminMemberImport({ request, escape, invalidate, refresh: () => overview(true) });
       } else if (id === 'clubs') {
         await window.renderAdminClubEditor({ data, request, read, escape, list, record, saveForm });
       } else if (id === 'heads') {

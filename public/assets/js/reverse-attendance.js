@@ -7,13 +7,29 @@
   const endpoint = suffix => { const value = ref(); if (!value) throw new Error('Select an event first.'); return `/api/reverse-attendance/${value.source}/${value.clubId}/${value.eventIndex}${suffix || ''}${value.eventRequestId ? '?eventRequestId=' + value.eventRequestId : ''}`; };
   const api = async (url, options = {}) => { const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', ...options, headers: { 'Content-Type': 'application/json', ...options.headers } }); const value = await response.json().catch(() => ({})); if (!response.ok) { const error = new Error(value.message || 'The operation could not be confirmed. Check your connection and refresh.'); error.status = response.status; error.code = value.code; throw error; } return value; };
   const attendanceError = error => error.code === 'SCHEDULE_REQUIRED'
-    ? 'This event needs a valid date and start time. Ask the event organizer to update the event schedule. The QR opens 10 minutes before it starts and refreshes every 20 seconds.'
+    ? 'This event needs a valid date and start time. Ask the event organizer to update the event schedule. The QR opens 30 minutes before it starts and refreshes every 15 seconds.'
     : error.message;
   const write = (url, body, method = 'POST') => api(url, { method, body: JSON.stringify(body) });
   function clearQr() { clearTimeout(timer); clearInterval(countdown); $('[data-ra-qr]')?.replaceChildren(); }
   function stopCamera() { cameraGeneration++; cancelAnimationFrame(frame); stream?.getTracks().forEach(track => track.stop()); stream = null; paused = true; if ($('[data-ra-video]')) { $('[data-ra-video]').srcObject = null; $('[data-ra-video]').hidden = true; } }
   function showResult(value) {
     const box = $('[data-ra-result]'); box.replaceChildren(); box.hidden = false; box.dataset.color = value.color || 'red';
+    // A big, clear verdict first so the scanning person knows at a glance what to do.
+    const VERDICT = {
+      recorded: ['✓', 'CHECKED IN', 'Attendance saved. Let the student in.'],
+      duplicate: ['✕', 'ALREADY CHECKED IN', 'This student was already recorded for this event.'],
+      device_used: ['✕', 'DEVICE ALREADY USED', 'This phone already checked in another student. The student must use their own phone.'],
+      verification_required: ['!', 'ACCOUNT SWITCHED ON THIS PHONE', 'Check the student’s university ID card before approving.']
+    };
+    const [icon, title, hint] = VERDICT[value.result] || (value.color === 'green' ? VERDICT.recorded : ['✕', 'NOT ACCEPTED', 'Read the reason below.']);
+    const head = document.createElement('div'); head.className = 'ra-verdict';
+    const mark = document.createElement('span'); mark.className = 'ra-verdict-icon'; mark.setAttribute('aria-hidden', 'true'); mark.textContent = icon;
+    const words = document.createElement('div'); const big = document.createElement('b'); big.textContent = title; const small = document.createElement('span'); small.textContent = hint; words.append(big, small);
+    head.append(mark, words); box.append(head);
+    // Feel and hear the result without looking: one buzz for OK, two for a warning, three for refused.
+    const pattern = value.color === 'green' ? [80] : value.color === 'yellow' ? [120, 80, 120] : [200, 80, 200, 80, 200];
+    try { navigator.vibrate?.(pattern); } catch { /* vibration unsupported */ }
+    try { const audio = new (window.AudioContext || window.webkitAudioContext)(), tone = audio.createOscillator(), gain = audio.createGain(); tone.frequency.value = value.color === 'green' ? 880 : value.color === 'yellow' ? 520 : 220; gain.gain.value = 0.08; tone.connect(gain).connect(audio.destination); tone.start(); tone.stop(audio.currentTime + (value.color === 'green' ? 0.15 : 0.4)); } catch { /* audio unavailable */ }
     const message = document.createElement('strong'); message.textContent = value.message; box.append(message);
     for (const [label, item] of [['Student',value.name],['University ID',value.universityId],['Event',value.eventTitle],['Type',value.eventType],['Registration',value.registrationStatus],['Attendance time',value.attendedAt ? new Date(value.attendedAt).toLocaleString() : '']]) if (item) { const line = document.createElement('p'); line.textContent = label + ': ' + item; box.append(line); }
     verificationToken = value.verificationToken;
@@ -51,7 +67,7 @@
       const deadline = data.available ? data.expiresAt : data.opensAt;
       const tick = () => { const seconds = Math.max(0, Math.ceil((deadline - Date.now() - serverOffset) / 1000)); $('[data-ra-clock]').textContent = data.available ? `QR refreshes in ${seconds}s` : `QR available in ${Math.floor(seconds / 60)}m ${seconds % 60}s (${data.timeZone})`; if (!seconds) $('[data-ra-qr]').replaceChildren(); };
       tick(); countdown = setInterval(tick, 250);
-      timer = setTimeout(loadQr, Math.min(20000, Math.max(100, deadline - Date.now() - serverOffset + 25)));
+      timer = setTimeout(loadQr, Math.min(15000, Math.max(100, deadline - Date.now() - serverOffset + 25)));
     } catch (error) { if (ticket !== generation || error.name === 'AbortError') return; clearQr(); status.textContent = attendanceError(error); if (error.status === 401) signInLink(); else if (!error.status || error.status >= 500) timer = setTimeout(loadQr, 5000); }
   }
   function signInLink() { const link = document.createElement('a'); link.className = 'secondary-btn'; link.href = '/pages/applicant-login.html?redirect=' + encodeURIComponent(location.pathname + location.search); link.textContent = 'Sign in'; status.append(document.createTextNode(' '), link); }

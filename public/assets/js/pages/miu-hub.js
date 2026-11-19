@@ -40,7 +40,7 @@
     }));
     // A link such as /pages/miu-hub.html#post-123 scrolls to that post once it is shown.
     const target = location.hash && list.querySelector(location.hash.replace(/[^#\w-]/g, ''));
-    if (target && !target.dataset.focused) { target.dataset.focused = '1'; target.classList.add('is-highlighted'); target.scrollIntoView({ block: 'start' }); }
+    if (target && !target.dataset.focused) { target.dataset.focused = '1'; target.classList.add('is-highlighted'); setTimeout(() => target.classList.remove('is-highlighted'), 2500); target.scrollIntoView({ block: 'start' }); }
   }
 
   async function load(reset) {

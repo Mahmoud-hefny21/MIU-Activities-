@@ -2,7 +2,7 @@ const crypto = require('node:crypto');
 let lastAuditId = 0;
 const { createEventContext, attendanceWindow, fail } = require('./event-attendance-context');
 const { staffRoleAssignments } = require('./staff-google-auth');
-const PERIOD = 20000, DEVICE_TTL = 30 * 86400000;
+const PERIOD = 15000, DEVICE_TTL = 30 * 86400000;
 function createAttendanceCipher(secret, clock = Date.now) {
   if (!secret || secret.length < 24) throw new Error('A strong existing session secret is required for attendance tokens.');
   const key = crypto.createHash('sha256').update('reverse-attendance-v1:' + secret).digest();
@@ -81,7 +81,7 @@ function createReverseAttendance(deps) {
     if (!await context.eligible(ctx, student)) fail(403, 'NOT_ELIGIBLE', 'Your current membership is not eligible for this event.');
     const existing = await AttendanceRecord.findOne({ clubId: ctx.clubId, itemType: 'event', eventRequestId: ctx.eventRequestId, email: student.email }).lean();
     if (existing) return { ...window, attended: true, attendedAt: existing.attendedAt, message: 'Attendance has already been recorded.' };
-    if (window.state !== 'open') return { ...window, available: false, message: window.state === 'waiting' ? 'Your attendance QR opens ten minutes before the event.' : 'Attendance is closed for this event.' };
+    if (window.state !== 'open') return { ...window, available: false, message: window.state === 'waiting' ? 'Your attendance QR opens 30 minutes before the event.' : 'Attendance is closed for this event.' };
     if (!student.name || !student.universityId) fail(422, 'PROFILE_REQUIRED', 'Complete your name and official university ID in your existing student profile first.');
     let binding;
     try { binding = await bindDevice(student, req, res); } catch (error) { if (error.code !== 11000) throw error; binding = await bindDevice(student, req, res); }
@@ -93,7 +93,7 @@ function createReverseAttendance(deps) {
     const saved = await transaction(async session => {
       const ctx = await context.resolve(ref, session, true), access = await permission(ctx, actor, req, res, session);
       const window = await openWindow(ctx, session);
-      if (window.state !== 'open') fail(window.state === 'waiting' ? 409 : 410, window.state === 'waiting' ? 'ATTENDANCE_NOT_OPEN' : 'ATTENDANCE_CLOSED', window.state === 'waiting' ? 'Attendance opens ten minutes before the event.' : 'The attendance window has closed.');
+      if (window.state !== 'open') fail(window.state === 'waiting' ? 409 : 410, window.state === 'waiting' ? 'ATTENDANCE_NOT_OPEN' : 'ATTENDANCE_CLOSED', window.state === 'waiting' ? 'Attendance opens 30 minutes before the event.' : 'The attendance window has closed.');
       const verifying = Boolean(body.verificationToken), payload = cipher.open(verifying ? body.verificationToken : body.token, verifying ? 'verify' : 'attendance', ctx.key);
       if (verifying && (payload.reviewer !== actor.email || !access.canVerify || body.verifiedIdentity !== true || typeof body.verificationNote !== 'string' || body.verificationNote.trim().length < 5 || body.verificationNote.length > 500)) fail(403, 'VERIFICATION_REQUIRED', 'An authorized supervisor must check the university card and provide a verification note.');
       const student = await StudentAccount.findById(payload.account).session(session).lean();
@@ -109,6 +109,9 @@ function createReverseAttendance(deps) {
       if (!binding || new Date(binding.expiresAt).getTime() <= clock() || binding.state.generation !== payload.generation || binding.state.current !== String(student._id)) fail(403, 'REVOKED_QR', 'The browser account association changed. Ask for a refreshed QR.');
       const existing = await AttendanceRecord.findOne({ ...filter, $or: [{ accountEventKey: key }, { email: student.email }] }).session(session).lean();
       if (existing) return { ...identity, result: 'duplicate', color: 'red', savedToDatabase: false, attendedAt: existing.attendedAt, message: 'Already checked in. Attendance has already been recorded for this event.' };
+      // One device checks in one student per event: signing in with another account on the same phone cannot mark a second student.
+      const deviceUsed = await AttendanceRecord.findOne({ ...filter, deviceHash: payload.device, email: { $ne: student.email } }).select('+deviceHash').session(session).lean();
+      if (deviceUsed) return { ...identity, result: 'device_used', color: 'red', savedToDatabase: false, message: 'This device was already used to check in another student for this event. Each student must check in from their own device.' };
       if (binding.state.switched && !verifying) {
         const now = clock();
         await audit(actor, 'attendance_verification_required', ctx, { accountId: String(student._id) }, session);
@@ -123,7 +126,7 @@ function createReverseAttendance(deps) {
       const membership = await membershipSnapshot(student.email, { Club, Application: deps.Application }, session);
       const organizer = ctx.source === 'club' && await AttendanceAssignment.findOne({ ...filter, memberEmail: student.email, status: 'accepted' }).session(session).lean();
       const usher = ctx.source === 'miu' && await AttendanceSession.findOne({ ...filter, sourceType: 'miu', active: true, assignedMemberEmail: student.email, assignedMemberAccepted: true }).session(session).lean();
-      await AttendanceRecord.create([{ ...filter, sessionId: attendanceSession._id, eventTitle: ctx.event.title, eventDate: ctx.event.date, eventTime: ctx.event.time, name: student.name, email: student.email, universityId: student.universityId, major: student.major || '', accountEventKey: key,
+      await AttendanceRecord.create([{ ...filter, sessionId: attendanceSession._id, eventTitle: ctx.event.title, eventDate: ctx.event.date, eventTime: ctx.event.time, name: student.name, email: student.email, universityId: student.universityId, major: student.major || '', accountEventKey: key, deviceHash: payload.device,
         attendedAt, ...membership, supervisorEmail: ctx.source === 'miu' ? attendanceSession.assignedSupervisorEmail : '', approvalStatus: 'pending_supervisor', attendanceAudience: ctx.event.attendanceAudience === 'members' ? 'members' : 'all_students', eventParticipation: { role: organizer ? 'organizer' : usher ? 'usher' : 'attendee' },
         reverseAttendance: { accountId: String(student._id), scannedBy: actor.email, scannedByRole: actor.role || 'admin', verifiedSwitch: verifying, verificationNote: verifying ? body.verificationNote.trim() : '' } }], { session });
       await audit(actor, 'attendance_scanned', ctx, { accountId: String(student._id), verifiedSwitch: verifying }, session);

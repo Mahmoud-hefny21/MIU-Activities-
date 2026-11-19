@@ -1168,6 +1168,12 @@ async function init() {
       await openApplicationForm(requestedApplicationClubId);
       return;
     }
+    const requestedRatingClubId = Number(query.get('rate'));
+    if (requestedRatingClubId && state.clubs.some((club) => club.id === requestedRatingClubId)) {
+      await openClubDetail(requestedRatingClubId);
+      document.querySelector('[data-action="rate-club"]')?.click();
+      return;
+    }
     const requestedClubId = Number(query.get('club'));
     if (requestedClubId && state.clubs.some((club) => club.id === requestedClubId)) {
       await openClubDetail(requestedClubId);

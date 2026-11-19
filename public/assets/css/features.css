@@ -1706,3 +1706,15 @@ body :is(button[aria-label*="close" i], button[aria-label*="exit" i], button[tit
 .student-club-tag { align-self: flex-start; margin-top: 2px; padding: 1px 8px; border-radius: 999px; background: var(--primary-50); color: var(--primary-800); font-size: .68rem; font-weight: 700; }
 .student-club-open { flex: none; color: var(--text-muted); font-size: 1.4rem; line-height: 1; }
 @media (max-width: 640px) { .student-clubs-list { grid-template-columns: 1fr; gap: 8px; } }
+/* Slider dots keep their small look but get a 32px tap area. */
+.events-slideshow-dots { gap: 14px; }
+.events-slideshow-dots button { position: relative; }
+.events-slideshow-dots button::after { content: ""; position: absolute; inset: -12px; }
+/* Student dashboard: check-in banner that appears by itself when an event's attendance opens. */
+.student-checkin-banner { display: grid; gap: 10px; margin: 0 0 16px; }
+.student-checkin-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; border: 1px solid color-mix(in srgb, var(--primary-700) 30%, transparent); border-left: 4px solid var(--primary-700); border-radius: 16px; background: var(--primary-50, #fdeced); }
+.student-checkin-row > div { display: grid; gap: 2px; min-width: 0; }
+.student-checkin-row strong { color: var(--text-main); font-size: 1.05rem; }
+.student-checkin-row span:not(.admin-eyebrow) { color: var(--text-muted); font-size: .88rem; }
+.student-checkin-row .primary-btn { min-height: 44px; }
+@media (max-width: 520px) { .student-checkin-row .primary-btn { width: 100%; justify-content: center; } }

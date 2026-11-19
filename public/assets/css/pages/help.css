@@ -42,3 +42,4 @@
 @media (max-width: 850px) { .help-lower-grid { grid-template-columns: 1fr; } }
 @media (max-width: 600px) { .help-page { padding: 20px 12px 44px; } .help-hero { border-radius: var(--radius-lg); } .help-hero::after { right: -190px; } .help-section, .help-lower-grid { margin-top: 30px; } .help-link-grid { grid-template-columns: 1fr; gap: 10px; } .help-link-card { min-height: 86px; padding: 14px; } }
 @media (prefers-reduced-motion: reduce) { .help-link-card { transition: none; } }
+.help-policy-link { display: inline-flex; align-items: center; min-height: 44px; }

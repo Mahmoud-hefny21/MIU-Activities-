@@ -1,0 +1,11 @@
+/* Booths: the same card frame as the other listings, with date and place as clear chips. */
+.booth-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
+.booth-chip { display: inline-flex; align-items: center; min-height: 28px; padding: 4px 10px; border-radius: 999px; background: var(--bg-soft, #f1f5f9); color: var(--text-main); font-size: .8rem; font-weight: 600; }
+.booth-timeline-item .event-timeline-link { margin-top: 8px; }
+/* Details popup: facts in a tidy two-column grid. */
+.booth-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 12px 0; }
+.booth-facts:empty { display: none; }
+.booth-facts div { padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--bg-soft, #f8fafc); }
+.booth-facts dt { color: var(--text-muted); font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.booth-facts dd { margin: 2px 0 0; color: var(--text-main); font-weight: 650; overflow-wrap: anywhere; }
+@media (max-width: 360px) { .booth-facts { grid-template-columns: 1fr; } }

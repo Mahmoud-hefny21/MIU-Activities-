@@ -14,7 +14,7 @@ function localInstant(date, time, zone = 'Africa/Cairo') {
 }
 function attendanceWindow(event, now = Date.now()) {
   const zone = event.attendanceSettings?.timeZone || 'Africa/Cairo';
-  const start = localInstant(event.date, event.time, zone), opens = start - 600000;
+  const start = localInstant(event.date, event.time, zone), opens = start - 30 * 60000; // check-in opens 30 minutes before the start
   const nextDate = new Date(Date.parse(event.date + 'T12:00:00Z') + 86400000).toISOString().slice(0, 10);
   const ends = event.attendanceSettings?.endTime ? localInstant(event.date, event.attendanceSettings.endTime, zone) : localInstant(nextDate, '00:00', zone);
   if (ends <= start) fail(409, 'SCHEDULE_REQUIRED', 'Attendance end must be after the event start.');

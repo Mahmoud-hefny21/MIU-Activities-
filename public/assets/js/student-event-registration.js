@@ -22,13 +22,16 @@ window.mountStudentEventRegistration = async (form, feedback, endpoint) => {
   qr.href = '/pages/attendance-qr.html?' + new URLSearchParams(clubRef ? { source: 'club', clubId: clubRef[1], eventIndex: clubRef[2] } : { source: 'miu', clubId: 0, eventIndex: universityRef?.[1] || '' }); form.append(qr);
   const cancel = document.createElement('button'); cancel.type = 'button'; cancel.className = 'secondary-btn'; cancel.dataset.studentCancel = ''; cancel.textContent = 'Cancel registration'; cancel.hidden = true; form.append(cancel);
   submit.disabled = true; feedback.textContent = 'Checking registration status…';
-  let busy = false;
+  let busy = false, needsSignIn = false;
+  const signInUrl = () => '/pages/applicant-login.html?redirect=' + encodeURIComponent(location.pathname + location.search + location.hash);
   async function status() {
     const response = await fetch(endpoint, { credentials: 'same-origin', cache: 'no-store', signal });
     const data = await response.json();
     if (response.status === 401) {
       feedback.replaceChildren(document.createTextNode('Sign in with your university student account to register. '));
-      const link = document.createElement('a'); link.href = '/pages/applicant-login.html?redirect=' + encodeURIComponent(location.pathname + location.search + location.hash); link.textContent = 'Sign in'; feedback.append(link); submit.disabled = true; return;
+      const link = document.createElement('a'); link.href = signInUrl(); link.textContent = 'Sign in'; feedback.append(link);
+      // Registering needs a signed-in student: the button stays usable and goes to sign-in, then back here.
+      needsSignIn = true; submit.disabled = false; submit.textContent = 'Sign in to register'; return;
     }
     if (!response.ok) throw new Error(data.message || 'Could not check registration.');
     feedback.textContent = data.message; submit.textContent = data.registered ? 'Already registered' : data.full ? 'Full Capacity' : 'Register for event';
@@ -44,7 +47,7 @@ window.mountStudentEventRegistration = async (form, feedback, endpoint) => {
     } catch (error) { if (error.name !== 'AbortError') { feedback.textContent = error.message || 'Could not confirm registration. Reload to check your status.'; submit.disabled = false; } }
     finally { busy = false; cancel.disabled = false; }
   }
-  form.addEventListener('submit', event => { event.preventDefault(); void write('POST'); }, { signal });
+  form.addEventListener('submit', event => { event.preventDefault(); if (needsSignIn) { window.location.assign(signInUrl()); return; } void write('POST'); }, { signal });
   cancel.addEventListener('click', () => { if (window.confirm('Cancel your registration for this event?')) void write('DELETE'); }, { signal });
   try { await status(); } catch (error) { if (error.name !== 'AbortError') feedback.textContent = error.message || 'Registration is temporarily unavailable. Reload to retry.'; }
 };

@@ -23,6 +23,8 @@
     status.textContent = 'Saving…';
     try {
       const response = await fetch(`/api/feedback/${form.dataset.feedbackKind}/${form.dataset.feedbackId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value: Number(form.elements.value.value), comment: form.elements.comment?.value || '' }) });
+      // Not signed in: go to sign in, then come back to this same post.
+      if (response.status === 401) { const post = form.closest('[id]'); window.location.assign('/pages/applicant-login.html?redirect=' + encodeURIComponent(location.pathname + location.search + (post ? '#' + post.id : ''))); return; }
       const data = await response.json();
       if (!response.ok) throw new Error(response.status === 401 ? 'Please sign in with your student account, then return to submit your response.' : data.message);
       status.textContent = data.message;

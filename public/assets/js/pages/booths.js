@@ -17,6 +17,9 @@
   const escapeHtml = window.MiuUI.escapeHtml;
 
   let items = [];
+  const nice = (value) => { const d = /^\d{4}-\d{2}-\d{2}$/.test(value || '') ? new Date(`${value}T00:00:00`) : null; return d ? d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : (value || ''); };
+  const time = (value) => (value ? (window.formatSiteTime?.(value) || value) : '');
+  const opens = (booth) => { const date = booth.boothOpenDate || booth.date; return date ? `Opens ${nice(date)}${booth.boothOpenTime ? ` · ${time(booth.boothOpenTime)}` : ''}` : ''; };
 
   function renderList() {
     const booths = items;
@@ -32,12 +35,15 @@
             <img src="${escapeHtml(booth.clubImage)}" alt="" class="feed-timeline-avatar" loading="lazy" decoding="async" />
             <span class="event-timeline-meta">
               <span class="event-tile-club">${escapeHtml(booth.clubName || '')}</span>
-              <span class="feed-timeline-date">Booth Opening Soon${booth.boothOpenDate || booth.date ? ` &middot; ${escapeHtml(booth.boothOpenDate || booth.date)}` : ''}</span>
+              <span class="feed-timeline-date">Campus booth</span>
             </span>
           </span>
           <span class="event-timeline-body">
             <strong class="feed-timeline-title">${escapeHtml(booth.title || booth.boothName || 'Booth')}</strong>
-            ${booth.boothLocation ? `<span class="event-timeline-location">${escapeHtml(booth.boothLocation)}</span>` : ''}
+            <span class="booth-chips">
+              ${opens(booth) ? `<span class="booth-chip">${escapeHtml(opens(booth))}</span>` : ''}
+              ${booth.boothLocation ? `<span class="booth-chip">${escapeHtml(booth.boothLocation)}</span>` : ''}
+            </span>
             <span class="event-timeline-link">View booth details &rarr;</span>
           </span>
         </span>
@@ -54,8 +60,8 @@
     detailImg.src = club.image || '';
     detailClub.textContent = club.name || '';
     detailTitle.textContent = booth.title || booth.boothName || 'Booth';
-    detailMeta.textContent = booth.boothLocation || '';
-    detailMeta.hidden = !booth.boothLocation;
+    const facts = [['Location', booth.boothLocation], ['Opens', nice(booth.boothOpenDate || booth.date)], ['Time', time(booth.boothOpenTime)], ['Closes', nice(booth.boothCloseDate)]].filter(([, value]) => value);
+    document.getElementById('detailFacts').innerHTML = facts.map(([label, value]) => `<div><dt>${label}</dt><dd>${escapeHtml(value)}</dd></div>`).join('');
     detailDesc.textContent = booth.boothDescription || booth.description || '';
     detailDesc.hidden = !detailDesc.textContent;
     detailEl.classList.remove('hidden');

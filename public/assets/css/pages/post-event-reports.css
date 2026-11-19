@@ -88,3 +88,8 @@
   .per-bars li { grid-template-columns: 3.5em 1fr 5em; }
   .per-actions .primary-btn, .per-actions .secondary-btn { flex: 1 1 140px; }
 }
+/* Section heads: title and filter share one row on wide screens, stack cleanly on phones. */
+.per-section-head { margin: 18px 0 10px; }
+.per-section-head .per-section-title { margin: 0; flex: 1 1 auto; }
+.per-section-head select { flex: 0 0 auto; min-width: 160px; }
+@media (max-width: 520px) { .per-section-head { flex-direction: column; align-items: stretch; } .per-section-head select { width: 100%; min-height: 44px; } }

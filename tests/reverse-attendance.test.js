@@ -8,32 +8,32 @@ const b={...a,_id:'222222222222222222222222',email:'b@example.test',name:'Studen
 const admin={admin:true,role:'admin',email:'admin@example.test'},ref={source:'club',clubId:1,eventIndex:0},miu={source:'miu',clubId:0,eventIndex:9};
 function fixture(){
   const event={title:'Event',date:'2026-10-19',time:'12:00',requestId:99,attendanceEnabled:true,registrationEnabled:true,capacity:1,attendanceSettings:{timeZone:'Africa/Cairo'}};
-  let now=localInstant(event.date,'11:50');
+  let now=localInstant(event.date,'11:30');
   const store=attendanceStore({Club:[{_id:'club',id:1,archivedAt:null,events:[event,{...event,requestId:100}],memberRoster:[]}],UniversityContent:[{...event,_id:'miu',id:9,type:'event'}],StudentAccount:[a,b],EventRegistration:[a,b].flatMap(s=>[{clubId:1,eventIndex:0,eventRequestId:99,email:s.email},{clubId:0,eventIndex:9,eventRequestId:9,email:s.email}])});
   const deps={...store.models,database:store.database,secret,clock:()=>now,deviceHash:req=>req.device||'browser',isItHead:actor=>actor.committee==='IT'};
   const service=createReverseAttendance(deps);
   return {store,service,event,deps,setNow:value=>now=value,now:()=>now,issue:(s=a,r=ref,device='browser')=>service.issue(r,s,{device},{}),scan:(token,actor=admin,r=ref,extra={})=>service.scan(r,actor,{token,...extra},{},{})};
 }
 const code=expected=>error=>error.code===expected;
-test('timezone windows use server time, open at exactly ten minutes, close at configured end, validate DST and dates',()=>{
+test('timezone windows use server time, open at exactly thirty minutes, close at configured end, validate DST and dates',()=>{
   const event={date:'2026-10-19',time:'12:00',attendanceSettings:{timeZone:'Africa/Cairo',endTime:'13:00'}},start=localInstant(event.date,event.time);
-  assert.equal(attendanceWindow(event,start-600001).state,'waiting');assert.equal(attendanceWindow(event,start-600000).state,'open');
+  assert.equal(attendanceWindow(event,start-1800001).state,'waiting');assert.equal(attendanceWindow(event,start-1800000).state,'open');
   assert.equal(attendanceWindow(event,localInstant(event.date,'13:00')).state,'closed');
   assert.throws(()=>localInstant('2026-02-30','12:00'),code('SCHEDULE_REQUIRED'));assert.throws(()=>localInstant('2026-03-08','02:30','America/New_York'),code('SCHEDULE_REQUIRED'));
   assert.throws(()=>localInstant(event.date,event.time,'Invalid/Zone'),code('TIMEZONE_INVALID'));
   assert.equal(localInstant('2026-10-19','12:00','UTC'),Date.parse('2026-10-19T12:00:00Z'));
 });
 test('cipher encrypts identity and rejects tampering, wrong purpose, event, expiry, and foreign secret',()=>{
-  let now=100000;const cipher=createAttendanceCipher(secret,()=>now),payload={account:a._id,purpose:'attendance',event:'club:1:99',iat:now,exp:now+20000};const token=cipher.seal(payload);
+  let now=100000;const cipher=createAttendanceCipher(secret,()=>now),payload={account:a._id,purpose:'attendance',event:'club:1:99',iat:now,exp:now+15000};const token=cipher.seal(payload);
   assert.equal(token.includes(a._id),false);assert.deepEqual(cipher.open(token,'attendance',payload.event),payload);
   assert.throws(()=>cipher.open(token+'A','attendance',payload.event),code('INVALID_QR'));
   assert.throws(()=>cipher.open(token,'verify',payload.event),code('INVALID_QR'));assert.throws(()=>cipher.open(token,'attendance','miu:0:99'),code('WRONG_EVENT'));
   assert.throws(()=>createAttendanceCipher(secret+'x',()=>now).open(token,'attendance',payload.event),code('INVALID_QR'));
-  now+=20000;assert.throws(()=>cipher.open(token,'attendance',payload.event),code('EXPIRED_QR'));
+  now+=15000;assert.throws(()=>cipher.open(token,'attendance',payload.event),code('EXPIRED_QR'));
 });
 test('QR issue respects pre-window, refresh is stateless, account PK is persistent, and never marks attendance',async()=>{
   const f=fixture();f.setNow(f.now()-1);const early=await f.issue();assert.equal(early.available,false);assert.equal(f.store.rows.DeviceBinding.length,0);
-  f.setNow(f.now()+1);const first=await f.issue();assert.equal(first.expiresAt-first.serverNow,20000);
+  f.setNow(f.now()+1);const first=await f.issue();assert.equal(first.expiresAt-first.serverNow,15000);
   const next=await f.issue();assert.notEqual(first.token,next.token);assert.equal(f.store.rows.DeviceBinding.length,1);assert.equal(f.store.rows.StudentAccount.length,2);assert.equal(f.store.rows.StudentAccount[0]._id,a._id);assert.equal(f.store.rows.AttendanceRecord.length,0);
 });
 test('green only follows committed write; duplicate red preserves timestamp/count and ignores submitted identity',async()=>{
@@ -69,7 +69,7 @@ test('cancelled registration, lost membership, revoked account, closed/cancelled
     if(kind==='deleted')f.store.rows.StudentAccount.shift();
     if(kind==='closed')f.setNow(localInstant('2026-10-20','00:00'));
     if(kind==='cancelled')f.store.rows.Club[0].events[0].cancelled=true;
-    if(kind==='expired')f.setNow(f.now()+20000);
+    if(kind==='expired')f.setNow(f.now()+15000);
     if(kind==='manual')f.store.rows.AttendanceActivityClosure.push({clubId:1,itemType:'event',eventRequestId:99});
     await assert.rejects(f.scan(qr.token));assert.equal(f.store.rows.AttendanceRecord.length,0,kind);
   }
@@ -89,10 +89,17 @@ test('capacity permissions follow actual role and ownership, supervisors and ord
 });
 test('delegated scanner requires accepted assignment/device and cannot override warning; assigned supervisor is club scoped',async()=>{
   const f=fixture();f.store.rows.AttendanceAssignment.push({clubId:1,itemType:'event',eventRequestId:99,memberEmail:'usher@example.test',status:'accepted'});
-  const delegated={email:'usher@example.test'},qr=await f.issue();assert.equal((await f.scan(qr.token,delegated)).color,'green');
+  const delegated={email:'usher@example.test'},qr=await f.issue();
   const next=await f.issue(b),warning=await f.scan(next.token,delegated);assert.equal(warning.color,'yellow');assert.equal(warning.canVerify,false);assert.equal(warning.verificationToken,undefined);
   await assert.rejects(f.scan(next.token,{role:'supervisor',assignedClubIds:[2],email:'wrong'}),code('UNAUTHORIZED_SUPERVISOR'));
   const scoped={role:'supervisor',assignedClubIds:[1],email:'scoped'};assert.equal((await f.scan(next.token,scoped)).canVerify,true);
+  void qr;
+});
+test('one device checks in only one student per event: a second account on the same device is refused',async()=>{
+  const f=fixture();f.store.rows.AttendanceAssignment.push({clubId:1,itemType:'event',eventRequestId:99,memberEmail:'usher@example.test',status:'accepted'});
+  const delegated={email:'usher@example.test'},first=await f.issue();assert.equal((await f.scan(first.token,delegated)).color,'green');
+  const second=await f.issue(b),result=await f.scan(second.token,admin);
+  assert.equal(result.result,'device_used');assert.equal(result.color,'red');assert.equal(result.savedToDatabase,false);assert.equal(f.store.rows.AttendanceRecord.length,1);
 });
 test('write, audit and commit failures roll back and never return a green success',async()=>{
   for(const name of ['AttendanceRecord','AuditLog','commit']){const f=fixture(),qr=await f.issue();f.store.faults[name]=true;await assert.rejects(f.scan(qr.token));assert.equal(f.store.rows.AttendanceRecord.length,0);assert.equal(f.store.rows.AttendanceSession.length,0);assert.equal(f.store.rows.AuditLog.length,0);}

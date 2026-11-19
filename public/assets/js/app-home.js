@@ -315,7 +315,9 @@ async function loadClubs(force = false) {
   }
   if (!clubsLoadPromise) {
     clubsLoadPromise = (async () => {
-      const response = await fetch('/api/clubs?media=links', { cache: 'no-cache' });
+      let response = await fetch('/api/clubs?media=links', { cache: 'no-cache' });
+      // A busy database can answer 503 once; one quick retry avoids showing an empty club list.
+      if (response.status >= 500) { await new Promise((resolve) => setTimeout(resolve, 800)); response = await fetch('/api/clubs?media=links', { cache: 'no-cache' }); }
       if (!response.ok) throw new Error('Could not load club events.');
       const records = await response.json();
       const nextClubs = Array.isArray(records) ? records : [];
@@ -939,7 +941,7 @@ async function openClubPortal(initialSession = null) {
       attendanceDialog.dataset.clubId = String(club.id);
       const attendanceDescription = document.getElementById('attendanceDialogDescription');
       if (attendanceDescription) attendanceDescription.textContent = canManageAttendanceTools
-        ? 'QR codes refresh every 20 seconds. You can also record your own attendance.'
+        ? 'QR codes refresh every 15 seconds. You can also record your own attendance.'
         : 'Record your own attendance and browse your club’s attendance history.';
     }
     document.getElementById('attendanceDelegationPanel')?.classList.toggle('hidden', !canManageAttendanceTools);
@@ -1560,7 +1562,7 @@ function renderEventsSlideshow() {
     });
   });
   dots.hidden = items.length < 2;
-  dots.innerHTML = items.length > 1 ? items.map((_, i) => `<button type="button" class="${i === slideIndex ? 'active' : ''}" data-slide="${i}" aria-label="slide ${i + 1}"></button>`).join('') : '';
+  dots.innerHTML = items.length > 1 ? items.map((_, i) => `<button type="button" class="${i === slideIndex ? 'active' : ''}" data-slide="${i}" aria-label="Go to slide ${i + 1} of ${items.length}"></button>`).join('') : '';
   dots.querySelectorAll('button').forEach((dot) => dot.addEventListener('click', () => { slideIndex = Number(dot.dataset.slide); renderEventsSlideshow(); }));
   const prev = document.getElementById('slidePrev');
   const next = document.getElementById('slideNext');

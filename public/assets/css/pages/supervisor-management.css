@@ -117,3 +117,4 @@
   .supervisor-management .staff-account-actions { width: 100%; }
   .supervisor-management .staff-account-actions > button { flex: 1 1 100%; }
 }
+.supervisor-management-heading a:not(.secondary-btn) { display: inline-flex; align-items: center; min-height: 44px; }
