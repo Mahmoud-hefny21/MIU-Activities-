@@ -117,9 +117,9 @@
       if (item.availability) addText(card, 'p', `Availability: ${item.availability}`);
       if (item.specialRequirements) addText(card, 'p', `Special requirements: ${item.specialRequirements}`);
       const statusLabel = item.status === 'pending' || item.status === 'pending_club' ? 'pending club review'
-        : item.status === 'pending_dean' ? 'pending Dean review' : item.status.replaceAll('_', ' ');
+        : item.status === 'pending_dean' ? 'pending Dean review' : (window.MiuUI?.plainWords || (value => String(value || '').replaceAll('_', ' ')))(item.status);
       const status = addText(card, 'span', statusLabel, `speaker-status ${item.status}`);
-      status.setAttribute('aria-label', `Request status: ${item.status.replaceAll('_', ' ')}`);
+      status.setAttribute('aria-label', `Request status: ${(window.MiuUI?.plainWords || (value => String(value || '').replaceAll('_', ' ')))(item.status)}`);
       if (item.clubReviewerComment) addText(card, 'p', `Club feedback: ${item.clubReviewerComment}`);
       if (item.reviewerComment) addText(card, 'p', `Dean’s feedback: ${item.reviewerComment}`);
       for (const attachment of requestAttachments(item)) {

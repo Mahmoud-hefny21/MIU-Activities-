@@ -1,5 +1,6 @@
 (() => {
-  const mobile = window.matchMedia('(max-width: 760px)');
+  // Phones and tablets use the slide-out menu; the full sidebar is for laptops and up.
+  const mobile = window.matchMedia('(max-width: 1024px)');
   const initialized = new WeakSet();
   const drawers = [];
   let active = null;
@@ -33,6 +34,14 @@
       const button = document.createElement('button'); button.type = 'button'; button.className = 'dashboard-drawer-toggle secondary-btn';
       button.textContent = '☰ Dashboard menu'; button.setAttribute('aria-controls', sidebar.id); button.setAttribute('aria-expanded', 'false');
       sidebar.before(button);
+      // The toggle names the open section, so phone users always know where they are.
+      const syncLabel = () => {
+        const current = sidebar.querySelector(':is(.is-active, [aria-current="page"]) .sidebar-label') || sidebar.querySelector('.is-active, [aria-current="page"]');
+        const name = current ? current.textContent.replace(/\s+/g, ' ').trim() : '';
+        button.textContent = name ? `☰ Menu · ${name}` : '☰ Dashboard menu';
+      };
+      syncLabel();
+      new MutationObserver(syncLabel).observe(sidebar, { subtree: true, attributes: true, attributeFilter: ['class', 'aria-current'] });
       const heading = document.createElement('div'); heading.className = 'dashboard-drawer-heading';
       const title = document.createElement('strong'); title.textContent = 'Dashboard'; heading.append(title);
       sidebar.prepend(heading);

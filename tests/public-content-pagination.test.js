@@ -126,7 +126,7 @@ test('inflight duplicates share one call; late responses cannot replace newer fi
   resolves[1](data(3)); await two; resolves[0](data(100)); await Promise.all([one, duplicate]);
   assert.equal(f.renders.length, 1); assert.equal(f.renders[0].meta.totalItems, 3);
 });
-test('HTTP route validates section, normalizes parameters and returns uncached metadata', async t => {
+test('HTTP route validates section, normalizes parameters and returns briefly edge-cached metadata', async t => {
   const app = express(); let captured;
   P.registerPublicContentPagination(app, { ensureReady: async () => {}, requireLiveDatabase: () => true,
     readPage: async opts => { captured = opts; return data(25, opts.page, opts.pageSize); } });
@@ -134,7 +134,7 @@ test('HTTP route validates section, normalizes parameters and returns uncached m
   t.after(() => new Promise(resolve => server.close(resolve)));
   const base = `http://127.0.0.1:${server.address().port}`;
   const response = await fetch(`${base}/api/public-content/feed?page=3&pageSize=10&filter=events&q=club`);
-  assert.equal(response.headers.get('cache-control'), 'no-store');
+  assert.equal(response.headers.get('cache-control'), 'public, max-age=0, s-maxage=20, stale-while-revalidate=300');
   const result = await response.json(); assert.equal(result.pagination.totalPages, 3); assert.equal(result.items.length, 5);
   assert.equal(captured.filter, 'events'); assert.equal(captured.q, 'club');
   assert.equal((await fetch(`${base}/api/public-content/unknown`)).status, 404);

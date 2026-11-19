@@ -41,9 +41,11 @@
       sidebar.append(link);
     }
     link.dataset.reportMode = mode;
-    if (mode === 'reports') link.textContent = 'Event reports';
-    if (mode === 'attendance') link.textContent = 'Attendance sheets';
-    if (mode === 'open_attendance') link.textContent = 'Open event attendance';
+    // Sidebars with icons keep the icon and only rename the label.
+    const label = link.querySelector('.sidebar-label') || link;
+    if (mode === 'reports') label.textContent = 'Event reports';
+    if (mode === 'attendance') label.textContent = 'Attendance sheets';
+    if (mode === 'open_attendance') label.textContent = 'Open event attendance';
     links[mode] = link;
   }
   let templatePromise, miuAttendancePromise, revision = 0, previousAdminTab = null, previousDashboardPanel = '', previousPresidentSection = '';

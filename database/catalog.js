@@ -3,6 +3,7 @@ function catalog() {
     ...require('../models'),
     AccountPhoto: require('../services/account-photo').AccountPhoto,
     EventReport: require('../services/event-reports').EventReport,
+    EventEvaluation: require('../services/post-event-reports').EventEvaluation,
     StudentFeedback: require('../services/student-feedback').StudentFeedback,
     QuizSubmission: require('../services/quiz-analytics').QuizSubmission,
     ...require('../services/workflow-models'),

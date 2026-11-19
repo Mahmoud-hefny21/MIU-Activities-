@@ -86,7 +86,9 @@ function getCloudinaryCredentials() {
 function sendRevalidatedPublicJson(req, res, payload) {
   const body = JSON.stringify(payload);
   const etag = `"${crypto.createHash('sha256').update(body).digest('base64url')}"`;
-  res.setHeader('Cache-Control', 'private, no-cache, must-revalidate');
+  // Public lists are the same for everyone: Vercel's edge serves them for 20s and refreshes in the background,
+  // so visitors do not wait on the database. Browsers still revalidate with the ETag.
+  res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=20, stale-while-revalidate=300');
   res.setHeader('ETag', etag);
   if (req.get('If-None-Match') === etag) return res.status(304).end();
   res.type('application/json').send(body);
@@ -99,7 +101,8 @@ const cloudinaryFolders = Object.freeze({
   feed: FEED_MEDIA_FOLDER,
   club: 'miu-clubs',
   applicant: 'miu-applicants',
-  university: 'miu-university-content'
+  university: 'miu-university-content',
+  eventReport: 'miu-event-reports'
 });
 const uploadSignatureAttempts = new Map();
 const speakerUploadAttempts = new Map();
@@ -247,6 +250,9 @@ app.post('/api/uploads/cloudinary-signature', async (req, res) => {
     } else if (purpose === 'university') {
       const account = await getClubAccountFromRequest(req, res);
       if (account?.role !== 'miu_events' && !await isAdminSessionValid(req, res)) return res.status(401).json({ message: 'MIU Events dashboard access is required.' });
+    } else if (purpose === 'eventReport') {
+      const account = await getClubAccountFromRequest(req, res);
+      if (account?.role !== 'president') return res.status(403).json({ message: 'Only the club president uploads event report photos.' });
     } else if (purpose === 'club') {
       const account = await getClubAccountFromRequest(req, res);
       if (!await isAdminSessionValid(req, res) && (!account || !['president', 'pr', 'english', 'security', 'sso', 'dean'].includes(account.role))) {
@@ -1622,7 +1628,7 @@ app.post('/api/club/speaker-invites', requireClubAuth, requireSpeakerManager, as
 });
 
 require('./services/staff-speaker-invites').registerStaffSpeakerInvites(app, {
-  requireClubAuth, requireLiveDatabase, isSameOriginRequest, Club,
+  requireClubAuth, getClubAccountFromRequest, requireLiveDatabase, isSameOriginRequest, Club,
   getOrCreateStableSpeakerInvite, speakerInviteResponse
 });
 
@@ -5402,9 +5408,18 @@ async function resolveContentHeadAssignment(req, type, rawEmail) {
   return head ? email : null;
 }
 
+// A club cannot request a new event while a completed event still lacks a fully approved report.
+async function rejectIfEventReportsPending(res, clubId) {
+  const status = await postEventReports.blockStatus(Number(clubId));
+  if (!status.blocked) return false;
+  res.status(409).json({ code: 'EVENT_REPORTS_PENDING', message: status.message, pendingReports: status.pendingReports, link: status.pendingReports[0]?.link || '' });
+  return true;
+}
+
 async function createContentRequest(req, res, type) {
   try {
     if (!mongoReady) return res.status(503).json({ message: 'Content storage needs MongoDB.' });
+    if (type === 'event' && await rejectIfEventReportsPending(res, req.clubAccount.clubId)) return;
     let media;
     try { media = await validateFeedMedia(type, req.body, '', { cloudinary, cloudName: cloudinaryCredentials?.cloud_name }); }
     catch (error) { return res.status(error.status || 400).json({ message: error.message }); }
@@ -5494,6 +5509,9 @@ app.put('/api/club/content/:id', requireClubAuth, async (req, res) => {
     }
     // The content type is fixed by the module that created the request.
     const type = record.type;
+    // Sending a never-submitted event draft for review counts as a new event request.
+    if (type === 'event' && req.body.submit === true && record.status === 'draft' && !record.workflow
+      && await rejectIfEventReportsPending(res, record.clubId)) return;
     let media;
     try { media = await validateFeedMedia(type, req.body, record.image, { cloudinary, cloudName: cloudinaryCredentials?.cloud_name }); }
     catch (error) { return res.status(error.status || 400).json({ message: error.message }); }
@@ -6832,6 +6850,23 @@ require('./services/event-reports').registerEventReports(app, {
   getAccount: getClubAccountFromRequest, databaseReady: () => mongoReady,
   Club, EventRegistration, AttendanceRecord, sameOrigin: isSameOriginRequest
 });
+// Event report photos are verified Cloudinary uploads; small inline images are accepted when Cloudinary is not configured.
+const MAX_INLINE_REPORT_PHOTO_BYTES = 1.5 * 1024 * 1024;
+function verifyEventReportPhoto(photo) {
+  if (photo && typeof photo.publicId === 'string' && photo.publicId) {
+    return verifyCloudinaryUploadResponse(photo.url, photo.publicId, photo.version, photo.signature, cloudinaryFolders.eventReport,
+      cloudinaryCredentials?.cloud_name, cloudinaryCredentials?.api_secret, cloudinary.utils) ? { url: photo.url, publicId: photo.publicId } : null;
+  }
+  if (cloudinaryConfigured) return null;
+  const match = typeof photo?.url === 'string' ? photo.url.match(/^data:image\/(png|jpeg|webp);base64,([a-zA-Z0-9+/]+=*)$/) : null;
+  const bytes = match ? Buffer.from(match[2], 'base64') : null;
+  return bytes && bytes.length && bytes.length <= MAX_INLINE_REPORT_PHOTO_BYTES ? { url: photo.url, publicId: '' } : null;
+}
+const postEventReports = require('./services/post-event-reports').registerPostEventReports(app, {
+  Club, AttendanceActivityClosure, getAccount: getClubAccountFromRequest, isAdminSessionValid,
+  getStudentAccount: getStudentAccountFromRequest, requireStudentAuth, sameOrigin: isSameOriginRequest,
+  databaseReady: () => mongoReady, verifyPhoto: verifyEventReportPhoto
+});
 require('./services/supervisor-dashboard').registerSupervisorDashboard(app, {
   getAccount: getClubAccountFromRequest, databaseReady: () => mongoReady,
   Club, ContentRequest, SpeakerRequest, AttendanceRecord, AttendanceSession, EventRegistration, Review: SupervisorReview,
@@ -8117,6 +8152,24 @@ app.get('/api/student/my-forms', requireStudentAuth, async (req, res) => {
   } catch (error) {
     console.error('Student forms lookup failed:', error.name);
     res.status(503).json({ message: 'Your applications are temporarily unavailable.' });
+  }
+});
+
+// Clubs the signed-in student belongs to (matched by MIU email on each club's member roster).
+app.get('/api/student/my-clubs', requireStudentAuth, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  try {
+    if (!requireLiveDatabase(res)) return;
+    const email = String(req.studentAccount.email || '').trim().toLowerCase();
+    if (!email) return res.json({ clubs: [] });
+    const clubs = await Club.find({ archivedAt: null }).select('id name image category memberRoster').lean();
+    res.json({ clubs: clubs.flatMap((club) => {
+      const member = (club.memberRoster || []).find((entry) => String(entry.email || '').toLowerCase() === email);
+      return member ? [{ id: club.id, name: club.name, image: club.image || '', category: club.category || '', committee: member.committee || '', position: member.position || '', memberType: member.memberType || '', joinedAt: member.createdAt || null }] : [];
+    }) });
+  } catch (error) {
+    console.error('Student clubs lookup failed:', error.name);
+    res.status(503).json({ message: 'Your clubs are temporarily unavailable.' });
   }
 });
 

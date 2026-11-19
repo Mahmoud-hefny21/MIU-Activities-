@@ -1688,3 +1688,7 @@
   .page-load-error-wrap { min-height: 56vh; padding: 24px 0; }
   .page-load-error { padding: 30px 20px; border-radius: 20px; }
 }
+
+.club-card.is-clickable {
+  cursor: pointer;
+}

@@ -29,8 +29,27 @@
     open(element) { element.classList.remove('hidden'); },
     close(element) { element.classList.add('hidden'); }
   });
+  // Plain words for internal codes, so pages never show values like "pending_pr" or "changes_requested".
+  const PLAIN_WORDS = {
+    draft: 'Draft', submitted: 'Submitted', pending: 'Pending', processing: 'Interviewed', new: 'New', review: 'Awaiting review', resubmitted: 'Resubmitted',
+    pending_supervisor: 'Waiting for Supervisor', pending_pr: 'Waiting for PR', pending_english: 'Waiting for English', pending_security: 'Waiting for Security',
+    pending_dean: 'Waiting for Dean', pending_sso: 'Waiting for SSO', pending_club: 'Waiting for the club', changes_requested: 'Needs corrections',
+    approved: 'Approved', published: 'Published', rejected: 'Rejected', deleted: 'Deleted', removed: 'Removed', accepted: 'Accepted', reviewed: 'Reviewed',
+    missing: 'Report required', open: 'Open', closed: 'Closed', full: 'Full', 'opening-soon': 'Opening soon', unknown: 'Unknown',
+    approve: 'Approved', reject: 'Rejected', request_changes: 'Corrections requested', request_edit: 'Edits requested', resubmit: 'Corrections resubmitted',
+    comment: 'Comment added', forward: 'Escalated', assign: 'Reviewers assigned', automatic_forward: 'Moved on automatically', restarted_review: 'Review restarted',
+    returned_to_pr: 'Returned to PR', returned_to_english: 'Returned to English', returned_to_security: 'Returned to Security', draft_saved: 'Draft saved',
+    all_students: 'All students', members: 'Club members only', entry_permit: 'Entry permit', year_plan: 'Year plan', speaker_miu: 'MIU speaker', speaker_public: 'External speaker'
+  };
+  const plainWords = value => {
+    const code = String(value ?? '').trim();
+    if (!code) return '';
+    if (PLAIN_WORDS[code]) return PLAIN_WORDS[code];
+    const words = code.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[_-]+/g, ' ').toLowerCase();
+    return words.charAt(0).toUpperCase() + words.slice(1);
+  };
   window.MiuUI = Object.freeze({
-    escapeHtml, createJsonClient, button, modals,
+    escapeHtml, createJsonClient, button, modals, plainWords,
     attendanceEventRoleLabel(record) {
       return ({ organizer: 'Organizer', usher: 'Usher', president: 'President', head: 'Head' })[record?.eventParticipation?.role] || 'Attendee';
     },

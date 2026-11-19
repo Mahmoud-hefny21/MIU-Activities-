@@ -137,6 +137,7 @@ test('real club submission handlers gate all modules and re-enter supervisor rev
         return record;
       }
     },
+    rejectIfEventReportsPending: async () => false,
     requireClubAuth: () => {}, app: { put: (path, auth, callback) => { handler = callback; } }
   };
   vm.createContext(context);

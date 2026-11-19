@@ -3,7 +3,7 @@
   const $ = id => document.getElementById(id);
   const params = () => new URLSearchParams(location.search);
   const link = (tool, query = '') => `/admin/${tool}${query ? '?' + query : ''}`;
-  const words = value => String(value || '').replace(/([a-z])([A-Z])/g, '$1 $2').replaceAll('_', ' ');
+  const words = value => (window.MiuUI?.plainWords || (text => String(text || '').replace(/([a-z])([A-Z])/g, '$1 $2').replaceAll('_', ' ')))(value);
   const valueText = value => value == null || value === '' ? '—' : Array.isArray(value) ? value.map(valueText).join(', ') : typeof value === 'object' ? Object.entries(value).map(([key, item]) => `${words(key)}: ${valueText(item)}`).join(' · ') : String(value);
   const safeUrl = value => /^(https?:\/\/|\/(?!\/)|data:image\/(?:png|jpeg|webp);base64,)/i.test(String(value || '')) ? value : '';
   const safeDocumentUrl = value => /^(?:https:\/\/|\/(?!\/)|data:application\/(?:pdf|msword|vnd\.ms-powerpoint|vnd\.openxmlformats-officedocument\.(?:wordprocessingml\.document|presentationml\.presentation));base64,)/i.test(String(value || '')) ? value : '';

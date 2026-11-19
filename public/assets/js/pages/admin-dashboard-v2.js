@@ -1,4 +1,8 @@
 (() => {
+  // Activity values in plain words, never raw code.
+  const readableChangeValue = value => value == null || value === '' ? '—' : Array.isArray(value) ? value.map(readableChangeValue).join(', ')
+    : typeof value === 'object' ? Object.entries(value).map(([key, item]) => `${(window.MiuUI?.plainWords || String)(key)}: ${readableChangeValue(item)}`).join(' · ')
+    : typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value);
   'use strict';
   const $ = id => document.getElementById(id);
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -282,7 +286,7 @@
           const detailId = `activity-${logs.indexOf(entry)}`;
           const changes = Array.isArray(auditDetails.changes) ? auditDetails.changes : [];
           const title = actionName(entry.action, changes);
-          const changeRows = changes.length ? changes.map(change => `<li><strong>${escape(String(change.field || '').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[_-]+/g, ' ').toLowerCase())}</strong>${Object.hasOwn(change, 'value') ? ` <span aria-label="submitted value">→ ${escape(typeof change.value === 'object' ? JSON.stringify(change.value) : change.value)}</span>` : ''}</li>`).join('') : `<li>${Array.isArray(auditDetails.changes) ? 'No editable fields were included in this operation.' : 'Field details were not recorded for this older log entry.'}</li>`;
+          const changeRows = changes.length ? changes.map(change => `<li><strong>${escape(String(change.field || '').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[_-]+/g, ' ').toLowerCase())}</strong>${Object.hasOwn(change, 'value') ? ` <span aria-label="submitted value">→ ${escape(readableChangeValue(change.value))}</span>` : ''}</li>`).join('') : `<li>${Array.isArray(auditDetails.changes) ? 'No editable fields were included in this operation.' : 'Field details were not recorded for this older log entry.'}</li>`;
           const resultText = outcome === 'success' ? 'Saved successfully' : auditDetails.status === 403 ? 'Not saved: this account does not have permission' : auditDetails.status === 401 ? 'Not saved: sign in again and retry' : auditDetails.status >= 500 ? 'Not saved: the server encountered an error' : 'Not saved: check the information and try again';
           const roleLabels = { software_development: 'Software Development', admin: 'Administrator', president: 'Club President', vice_president: 'Vice President', head: 'Committee Head', supervisor: 'Supervisor', student: 'Student', dean: 'Dean', miu_events: 'MIU Events', pr: 'PR', english: 'English Department', security: 'Security Office', sso: 'SSO' };
           const roleLabel = roleLabels[String(entry.actorRole || '').toLowerCase()] || String(entry.actorRole || 'Staff').replace(/[_-]+/g, ' ');

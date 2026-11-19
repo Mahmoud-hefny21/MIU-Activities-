@@ -1,5 +1,5 @@
 .dashboard-drawer-toggle, .dashboard-drawer-close, .dashboard-drawer-heading, .dashboard-drawer-overlay { display: none; }
-@media (max-width: 760px) {
+@media (max-width: 1024px) {
   .dashboard-drawer-toggle { display: inline-flex; align-items: center; gap: 8px; justify-self: start; min-height: 44px; margin: 0 0 12px; }
   .dashboard-drawer-toggle:has(+ .hidden), .dashboard-drawer-toggle:has(+ [hidden]) { display: none; }
   body.dashboard-drawer-open { overflow: hidden; }
@@ -29,7 +29,7 @@
 @media (prefers-reduced-motion: reduce) { .mobile-dashboard-drawer { transition: none !important; } }
 
 /* Keep every dashboard drawer readable and aligned consistently on phones. */
-@media (max-width: 760px) {
+@media (max-width: 1024px) {
   .mobile-dashboard-drawer {
     align-items: stretch !important;
     text-align: left !important;
@@ -84,7 +84,7 @@
 }
 
 /* One shared drawer layout for committee, MIU Events, club, student and admin dashboards. */
-@media (max-width: 760px) {
+@media (max-width: 1024px) {
   body .committee-dashboard-layout .committee-sidebar.mobile-dashboard-drawer,
   body .president-dashboard-layout .president-sidebar.mobile-dashboard-drawer,
   body .student-dashboard-layout .student-dashboard-sidebar.mobile-dashboard-drawer,
@@ -272,3 +272,163 @@
 }
 
 @media (prefers-reduced-motion: reduce) { body .mobile-dashboard-drawer { transition: none !important; } }
+
+/* ===== Bottom navigation bar (phones and tablets) ===== */
+.bottom-bar { display: none; }
+@media (max-width: 1024px) {
+  .bottom-bar {
+    position: fixed; left: 50%; bottom: max(10px, env(safe-area-inset-bottom)); z-index: 60;
+    display: grid; grid-auto-flow: column; grid-auto-columns: 68px; gap: 2px;
+    width: auto; max-width: calc(100vw - 24px); padding: 5px; box-sizing: border-box;
+    border: 1px solid var(--border-color, #e2e8f0); border-radius: 22px;
+    background: color-mix(in srgb, var(--bg-panel, #fff) 92%, transparent);
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, .16);
+    transform: translate(-50%, 0); opacity: 1;
+    transition: transform .45s cubic-bezier(.22, .8, .25, 1), opacity .45s ease;
+  }
+  .bottom-bar.is-away { transform: translate(-50%, calc(100% + 24px)); opacity: 0; pointer-events: none; }
+  .bottom-bar-item {
+    position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    min-width: 0; min-height: 50px; padding: 5px 2px; border: 0; border-radius: 16px;
+    background: transparent; color: var(--text-muted, #64748b); font: inherit; font-size: .7rem; font-weight: 650;
+    text-decoration: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    transition: background-color .2s ease, color .2s ease;
+  }
+  .bottom-bar-item:hover { color: var(--primary-700); }
+  .bottom-bar-item.is-active { background: var(--primary-50, #fdeced); color: var(--primary-800, #8b1e27); }
+  .bottom-bar-item:focus-visible { outline: 3px solid var(--primary-700); outline-offset: 1px; }
+  .bottom-bar-icon { position: relative; display: grid; place-items: center; width: 24px; height: 24px; }
+  .bottom-bar-icon svg { width: 22px; height: 22px; }
+  .bottom-bar-label { max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .bottom-bar-badge { position: absolute; top: -6px; right: -10px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px; background: #f59e0b; color: #1f1300; font-size: .62rem; font-weight: 800; line-height: 17px; text-align: center; }
+  .bottom-bar-badge[hidden] { display: none; }
+  /* The bar replaces the floating Back, the added Back and the dashboard menu bar. */
+  body.has-bottom-bar :is(.floating-back-control, .page-back-inline, .dashboard-drawer-toggle) { display: none !important; }
+  /* Keep the chat button above the bar; it follows the bar when it slides away. */
+  body.has-bottom-bar .quiz-launcher-circle { transform: translateY(-74px); transition: transform .45s cubic-bezier(.22, .8, .25, 1); }
+  body.has-bottom-bar.bottom-bar-away .quiz-launcher-circle { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .bottom-bar, body.has-bottom-bar .quiz-launcher-circle { transition: none; } }
+
+/* Dashboard menu opened from the bottom bar: a sheet that slides up from the bottom. */
+@media (max-width: 1024px) {
+  body.has-bottom-bar .mobile-dashboard-drawer.as-sheet, body.has-bottom-bar #adminTabs.mobile-dashboard-drawer.as-sheet {
+    inset: auto 0 0 0 !important; width: 100% !important; max-width: 640px !important; margin: 0 auto !important;
+    height: auto !important; max-height: 78dvh !important; border-radius: 22px 22px 0 0 !important;
+    padding-bottom: max(18px, env(safe-area-inset-bottom)) !important;
+    transform: translateY(105%); transition: transform .38s cubic-bezier(.22, .8, .25, 1), visibility .38s;
+  }
+  body.has-bottom-bar .mobile-dashboard-drawer.as-sheet.drawer-open { transform: translateY(0); }
+  body.has-bottom-bar .mobile-dashboard-drawer.as-sheet > .dashboard-drawer-heading::before { content: ""; position: absolute; top: 8px; left: 50%; width: 40px; height: 4px; margin-left: -20px; border-radius: 4px; background: var(--border-color, #cbd5e1); }
+  body.has-bottom-bar .mobile-dashboard-drawer.as-sheet > .dashboard-drawer-heading { position: relative; padding-top: 10px; }
+  body.has-bottom-bar.dashboard-drawer-open .bottom-bar { transform: translate(-50%, calc(100% + 24px)); opacity: 0; pointer-events: none; }
+}
+@media (max-width: 1024px) {
+  body.has-bottom-bar .mobile-dashboard-drawer.as-sheet { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; column-gap: 6px !important; row-gap: 2px !important; }
+  body.has-bottom-bar .mobile-dashboard-drawer.as-sheet > :not(a):not(button.committee-sidebar-link):not(.president-sidebar-action) { grid-column: 1 / -1; }
+  body.has-bottom-bar .mobile-dashboard-drawer.as-sheet > h2 { display: none !important; }
+  body.has-bottom-bar .mobile-dashboard-drawer.as-sheet > :is(h3, .staff-sidebar-group, .president-sidebar-group-title) { width: auto !important; margin: 10px 0 2px !important; padding: 8px 6px 2px !important; border-top: 1px solid var(--border-color) !important; text-align: left !important; }
+  body.has-bottom-bar .mobile-dashboard-drawer.as-sheet > :is(a, button) { width: auto !important; min-height: 44px !important; font-size: .86rem !important; }
+  body.has-bottom-bar .mobile-dashboard-drawer.as-sheet :is(label, p, span:not(.sidebar-label)) { text-align: left; }
+}
+@media (max-width: 1024px) {
+  html body .committee-dashboard-layout aside.committee-sidebar.mobile-dashboard-drawer.as-sheet > h2,
+  html body .mobile-dashboard-drawer.as-sheet > h2 { display: none !important; }
+  html body .mobile-dashboard-drawer.as-sheet > :is(h3, .staff-sidebar-group)::before { display: none !important; }
+  html body .mobile-dashboard-drawer.as-sheet > :is(h3, .staff-sidebar-group) { border-top: 1px solid var(--border-color) !important; }
+}
+/* Bottom bar sized like the reference: wide pill, roomy buttons, compact height. */
+@media (max-width: 1024px) {
+  .bottom-bar { width: min(380px, calc(100vw - 32px)); max-width: none; grid-auto-columns: minmax(0, 1fr); padding: 5px; border-radius: 999px; }
+  .bottom-bar-item { min-height: 46px; padding: 4px 2px; gap: 2px; border-radius: 999px; font-size: .72rem; font-weight: 600; }
+  .bottom-bar-icon, .bottom-bar-icon svg { width: 20px; height: 20px; }
+  .bottom-bar-item.is-active { background: color-mix(in srgb, var(--primary-700, #9a2630) 12%, transparent); }
+}
+/* Menu from the bottom bar: a compact card that pops up above the Menu button (one column, icon + label). */
+@media (max-width: 1024px) {
+  html body.has-bottom-bar .mobile-dashboard-drawer.as-sheet, html body.has-bottom-bar #adminTabs.mobile-dashboard-drawer.as-sheet {
+    inset: auto max(16px, calc(50vw - 190px)) calc(max(10px, env(safe-area-inset-bottom)) + 66px) auto !important;
+    display: flex !important; flex-direction: column !important; gap: 0 !important;
+    width: min(280px, calc(100vw - 32px)) !important; max-width: none !important; margin: 0 !important;
+    height: auto !important; max-height: min(62dvh, 520px) !important; padding: 8px !important;
+    border: 1px solid var(--border-color, #e2e8f0) !important; border-radius: 20px !important;
+    box-shadow: 0 18px 44px rgba(15, 23, 42, .2) !important;
+    transform: translateY(12px) scale(.96); transform-origin: bottom right; opacity: 0;
+    transition: transform .28s cubic-bezier(.22, .8, .25, 1), opacity .22s ease, visibility .28s !important;
+  }
+  html body.has-bottom-bar .mobile-dashboard-drawer.as-sheet.drawer-open { transform: none; opacity: 1; }
+  html body.has-bottom-bar .mobile-dashboard-drawer.as-sheet > :is(.dashboard-drawer-heading, h2, h3, .staff-sidebar-group, .president-sidebar-title, .president-sidebar-group-title) { display: none !important; }
+  html body.has-bottom-bar .mobile-dashboard-drawer.as-sheet > :is(a, button) {
+    display: flex !important; align-items: center; gap: 14px !important; width: 100% !important;
+    min-height: 46px !important; padding: 10px 12px !important; border-radius: 12px !important;
+    font-size: .92rem !important; font-weight: 500 !important; color: var(--text-main) !important; background: transparent !important;
+  }
+  html body.has-bottom-bar .mobile-dashboard-drawer.as-sheet > :is(a, button)::before { display: none !important; }
+  html body.has-bottom-bar .mobile-dashboard-drawer.as-sheet > :is(a, button):is(.is-active, [aria-current="page"]) { background: var(--primary-50) !important; color: var(--primary-800) !important; font-weight: 650 !important; }
+  html body.has-bottom-bar .mobile-dashboard-drawer.as-sheet .sidebar-icon { width: 20px !important; height: 20px !important; color: var(--text-muted); }
+  html body.has-bottom-bar .mobile-dashboard-drawer.as-sheet > :not(a):not(button) { margin: 4px 4px 8px !important; }
+  /* Light backdrop: the page stays visible behind the menu card. */
+  body.has-bottom-bar.dashboard-drawer-open .dashboard-drawer-overlay:not([hidden]) { background: rgba(8, 15, 28, .18); }
+  /* Keep the bar visible under the menu card, like the reference. */
+  body.has-bottom-bar.dashboard-drawer-open .bottom-bar { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; z-index: 10000; }
+}
+/* Menu card: work waiting comes first, then everything else in its usual groups. */
+@media (max-width: 1024px) {
+  html body.has-bottom-bar .mobile-dashboard-drawer.as-sheet.has-urgent::before { content: "Needs your attention"; order: -3; display: block; margin: 4px 12px 2px; color: #b45309; font-size: .68rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+  html body.has-bottom-bar .mobile-dashboard-drawer.as-sheet > .is-urgent { order: -2; }
+  html body.has-bottom-bar .mobile-dashboard-drawer.as-sheet > .menu-first:not(.is-urgent) { order: -1; }
+  html body.has-bottom-bar .mobile-dashboard-drawer.as-sheet > :is(a, button).is-urgent:not(.is-active) { background: #fffbeb !important; }
+}
+@media (max-width: 1024px) {
+  html body.has-bottom-bar .mobile-dashboard-drawer.as-sheet.as-sheet > :is(.president-sidebar-title, h2, .dashboard-drawer-heading) { display: none !important; }
+  html body.has-bottom-bar .mobile-dashboard-drawer.as-sheet.as-sheet > *::before, html body.has-bottom-bar .mobile-dashboard-drawer.as-sheet.as-sheet > *::after { display: none !important; }
+  html body.has-bottom-bar .mobile-dashboard-drawer.as-sheet.as-sheet > :is(h3, .staff-sidebar-group, .president-sidebar-group-title) { margin: 8px 0 2px !important; padding: 8px 12px 2px !important; border-top: 1px solid var(--border-color) !important; text-align: left !important; }
+  html body.has-bottom-bar .mobile-dashboard-drawer.as-sheet.has-urgent::before { align-self: stretch; text-align: left; }
+}
+@media (max-width: 1024px) { html body.has-bottom-bar #presidentSidebar.as-sheet > .president-sidebar-title, html body.has-bottom-bar .president-sidebar.as-sheet.as-sheet > span.president-sidebar-title { display: none !important; } }
+
+/* Short pages (nothing to scroll): the bar sits at the top of the content as a row of pill buttons. */
+@media (max-width: 1024px) {
+  .bottom-bar.is-inline {
+    position: static; left: auto; bottom: auto; z-index: auto; transform: none !important; opacity: 1 !important; pointer-events: auto !important;
+    display: flex; flex-wrap: wrap; gap: 8px; width: auto; max-width: none; margin: 0 0 12px; padding: 0;
+    border: 0; border-radius: 0; background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none;
+    grid-column: 1 / -1;
+  }
+  .bottom-bar.is-inline .bottom-bar-item {
+    flex-direction: row; gap: 7px; min-height: 40px; padding: 7px 14px; border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 999px; background: var(--bg-panel, #fff); color: var(--text-main); font-size: .84rem; font-weight: 650;
+  }
+  .bottom-bar.is-inline .bottom-bar-item.is-active { background: var(--primary-50, #fdeced); border-color: var(--primary-200, #f3c3c6); color: var(--primary-800); }
+  .bottom-bar.is-inline .bottom-bar-icon, .bottom-bar.is-inline .bottom-bar-icon svg { width: 18px; height: 18px; }
+  .bottom-bar.is-inline .bottom-bar-badge { top: -8px; right: -8px; }
+  body.has-bottom-bar:has(.bottom-bar.is-inline) .quiz-launcher-circle { transform: none; }
+}
+@media (max-width: 1024px) {
+  .committee-dashboard-layout:has(> .bottom-bar.is-inline), main:has(> .bottom-bar.is-inline) { align-content: start !important; grid-template-rows: none !important; grid-auto-rows: auto !important; }
+  main > .bottom-bar.is-inline { align-self: start; justify-self: stretch; }
+  /* The bar already has Back, so page Back buttons are not repeated on phones and tablets. */
+  body.has-bottom-bar .page-back-control:not(.bottom-bar-item) { display: none !important; }
+}
+@media (max-width: 640px) {
+  .bottom-bar.is-inline { flex-wrap: nowrap; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+  .bottom-bar.is-inline::-webkit-scrollbar { display: none; }
+  .bottom-bar.is-inline .bottom-bar-item { flex: 0 0 auto; gap: 5px; min-height: 38px; padding: 6px 11px; font-size: .8rem; }
+  .bottom-bar.is-inline .bottom-bar-icon, .bottom-bar.is-inline .bottom-bar-icon svg { width: 16px; height: 16px; }
+}
+@media (max-width: 640px) {
+  .bottom-bar.is-inline .bottom-bar-item { flex: 1 1 0; min-width: 0; justify-content: center; padding: 6px 6px; }
+}
+@media (max-width: 640px) {
+  .bottom-bar.is-inline .bottom-bar-item { flex-direction: column; gap: 2px; min-height: 52px; padding: 6px 4px; border-radius: 16px; font-size: .72rem; }
+  .bottom-bar.is-inline .bottom-bar-icon, .bottom-bar.is-inline .bottom-bar-icon svg { width: 19px; height: 19px; }
+}
+@media (max-width: 1024px) {
+  html body.has-bottom-bar .mobile-dashboard-drawer.as-sheet.opens-down {
+    inset: var(--menu-top, 120px) var(--menu-right, 16px) auto auto !important;
+    max-height: calc(100dvh - var(--menu-top, 120px) - 16px) !important;
+    transform: translateY(-10px) scale(.96); transform-origin: top right;
+  }
+  html body.has-bottom-bar .mobile-dashboard-drawer.as-sheet.opens-down.drawer-open { transform: none; }
+}

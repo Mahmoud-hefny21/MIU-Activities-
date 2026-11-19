@@ -11,7 +11,18 @@ function renderHeadDashboard() {
   statRejected.textContent = rejected;
   const needsReviewStat = document.getElementById('statNeedsReview');
   if (needsReviewStat) needsReviewStat.textContent = needsReview;
+  needsReviewStat?.closest('.stat-box')?.classList.toggle('has-items', Number(needsReview) > 0);
 
+  // "Today", "3 days ago" or a date, so presidents see how fresh each application is.
+  function recentApplicantTime(value) {
+    const date = new Date(value || '');
+    if (Number.isNaN(date.getTime())) return '';
+    const days = Math.floor((Date.now() - date.getTime()) / 86400000);
+    if (days <= 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return `${days} days ago`;
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  }
   const recentSection = document.getElementById('presidentRecentApplicants');
   const recentList = document.getElementById('presidentRecentApplicantsList');
   if (recentSection && recentList) {
@@ -20,7 +31,8 @@ function renderHeadDashboard() {
       .slice(0, 3);
     recentList.innerHTML = recent.length ? recent.map((app) => {
       const status = app.status === 'pending' && app.interviewed ? 'Interviewed · pending' : app.status;
-      return `<article class="president-recent-applicant"><div><strong>${escapeHtml(app.studentName || 'Applicant')}</strong><span>${escapeHtml([app.committee || state.clubAccount?.committee || 'Unassigned committee', app.major].filter(Boolean).join(' · '))}</span></div><span class="badge ${escapeHtml(app.status)}${app.interviewed && app.status === 'pending' ? ' processing' : ''}">${escapeHtml(status)}</span><button class="secondary-btn" type="button" data-overview-review="${Number(app.id)}">Review</button></article>`;
+      const when = recentApplicantTime(app.createdAt);
+      return `<article class="president-recent-applicant"><div><strong>${escapeHtml(app.studentName || 'Applicant')}</strong><span>${escapeHtml([app.committee || state.clubAccount?.committee || 'Unassigned committee', app.major, when].filter(Boolean).join(' · '))}</span></div><span class="badge ${escapeHtml(app.status)}${app.interviewed && app.status === 'pending' ? ' processing' : ''}">${escapeHtml(status)}</span><button class="secondary-btn" type="button" data-overview-review="${Number(app.id)}">Review</button></article>`;
     }).join('') : '<p class="president-recent-empty">No applicants yet. New submissions will appear here.</p>';
     recentList.querySelectorAll('[data-overview-review]').forEach((button) => {
       button.addEventListener('click', () => openReviewModal(Number(button.dataset.overviewReview)));
@@ -825,7 +837,7 @@ document.getElementById('saveReviewBtn').addEventListener('click', async () => {
 document.getElementById('myFormsButton')?.addEventListener('click', () => {});
 document.getElementById('myFormsBackHomeBtn').addEventListener('click', returnToPreviousAppView);
 function setStudentDashboardSection(sectionName, { updateUrl = true } = {}) {
-  const section = ['overview', 'applications', 'attendance'].includes(sectionName) ? sectionName : 'overview';
+  const section = ['overview', 'clubs', 'applications', 'attendance'].includes(sectionName) ? sectionName : 'overview';
   document.querySelectorAll('[data-student-panel]').forEach((panel) => {
     panel.hidden = panel.dataset.studentPanel !== section;
   });
@@ -836,6 +848,7 @@ function setStudentDashboardSection(sectionName, { updateUrl = true } = {}) {
     else button.removeAttribute('aria-current');
   });
   if (section === 'attendance') void window.loadMemberAttendanceAssignments?.();
+  void loadStudentClubs(section === 'clubs');
   if (updateUrl) {
     const url = new URL(window.location.href);
     url.searchParams.set('myForms', '1');
@@ -846,6 +859,39 @@ function setStudentDashboardSection(sectionName, { updateUrl = true } = {}) {
   }
 }
 window.setStudentDashboardSection = setStudentDashboardSection;
+
+// "My clubs": the clubs whose member list includes the signed-in student.
+let studentClubsLoaded = null;
+async function loadStudentClubs(force = false) {
+  const list = document.getElementById('studentClubsList');
+  if (!list || (studentClubsLoaded && !force)) return;
+  studentClubsLoaded = true;
+  const setCount = (value) => ['studentSidebarClubCount', 'studentDashboardClubCount'].forEach((id) => { const node = document.getElementById(id); if (node) node.textContent = value; });
+  let clubs;
+  try {
+    const response = await fetch('/api/student/my-clubs', { cache: 'no-store' });
+    if (!response.ok) throw new Error((await response.json().catch(() => ({}))).message || 'Your clubs could not be loaded.');
+    clubs = (await response.json()).clubs || [];
+  } catch (error) {
+    studentClubsLoaded = null;
+    list.innerHTML = `<p class="member-assignment-empty">${escapeHtml(error.message || 'Your clubs could not be loaded.')}</p>`;
+    return;
+  }
+  setCount(String(clubs.length));
+  list.innerHTML = clubs.length ? clubs.map((club) => `
+    <button type="button" class="student-club-card" data-open-club="${escapeHtml(String(club.id))}">
+      <img src="${escapeHtml(club.image || '/assets/img/pics/logo.svg.png')}" alt="" loading="lazy" decoding="async">
+      <span class="student-club-copy">
+        <strong>${escapeHtml(club.name)}</strong>
+        <span>${escapeHtml([club.committee, club.position].filter(Boolean).join(' · ') || 'Member')}</span>
+        ${club.memberType === 'senior' ? '<span class="student-club-tag">Senior member</span>' : ''}
+      </span>
+      <span class="student-club-open" aria-hidden="true">›</span>
+    </button>`).join('')
+    : '<p class="member-assignment-empty">You are not on any club member list yet. When a club accepts you, it will appear here. <a href="/?explore=clubs#clubGrid">Explore clubs →</a></p>';
+  list.querySelectorAll('[data-open-club]').forEach((card) => card.addEventListener('click', () => openClubDetail(Number(card.dataset.openClub))));
+}
+window.loadStudentClubs = loadStudentClubs;
 document.querySelectorAll('[data-student-section]').forEach((button) => {
   button.addEventListener('click', () => setStudentDashboardSection(button.dataset.studentSection));
 });

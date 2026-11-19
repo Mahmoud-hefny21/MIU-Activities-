@@ -91,7 +91,8 @@ function registerPublicContentPagination(app, { Club, UniversityContent, readPag
       await ensureReady();
       if (!requireLiveDatabase(res)) return;
       const result = readPage ? await readPage(o) : await readMongo(Club, UniversityContent, o);
-      res.setHeader('Cache-Control', 'no-store');
+      // Same for every visitor: cache briefly at the edge, refresh in the background.
+      res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=20, stale-while-revalidate=300');
       res.json(result);
     } catch (error) {
       console.error('Public content page failed:', errorReason(error));

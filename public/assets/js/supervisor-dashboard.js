@@ -18,7 +18,7 @@
   let miuReviewsLoadedAt = 0;
   const DATA_FRESH_MS = 25_000;
   const escape = window.MiuUI.escapeHtml;
-  const text = value => escape(String(value || '').replace(/_/g, ' '));
+  const text = value => escape((window.MiuUI?.plainWords || (value => String(value || '').replaceAll('_', ' ')))(value));
   const api = window.MiuUI.createJsonClient({
     defaults: {"credentials":"same-origin","cache":"no-store"},
     fallbackMessage: "Could not load supervisor data.", tolerateInvalidJson: false, includeStatus: false
@@ -80,11 +80,11 @@
     const actionLabels = { submitted: 'Submitted', resubmitted: 'Resubmitted', approve: 'Approved', reject: 'Rejected', request_edit: 'Requested changes', comment: 'Comment', deleted: 'Deleted', returned_to_pr: 'Returned to PR', returned_to_english: 'Returned to English', returned_to_security: 'Returned to Security' };
     return `<div class="supervisor-history-timeline">${events.map(entry => {
       const role = roles[entry.role] || entry.role || 'Workflow';
-      const action = actionLabels[entry.action] || String(entry.action || 'Workflow').replace(/_/g, ' ');
+      const action = actionLabels[entry.action] || (window.MiuUI?.plainWords || (value => String(value || '').replaceAll('_', ' ')))(entry.action || 'Workflow');
       const moment = entry.createdAt ? new Date(entry.createdAt) : null;
       const date = moment && !Number.isNaN(moment.getTime()) ? moment.toLocaleDateString('en-GB') : 'Not recorded';
       const time = moment && !Number.isNaN(moment.getTime()) ? (window.formatSiteTime?.(moment) || moment.toLocaleTimeString()) : 'Not recorded';
-      const status = entry.fromStatus || entry.toStatus ? `<p><strong>Status:</strong> ${escape(entry.fromStatus ? String(entry.fromStatus).replace(/_/g, ' ') : '—')} → ${escape(entry.toStatus ? String(entry.toStatus).replace(/_/g, ' ') : '—')}</p>` : '';
+      const status = entry.fromStatus || entry.toStatus ? `<p><strong>Status:</strong> ${escape(entry.fromStatus ? (window.MiuUI?.plainWords || (value => String(value || '').replaceAll('_', ' ')))(entry.fromStatus) : '—')} → ${escape(entry.toStatus ? (window.MiuUI?.plainWords || (value => String(value || '').replaceAll('_', ' ')))(entry.toStatus) : '—')}</p>` : '';
       const actor = entry.actorEmail || (entry.role === 'club' ? 'Club account (legacy record)' : `${role} (legacy record)`);
       return `<article class="supervisor-history-entry"><h4>${escape(role)} · ${escape(action)}</h4>${status}${entry.comment ? `<p><strong>Comment:</strong> ${escape(entry.comment)}</p>` : ''}<p><strong>User:</strong> ${escape(actor)}</p><p><strong>Date:</strong> ${escape(date)} · <strong>Time:</strong> ${escape(time)}</p></article>`;
     }).join('')}</div>`;

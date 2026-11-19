@@ -125,16 +125,26 @@ const initFloatingBack = () => {
   floating.innerHTML = '<span aria-hidden="true">←</span> Back';
   document.body.append(floating);
   let target = null;
-  floating.addEventListener('click', () => target?.click());
+  // Pages without their own Back control still get one; it goes to the previous page.
+  floating.addEventListener('click', () => (target ? target.click() : window.miuGoBack?.('/')));
+  const isHome = () => location.pathname === '/' && Boolean(document.querySelector('#homeView.active'));
 
   const headerOffset = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sticky-site-header-height')) || 72;
   const findBack = () => [...document.querySelectorAll(backSelector)].find((el) =>
     el !== floating && el.getClientRects().length && isBackLabel(el)
     && !el.closest('#site-header, header.site-header, dialog, .modal, .event-modal, .login-foot, .recovery-card'));
 
+  // Give every Back control on the page the same look: pill style with a leading arrow.
+  const matchBackStyle = () => document.querySelectorAll(backSelector).forEach((el) => {
+    if (el === floating || el.classList.contains('page-back-control') || !isBackLabel(el)
+      || el.closest('#site-header, header.site-header, dialog, .modal, .event-modal, .login-foot, .recovery-card')) return;
+    el.classList.add('page-back-control');
+    if (!el.textContent.includes('←') && !el.querySelector('svg')) el.prepend('← ');
+  });
   let queued = false;
   const update = () => {
     queued = false;
+    matchBackStyle();
     target = findBack() || null;
     const hidden = !target || target.getBoundingClientRect().bottom > headerOffset();
     if (floating.hidden !== hidden) floating.hidden = hidden;
@@ -144,6 +154,19 @@ const initFloatingBack = () => {
   window.addEventListener('scroll', queue, { passive: true });
   window.addEventListener('resize', queue);
   document.addEventListener('click', () => setTimeout(queue, 50));
+  // Pages without their own Back control get one at the top of the content (Home excepted).
+  setTimeout(() => {
+    if (findBack() || isHome() || location.pathname === '/') return;
+    const main = document.querySelector('main') || document.querySelector('.page-shell, .container');
+    if (!main) return;
+    const back = document.createElement('button');
+    back.type = 'button';
+    back.className = 'secondary-btn page-back-inline';
+    back.setAttribute('data-history-back', '');
+    back.textContent = '← Back';
+    main.prepend(back);
+    queue();
+  }, 600);
   update();
 };
 
@@ -152,9 +175,12 @@ document.addEventListener('DOMContentLoaded', () => {
   initFloatingBack();
 
   const navigationScript = document.createElement('script'); navigationScript.src = '/assets/js/dashboard-navigation.js?v=20261014freshvisit1'; document.head.append(navigationScript);
-  const drawerStyles = document.createElement('link'); drawerStyles.rel = 'stylesheet'; drawerStyles.href = '/assets/css/mobile-sidebars.css?v=20261014hidescrollbar1';
-  const drawerScript = document.createElement('script'); drawerScript.src = '/assets/js/mobile-sidebars.js?v=20261118noclose1';
+  const drawerStyles = document.createElement('link'); drawerStyles.rel = 'stylesheet'; drawerStyles.href = '/assets/css/mobile-sidebars.css?v=20261119down1';
+  const drawerScript = document.createElement('script'); drawerScript.src = '/assets/js/mobile-sidebars.js?v=20261119bar5';
   let drawerStarted = false;
+  const bottomBarScript = document.createElement('script'); bottomBarScript.src = '/assets/js/bottom-bar.js?v=20261119myclubs2';
+  // The bottom bar starts after the drawer script so dashboards can open their menu from it.
+  drawerScript.addEventListener('load', () => document.head.append(bottomBarScript), { once: true });
   const loadMobileDrawers = () => { if (drawerStarted) return; drawerStarted = true; document.head.append(drawerScript); };
   drawerStyles.addEventListener('load', loadMobileDrawers, { once: true });
   drawerStyles.addEventListener('error', loadMobileDrawers, { once: true });

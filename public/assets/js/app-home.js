@@ -465,11 +465,11 @@ function createApprovalRequestCheckpoint(request) {
         : status === 'pending_security' ? 'Waiting for Security Office'
           : status === 'rejected' ? `Rejected by ${roleLabels[lastEvent?.role] || 'review team'}`
             : status === 'changes_requested' ? `Changes requested by ${roleLabels[request.editRequestedBy] || 'review team'}`
-              : status.replaceAll('_', ' ')
+              : (window.MiuUI?.plainWords || (value => String(value || '').replaceAll('_', ' ')))(status)
     : status === 'changes_requested'
       ? `Changes requested · ${roleLabels[request.editRequestedBy] || 'review team'}`
       : status === 'rejected' ? `Rejected by ${roleLabels[lastEvent?.role] || 'review team'}`
-        : status === 'approved' ? 'Approved · Internal only' : status.replaceAll('_', ' ');
+        : status === 'approved' ? 'Approved · Internal only' : (window.MiuUI?.plainWords || (value => String(value || '').replaceAll('_', ' ')))(status);
   heading.append(identity, state);
 
   const requestTrack = document.createElement('div');
@@ -887,7 +887,7 @@ async function openClubPortal(initialSession = null) {
     if (canManageSpeakers && !window.speakerDashboardScriptLoaded) {
       window.speakerDashboardScriptLoaded = true;
       const speakerScript = document.createElement('script');
-      speakerScript.src = '/assets/js/speaker-request.js?v=20261017clubonly1';
+      speakerScript.src = '/assets/js/speaker-request.js?v=20261119plain1';
       speakerScript.defer = true;
       speakerScript.onerror = () => { window.speakerDashboardScriptLoaded = false; };
       document.body.append(speakerScript);
@@ -923,7 +923,7 @@ async function openClubPortal(initialSession = null) {
     const canViewClubOperations = canManageQuestions;
     presidentSidebar.classList.toggle('hidden', !canViewClubOperations);
     presidentDashboardLayout.classList.toggle('is-president', canViewClubOperations);
-    presidentSidebar.querySelectorAll('[data-president-only]').forEach((item) => item.classList.toggle('hidden', !isPresident));
+    (document.getElementById('presidentDashboardLayout') || presidentSidebar).querySelectorAll('[data-president-only]').forEach((item) => item.classList.toggle('hidden', !isPresident));
     document.getElementById('approvalCheckpointPanel')?.classList.toggle('hidden', club.role !== 'president');
     document.getElementById('openMemberManagerBtn')?.classList.toggle('hidden', !['president', 'head'].includes(club.role));
     const attendanceButton = document.getElementById('openAttendanceManagerBtn');
@@ -1058,6 +1058,11 @@ async function loadClubEventRegistrations() {
   }
 }
 document.getElementById('refreshClubRegistrationsBtn')?.addEventListener('click', loadClubEventRegistrations);
+
+// Overview quick actions that open a dashboard section.
+document.querySelectorAll('[data-quick-section]').forEach((button) => button.addEventListener('click', () => {
+  if (['president', 'head'].includes(state.clubAccount?.role)) setPresidentDashboardSection(button.dataset.quickSection);
+}));
 
 document.getElementById('presidentOverviewApplicantsBtn')?.addEventListener('click', () => {
   if (['president', 'head'].includes(state.clubAccount?.role)) setPresidentDashboardSection('presidentApplicantsPanel');
@@ -1519,7 +1524,7 @@ function renderEventsSlideshow() {
       ? ({ poll: 'MIU POLL', evaluation: 'MIU EVALUATION' }[item.interaction] || (item.type === 'event' ? 'MIU EVENT' : 'MIU ANNOUNCEMENT'))
       : (isToday ? 'TODAY · NEW' : 'UPCOMING EVENT');
     const metaLine = item.contentType === 'sponsor'
-      ? [item.sponsorType, item.sponsorAmount].filter(Boolean).join(' · ')
+      ? escapeHtml(item.sponsorCompany || item.sponsorName || '')
       : `${item.date || ''}${item.location ? ' · ' + escapeHtml(item.location) : ''}`;
     return `
     <div class="event-slide${i === slideIndex ? ' active' : ''}" data-club="${item.clubId}" data-idx="${item.index}" data-type="${item.contentType}">

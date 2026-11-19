@@ -354,17 +354,21 @@ const CLUB_CONTENT_SECTIONS = [
   { key: 'booths', label: 'Booth', type: 'booth', order: 'upcoming' }
 ];
 
+// Readable date like "Thu, 8 Oct 2026"; anything that is not YYYY-MM-DD is shown as written.
+function formatClubCardDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || '').trim());
+  if (!match) return String(value || '').trim();
+  return new Date(+match[1], +match[2] - 1, +match[3]).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// Card details split into when (date and time) and where (place or extra details).
 function clubContentMeta(item, type) {
-  if (type === 'sponsor') {
-    return [item.sponsorCompany, item.sponsorType, item.sponsorAmount].filter(Boolean).join(' · ');
-  }
-  if (type === 'booth') {
-    return [item.boothLocation, item.boothSize, item.boothOpenDate].filter(Boolean).join(' · ');
-  }
-  if (type === 'feed') {
-    return [item.date, window.formatSiteTime(item.time)].filter(Boolean).join(' · ');
-  }
-  return [item.date, window.formatSiteTime(item.time), item.location].filter(Boolean).join(' · ');
+  if (type === 'sponsor') return { when: '', where: [item.sponsorCompany].filter(Boolean).join(' · ') };
+  if (type === 'booth') return { when: formatClubCardDate(item.boothOpenDate), where: [item.boothLocation].filter(Boolean).join(' · ') };
+  // Keep times like "2:20 PM" on one line.
+  const time = String(window.formatSiteTime(item.time) || '').replace(/ (AM|PM)$/, ' $1');
+  const when = [formatClubCardDate(item.date), time].filter(Boolean).join(' · ');
+  return { when, where: type === 'feed' ? '' : String(item.location || '') };
 }
 
 function clubContentImage(item, type, club) {
@@ -374,6 +378,13 @@ function clubContentImage(item, type, club) {
 }
 
 function renderClubContentSections(club) {
+  // Every club gets the same page: a new club with nothing published yet shows an empty Events section.
+  const hasContent = CLUB_CONTENT_SECTIONS.some((section) => Array.isArray(club[section.key]) && club[section.key].length);
+  if (!hasContent) return `
+    <section class="detail-section detail-content-section is-empty" aria-label="Club events">
+      <div class="detail-section-heading"><h3>Events</h3></div>
+      <p class="detail-content-empty">${escapeHtml(club.name)} has not published any events or posts yet. Check back soon or open the calendar.</p>
+    </section>`;
   return CLUB_CONTENT_SECTIONS.map((section) => {
     const heading = section.type === 'feed' ? 'Feed' : `${section.label}s`;
     const items = Array.isArray(club[section.key]) ? [...club[section.key]] : [];
@@ -388,17 +399,17 @@ function renderClubContentSections(club) {
         ? window.FeedMedia.render(image, item.title || section.label, 'club-image')
         : `<div class="club-image club-image-placeholder" aria-hidden="true">${escapeHtml(section.label)}</div>`;
       return `
-        <article class="club-card feed-card">
+        <article class="club-card feed-card club-content-card">
           <div class="club-image-wrap">
             ${imageBlock}
           </div>
           <div class="club-card-content">
-            <div class="club-card-header">
-              <div class="club-name">${escapeHtml(item.title || section.label)} <span class="content-type-badge ${escapeHtml(section.type)}">${escapeHtml(section.label)}</span></div>
-            </div>
-            <div class="club-tagline">${escapeHtml(meta)}</div>
+            <span class="content-type-badge ${escapeHtml(section.type)}">${escapeHtml(section.label)}</span>
+            <div class="club-name" title="${escapeHtml(item.title || section.label)}">${escapeHtml(item.title || section.label)}</div>
+            ${meta.when ? `<div class="club-content-when">${escapeHtml(meta.when)}</div>` : ''}
+            ${meta.where ? `<div class="club-content-where">${escapeHtml(meta.where)}</div>` : ''}
             <div class="club-actions">
-              <button class="event-info-btn" type="button" data-info="${escapeHtml(section.key)}-${index}" data-content-section="${escapeHtml(section.key)}" data-content-index="${club[section.key].indexOf(item)}" aria-haspopup="dialog"${section.type === 'event' ? ` data-event-index="${club.events.indexOf(item)}"` : ''}>Info</button>
+              <button class="event-info-btn" type="button" data-info="${escapeHtml(section.key)}-${index}" data-content-section="${escapeHtml(section.key)}" data-content-index="${club[section.key].indexOf(item)}" aria-haspopup="dialog"${section.type === 'event' ? ` data-event-index="${club.events.indexOf(item)}"` : ''}>Details</button>
             </div>
           </div>
         </article>`;

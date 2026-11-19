@@ -14,6 +14,14 @@
   const selected = (host, name) => [...host.querySelectorAll(`input[name="${name}"]:checked`)].map(input => input.value);
   const roleLabels = { admin: 'Admin', software_development: 'Developer', president: 'President', vice_president: 'Vice president', head: 'Committee head', supervisor: 'Supervisor', pr: 'PR', english: 'English', security: 'Security', sso: 'SSO', dean: 'Dean', miu_events: 'MIU Events' };
   const actionLabels = { approve: 'Approve', reject: 'Reject', request_changes: 'Request corrections', comment: 'Add comments', forward: 'Escalate', assign: 'Assign reviewers', history: 'View history', view_all: 'View all in scope' };
+  // Readable labels so people never see internal codes like "changes_requested" or "pr".
+  const stateLabels = { new: 'New', review: 'Awaiting review', changes_requested: 'Needs corrections', resubmitted: 'Resubmitted', approved: 'Approved', rejected: 'Rejected', published: 'Published' };
+  const plainWords = (window.MiuUI?.plainWords || (value => String(value || '').replaceAll('_', ' ')));
+  const stateLabel = state => stateLabels[state] || plainWords(state);
+  const stateBadge = (state, extra = '') => `<span class="workflow-badge workflow-state-${escape(state)}">${escape(stateLabel(state))}${extra}</span>`;
+  const typeLabels = { event: 'Event', feed: 'Feed post', sponsor: 'Sponsor', booth: 'Booth', entry_permit: 'Entry permit', year_plan: 'Year plan', speaker: 'Club speaker', speaker_miu: 'MIU speaker', speaker_public: 'External speaker' };
+  const historyLabels = { submitted: 'Submitted', approve: 'Approved', approved: 'Approved', reject: 'Rejected', request_changes: 'Corrections requested', resubmit: 'Corrections resubmitted', resubmitted: 'Corrections resubmitted', comment: 'Comment added', forward: 'Escalated', assign: 'Reviewers assigned', automatic_forward: 'Moved on automatically' };
+  const when = value => { const date = new Date(value); return Number.isNaN(date.getTime()) ? '' : date.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); };
   const notify = (host, message, error = false) => { const box = $(host, '[data-workflow-feedback]'); if (box) { box.textContent = message; box.classList.toggle('workflow-error', error); } };
   const blockedReason = blocked => blocked.reason === 'no_reviewers' ? 'No eligible reviewers are available. An administrator can review on behalf of this role, or assign staff.' : blocked.assignedEmails?.length ? 'The assigned reviewers cannot complete this stage. An administrator can review on behalf of the role, or reassign reviewers.' : 'Not enough eligible reviewers for this request. An administrator can review on behalf of the required role, or repair staff assignments.';
   async function blockedRequests(host) {
@@ -87,13 +95,30 @@
           const select = $(host, `select[name="${name}"]`), value = select.value;
           select.innerHTML = options([{ id: '', name: label }, ...items], value);
         }
-        $(host, '[data-workflow-results]').innerHTML = data.items.map(item => `<article class="workflow-row"><div><strong>${escape(item.title)}</strong><p>${escape(item.clubName)} · ${escape(item.type)} · ${escape(item.stage)}</p><span class="workflow-badge">${escape(item.state.replaceAll('_', ' '))}${item.resubmitted ? ' · Resubmitted' : ''}</span><p class="workflow-note">${escape(item.roles.join(', '))}${item.assignedEmails.length ? ' · ' + escape(item.assignedEmails.join(', ')) : ''}</p></div><a class="primary-btn" href="/pages/workflow.html?kind=${item.kind}&id=${escape(item.id)}">Open request</a></article>`).join('') || '<p>No requests match these filters.</p>';
-        notify(host, `${data.total} requests · Page ${page}`);
+        $(host, '[data-workflow-results]').innerHTML = data.items.map(item => {
+          const waiting = item.roles.length ? `Waiting for: ${item.roles.map(role => roleLabels[role] || role).join(', ')}` : '';
+          return `<article class="workflow-row workflow-row-${escape(item.state)}"><div class="workflow-row-main"><div class="workflow-row-head"><strong>${escape(item.title)}</strong>${stateBadge(item.state, item.resubmitted ? ' · Resubmitted' : '')}</div><p>${escape(item.clubName)} · ${escape(typeLabels[item.type] || item.type)} · Stage: ${escape(item.stage)}</p>${waiting || item.assignedEmails.length ? `<p class="workflow-note">${escape(waiting)}${item.assignedEmails.length ? ' · ' + escape(item.assignedEmails.join(', ')) : ''}</p>` : ''}</div><a class="primary-btn" href="/pages/workflow.html?kind=${item.kind}&id=${escape(item.id)}">Open</a></article>`;
+        }).join('') || '<p class="workflow-empty">No requests match these filters.</p>';
+        notify(host, `${data.total} request${data.total === 1 ? '' : 's'}${data.total > 50 ? ` · Page ${page}` : ''}`);
+        $(host, '.workflow-actions').hidden = data.total <= 50;
         $(host, '[data-workflow-action=previous]').disabled = page <= 1;
         $(host, '[data-workflow-action=next]').disabled = page * 50 >= data.total;
       } catch (error) { notify(host, error.message, true); }
     };
     $(host, 'form').onsubmit = event => { event.preventDefault(); page = 1; void load(); };
+    // Filters apply as soon as they change; quick tabs set the most common status views.
+    const stateSelect = $(host, 'select[name=state]');
+    const tabs = document.createElement('div');
+    tabs.className = 'workflow-tabs'; tabs.setAttribute('role', 'group'); tabs.setAttribute('aria-label', 'Quick status filters');
+    const syncTabs = () => { for (const tab of tabs.children) { const on = tab.dataset.state === stateSelect.value; tab.classList.toggle('is-active', on); tab.setAttribute('aria-pressed', String(on)); } };
+    for (const [value, label] of [['review', 'Waiting for review'], ['changes_requested', 'Needs corrections'], ['approved', 'Approved'], ['rejected', 'Rejected'], ['', 'All']]) {
+      const tab = document.createElement('button'); tab.type = 'button'; tab.className = 'workflow-tab'; tab.dataset.state = value; tab.textContent = label;
+      tab.onclick = () => { stateSelect.value = value; page = 1; syncTabs(); void load(); };
+      tabs.append(tab);
+    }
+    $(host, 'form').before(tabs); syncTabs();
+    $(host, 'form').addEventListener('change', () => { page = 1; syncTabs(); void load(); });
+    $(host, 'form > button')?.setAttribute('hidden', '');
     $(host, '[data-workflow-action=previous]').onclick = () => { page--; void load(); };
     $(host, '[data-workflow-action=next]').onclick = () => { page++; void load(); };
     const notificationHost = $(host, '[data-workflow-notifications]');
@@ -201,13 +226,24 @@
     $(host, '[data-workflow-type]').onchange = event => { row = structuredClone(data.definitions.find(item => item.type === event.target.value)); render(); };
     row = structuredClone(data.definitions[0]); render(); await board($(host, '[data-workflow-board]'), { admin: true });
   }
+  function readableValue(field, value) {
+    if (field.kind === 'boolean') return value ? 'Yes' : 'No';
+    if (field.kind === 'audience') return value === 'members' ? 'Club members only' : value === 'all_students' ? 'All students' : 'Not set';
+    if (value === undefined || value === null || value === '') return 'Not provided';
+    if (field.kind === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(value)) { const [y, m, d] = value.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }); }
+    if (field.kind === 'time' && /^\d{2}:\d{2}/.test(value)) { const [h, min] = value.split(':').map(Number); return new Date(2000, 0, 1, h, min).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); }
+    return String(value);
+  }
   function fieldControl(field, value, editable) {
+    if (!editable && ['text', 'textarea', 'date', 'time', 'boolean', 'audience'].includes(field.kind)) {
+      return `<p class="workflow-value${field.kind === 'textarea' ? ' is-long' : ''}" data-field="${escape(field.id)}">${escape(readableValue(field, value))}</p>`;
+    }
     const attributes = `data-field="${escape(field.id)}"${editable ? field.required ? ' required' : '' : ' readonly aria-readonly="true"'}${field.maxLength ? ` maxlength="${field.maxLength}"` : ''}`;
     if (field.kind === 'boolean') return `<input type="checkbox" data-field="${field.id}"${value ? ' checked' : ''}${editable ? '' : ' disabled'}>`;
     if (field.kind === 'audience') return `<select data-field="${field.id}"${editable ? '' : ' disabled'}>${options([{ id: 'members', name: 'Club members' }, { id: 'all_students', name: 'All students' }], value)}</select>`;
     if (['image', 'file', 'speaker_files'].includes(field.kind)) {
       const preview = field.kind === 'image' && typeof value === 'string' && /^(data:image\/(png|jpeg|jpg|webp|gif|avif);base64,|https:\/\/|\/(api\/public-club-media|assets)\/)/.test(value)
-        ? `<img class="workflow-image" src="${escape(value)}" alt="${escape(field.label)}">` : '';
+        ? `<a class="workflow-image-link" href="${escape(value)}" target="_blank" rel="noopener" aria-label="Open ${escape(field.label)} full size"><img class="workflow-image" src="${escape(value)}" alt="${escape(field.label)}"></a>` : '';
       const documents = field.kind === 'speaker_files' && Array.isArray(value) ? value.map((item, index) => `<button type="button" class="secondary-btn" data-workflow-download="${index}">${escape(item.name || 'Download attachment')}</button>`).join('')
         : field.kind === 'file' && typeof value === 'string' && /^data:application\//.test(value) ? `<a class="secondary-btn" href="${escape(value)}" download="supporting-document">Download supporting document</a>` : '';
       return `${preview}${documents}${editable ? `<input type="file" data-field="${field.id}"${field.kind === 'speaker_files' ? ' multiple' : ''} accept="${field.kind === 'image' ? 'image/png,image/jpeg,image/webp' : '.pdf,.doc,.docx,.ppt,.pptx'}">` : ''}<p class="workflow-note">${Array.isArray(value) ? escape(value.map(item => item.name).join(', ')) : value ? 'An attachment is saved with this request.' : 'No attachment.'}</p>`;
@@ -224,8 +260,17 @@
     const data = await request(`/api/workflow/requests/${kind}/${encodeURIComponent(id)}`), flow = data.workflow;
     const stage = flow.definition.stages.find(item => item.id === flow.stageId);
     const editable = data.canResubmit ? flow.revisionFields : [];
-    host.innerHTML = `<section class="workflow-panel"><h2>${escape(data.title)}</h2><p>${escape(data.clubName)} · <span class="workflow-badge">${escape(flow.state.replaceAll('_', ' '))}</span> · ${escape(stage?.name || 'Completed')}</p><p class="workflow-note">Workflow version ${flow.definitionVersion} · Request revision ${flow.revision}</p><form data-workflow-revision><div class="workflow-grid">${data.fields.map(field => `<label class="${editable.includes(field.id) ? 'workflow-editable' : ''}">${escape(field.label)} <span class="workflow-locked">${editable.includes(field.id) ? 'Correction requested' : 'Read-only'}</span>${flow.fieldComments?.[field.id] ? `<span class="workflow-instruction">${escape(flow.fieldComments[field.id])}</span>` : ''}${fieldControl(field, data.values[field.id], editable.includes(field.id))}</label>`).join('')}</div>${data.canResubmit ? '<button class="primary-btn" type="submit">Resubmit corrections</button>' : ''}<p data-workflow-feedback role="status"></p></form></section>${data.actions.some(action => ['approve', 'reject', 'request_changes', 'comment', 'forward', 'assign'].includes(action)) ? `<section class="workflow-panel" data-workflow-decision><h2>Review decision</h2><label>Comment and instructions<textarea name="comment" maxlength="2000"></textarea></label>${data.actions.includes('request_changes') ? `<h3>Select fields to correct</h3>${checks(data.fields.filter(field => stage.editableFields.includes(field.id)), [], 'revisionFields')}<div>${data.fields.filter(field => stage.editableFields.includes(field.id)).map(field => `<label>${escape(field.label)} instructions<input data-field-comment="${field.id}" maxlength="2000"></label>`).join('')}</div>` : ''}${data.actions.includes('forward') ? `<label>Forward to<select name="target">${options(flow.definition.stages.filter(item => stage.escalationTargets.includes(item.id)), '')}</select></label>` : ''}${data.actions.includes('assign') ? `<h3>Assign reviewers</h3>${checks(data.eligibleReviewers, flow.assignedEmails || [], 'reviewerEmails')}` : ''}<div class="workflow-actions">${[['approve', 'Approve'], ['request_changes', 'Request changes'], ['reject', 'Reject'], ['comment', 'Add comment'], ['forward', 'Forward'], ['assign', 'Assign reviewers']].filter(([action]) => data.actions.includes(action)).map(([action, label]) => button(label, action, action !== 'approve')).join('')}</div><p data-workflow-feedback role="status"></p></section>` : ''}<section class="workflow-panel"><h2>Approval and revision history</h2><ol class="workflow-history">${flow.history.map(event => `<li><strong>${escape(event.action.replaceAll('_', ' '))}</strong> · ${escape(event.actorEmail)}<p>${escape(event.comment || '')}</p><small>${escape(event.stageId || '')} · ${escape(new Date(event.at).toLocaleString())}</small>${event.fields ? `<p>Fields: ${escape(event.fields.join(', '))}</p>` : ''}${event.before || event.values ? `<details><summary>Previous submitted values</summary><pre>${escape(historyValues(event.before || event.values))}</pre></details>` : ''}${event.after ? `<details><summary>Updated values</summary><pre>${escape(historyValues(event.after))}</pre></details>` : ''}</li>`).join('')}</ol></section>`;
+    host.innerHTML = `<section class="workflow-panel"><h2>${escape(data.title)}</h2><p class="workflow-detail-meta">${escape(data.clubName)} · ${stateBadge(flow.state)} · ${escape(stage ? 'Now with: ' + stage.name : 'Completed')}</p>${stageTracker(flow)}<p class="workflow-note">Workflow version ${flow.definitionVersion} · Request revision ${flow.revision}</p><form data-workflow-revision><div class="workflow-grid">${data.fields.map(field => `<label class="${editable.includes(field.id) ? 'workflow-editable' : ''}">${escape(field.label)} <span class="workflow-locked">${editable.includes(field.id) ? 'Correction requested' : 'Read-only'}</span>${flow.fieldComments?.[field.id] ? `<span class="workflow-instruction">${escape(flow.fieldComments[field.id])}</span>` : ''}${fieldControl(field, data.values[field.id], editable.includes(field.id))}</label>`).join('')}</div>${data.canResubmit ? '<button class="primary-btn" type="submit">Resubmit corrections</button>' : ''}<p data-workflow-feedback role="status"></p></form></section>${data.actions.some(action => ['approve', 'reject', 'request_changes', 'comment', 'forward', 'assign'].includes(action)) ? `<section class="workflow-panel" data-workflow-decision><h2>Review decision</h2><label>Comment and instructions<textarea name="comment" maxlength="2000"></textarea></label>${data.actions.includes('request_changes') ? `<h3>Select fields to correct</h3>${checks(data.fields.filter(field => stage.editableFields.includes(field.id)), [], 'revisionFields')}<div>${data.fields.filter(field => stage.editableFields.includes(field.id)).map(field => `<label>${escape(field.label)} instructions<input data-field-comment="${field.id}" maxlength="2000"></label>`).join('')}</div>` : ''}${data.actions.includes('forward') ? `<label>Forward to<select name="target">${options(flow.definition.stages.filter(item => stage.escalationTargets.includes(item.id)), '')}</select></label>` : ''}${data.actions.includes('assign') ? `<h3>Assign reviewers</h3>${checks(data.eligibleReviewers, flow.assignedEmails || [], 'reviewerEmails')}` : ''}<div class="workflow-actions">${[['approve', 'Approve'], ['request_changes', 'Request changes'], ['reject', 'Reject'], ['comment', 'Add comment'], ['forward', 'Forward'], ['assign', 'Assign reviewers']].filter(([action]) => data.actions.includes(action)).map(([action, label]) => button(label, action, action !== 'approve')).join('')}</div><p data-workflow-feedback role="status"></p></section>` : ''}<section class="workflow-panel"><h2>Approval and revision history</h2><ol class="workflow-history">${flow.history.map(event => `<li class="workflow-history-${escape(event.action)}"><strong>${escape(historyLabels[event.action] || plainWords(event.action))}</strong> · ${escape(event.actorEmail)}${event.comment ? `<p>${escape(event.comment)}</p>` : ''}<small>${escape(flow.definition.stages.find(item => item.id === event.stageId)?.name || event.stageId || '')}${event.stageId ? ' · ' : ''}${escape(when(event.at))}</small>${event.fields ? `<p>Fields: ${escape(event.fields.join(', '))}</p>` : ''}${event.before || event.values ? `<details><summary>${event.before ? 'Values before the change' : 'Submitted details'}</summary>${historyValues(event.before || event.values, data.fields)}</details>` : ''}${event.after ? `<details><summary>Values after the change</summary>${historyValues(event.after, data.fields)}</details>` : ''}</li>`).join('')}</ol></section>`;
     const form = $(host, '[data-workflow-revision]');
+    // Tell the club plainly whether anything can be changed.
+    const lock = document.createElement('p');
+    lock.className = 'workflow-lock';
+    lock.setAttribute('role', 'status');
+    if (data.canResubmit) { lock.classList.add('is-open'); lock.textContent = 'The approval team asked for corrections. Only the highlighted fields can be changed; then press Resubmit corrections.'; }
+    else if (['approved', 'published'].includes(flow.state)) { lock.classList.add('is-done'); lock.textContent = 'Approved — this request can no longer be changed.'; }
+    else if (flow.state === 'rejected') lock.textContent = 'Rejected — this request is closed and cannot be changed.';
+    else lock.textContent = 'Locked while under review. You can edit it only if the approval team requests corrections.';
+    form.before(lock);
     if (flow.blocked) { const note = document.createElement('p'); note.className = 'workflow-instruction'; note.setAttribute('role', 'status'); note.textContent = blockedReason(flow.blocked); form.before(note); }
     for (const download of form.querySelectorAll('[data-workflow-download]')) download.onclick = async () => {
       download.disabled = true;
@@ -258,6 +303,15 @@
       } catch (error) { notify(form, error.message, true); submit.disabled = false; }
     };
     const decision = $(host, '[data-workflow-decision]');
+    // Show an instructions box only for the fields the reviewer ticked.
+    if (decision) {
+      const syncInstructions = () => {
+        const ticked = new Set(selected(decision, 'revisionFields'));
+        for (const input of decision.querySelectorAll('[data-field-comment]')) input.closest('label').hidden = !ticked.has(input.dataset.fieldComment);
+      };
+      decision.addEventListener('change', event => { if (event.target.name === 'revisionFields') syncInstructions(); });
+      syncInstructions();
+    }
     if (decision && data.adminReviewRoles?.length) {
       const label = document.createElement('label'); label.textContent = 'Review on behalf of role';
       const select = document.createElement('select'); select.name = 'reviewRole';
@@ -288,7 +342,31 @@
       } catch (error) { notify(decision, error.message, true); buttons.forEach(button => { button.disabled = false; }); }
     };
   }
-  function historyValues(values) { return JSON.stringify(Object.fromEntries(Object.entries(values).map(([key, value]) => [key, typeof value === 'string' && value.startsWith('data:') ? '[Saved attachment]' : value])), null, 2); }
+  // Approval chain at a glance: done, current and upcoming stages.
+  function stageTracker(flow) {
+    const stages = (flow.definition?.stages || []).filter(item => item.enabled !== false);
+    if (stages.length < 2) return '';
+    const currentIndex = stages.findIndex(item => item.id === flow.stageId);
+    const finished = ['approved', 'published'].includes(flow.state);
+    return `<ol class="workflow-stages" aria-label="Approval progress">${stages.map((item, index) => {
+      const state = finished || (currentIndex > -1 && index < currentIndex) ? 'is-done' : index === currentIndex ? (flow.state === 'changes_requested' ? 'is-waiting' : 'is-current') : '';
+      const hint = state === 'is-done' ? 'done' : state === 'is-current' ? 'reviewing now' : state === 'is-waiting' ? 'waiting for corrections' : 'next';
+      return `<li class="${state}"><span class="workflow-stage-dot" aria-hidden="true"></span><span>${escape(item.name)}</span><span class="visually-hidden"> (${hint})</span></li>`;
+    }).join('')}</ol>`;
+  }
+  // Earlier values shown as a readable list with the same labels as the request.
+  function historyValues(values, fields = []) {
+    const rows = Object.entries(values || {}).map(([key, value]) => {
+      const field = fields.find(item => item.id === key) || { id: key, label: plainWords(key), kind: typeof value === 'boolean' ? 'boolean' : 'text' };
+      let shown;
+      if (typeof value === 'string' && (value.startsWith('data:') || /^https?:\/\//.test(value) && ['image', 'file'].includes(field.kind))) shown = 'Attachment saved';
+      else if (Array.isArray(value)) shown = value.length ? value.map(item => typeof item === 'object' && item ? [item.quantity, item.number, item.details, item.name].filter(Boolean).join(' · ') : String(item)).join('; ') : 'None';
+      else if (value && typeof value === 'object') shown = Object.values(value).filter(item => ['string', 'number'].includes(typeof item)).join(' · ') || '—';
+      else shown = readableValue(field, value);
+      return `<dt>${escape(field.label)}</dt><dd>${escape(shown)}</dd>`;
+    }).join('');
+    return `<dl class="workflow-history-values">${rows}</dl>`;
+  }
   window.MiuWorkflow = { mountAdmin, board, detail, notifications, blockedRequests };
   const workspace = document.getElementById('workflowWorkspace');
   if (workspace) (async () => { try { const context = await request('/api/workflow/context'); if (context.dashboardUrl) { const back = document.querySelector('[data-history-back]'); if (back) back.href = context.dashboardUrl; } const params = new URLSearchParams(location.search); if (params.has('kind') && params.has('id')) await detail(workspace, params.get('kind'), params.get('id')); else await board(workspace, context); } catch (error) { workspace.textContent = error.message; } })();

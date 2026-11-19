@@ -665,6 +665,44 @@ html.site-startup-pending .site-loading-indicator { opacity: 0; visibility: hidd
   display: block;
 }
 
+
+/* Floating Back button shown on every page except Home. */
+.floating-back-control {
+  position: fixed;
+  /* Top-left, just under the header; appears only after scrolling past the page's own Back. */
+  top: calc(var(--sticky-site-header-height, 72px) + 8px);
+  left: max(16px, env(safe-area-inset-left));
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 7px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-panel);
+  color: var(--text-main);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .18);
+  font: inherit;
+  font-size: .82rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.floating-back-control[hidden] { display: none; }
+.floating-back-control span { color: var(--primary-700); font-size: 1rem; }
+.floating-back-control:hover { border-color: var(--primary-700); background: var(--primary-50); color: var(--primary-800); }
+.floating-back-control:focus-visible { outline: 3px solid var(--primary-700); outline-offset: 3px; }
+/* Back button added at the top of pages that have none of their own. */
+.page-back-inline { display: inline-flex; align-items: center; gap: 6px; width: auto; min-height: 40px; margin: 0 0 12px; padding: 8px 16px; border-radius: 999px; font-weight: 650; }
+main > .page-back-inline { grid-column: 1 / -1; justify-self: start; align-self: start; margin-bottom: 0; }
+
+
+/* Every Back button on the site uses the same pill style. */
+:is(.page-back-control, .page-back-inline, .floating-back-control) { display: inline-flex; align-items: center; gap: 7px; width: auto; min-height: 40px; padding: 7px 16px; border: 1px solid var(--border-color); border-radius: 999px; background: var(--bg-panel); color: var(--text-main); font: inherit; font-size: .86rem; font-weight: 650; text-decoration: none; cursor: pointer; }
+:is(.page-back-control, .page-back-inline):hover { border-color: var(--primary-700); background: var(--primary-50); color: var(--primary-800); }
+body :is(.page-back-control, .page-back-inline) { border-radius: 999px !important; min-height: 40px !important; padding: 7px 16px !important; box-shadow: none !important; }
+body .page-back-control::before { content: none !important; display: none !important; }
 /* ==========================================================================
    BUTTON SYSTEM
    ========================================================================== */
@@ -722,32 +760,6 @@ html.site-startup-pending .site-loading-indicator { opacity: 0; visibility: hidd
   border-color: var(--slate-300);
   color: var(--primary-800);
 }
-
-.floating-back-control {
-  position: fixed;
-  top: calc(var(--sticky-site-header-height, 72px) + 8px);
-  left: max(16px, env(safe-area-inset-left));
-  z-index: 40;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 40px;
-  padding: 7px 14px;
-  border: 1px solid var(--border-color);
-  border-radius: 999px;
-  background: var(--bg-panel);
-  color: var(--text-main);
-  box-shadow: 0 8px 24px rgba(15, 23, 42, .18);
-  font: inherit;
-  font-size: .82rem;
-  font-weight: 650;
-  cursor: pointer;
-}
-
-.floating-back-control[hidden] { display: none; }
-.floating-back-control span { color: var(--primary-700); font-size: 1rem; }
-.floating-back-control:hover { border-color: var(--primary-700); background: var(--primary-50); color: var(--primary-800); }
-.floating-back-control:focus-visible { outline: 3px solid var(--primary-700); outline-offset: 3px; }
 
 @media (max-width: 640px) {
   .page-back-control {
@@ -2224,10 +2236,6 @@ button:disabled,
   gap: 24px;
 }
 
-.club-card.is-clickable {
-  cursor: pointer;
-}
-
 .club-card {
   background-color: var(--bg-panel);
   border: 1px solid var(--border-color);
@@ -2693,6 +2701,10 @@ button:disabled,
 @media (max-width: 480px) {
   .page-load-error-wrap { min-height: 56vh; padding: 24px 0; }
   .page-load-error { padding: 30px 20px; border-radius: 20px; }
+}
+
+.club-card.is-clickable {
+  cursor: pointer;
 }
 /* ==========================================================================
    FIND YOUR CLUB QUIZ

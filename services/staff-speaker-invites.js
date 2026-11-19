@@ -6,10 +6,20 @@ function staffSpeakerHostAllowed(account, clubId) {
       && (clubId === 0 || assignedIds(account).includes(clubId)));
 }
 function registerStaffSpeakerInvites(app, deps) {
-  const { requireClubAuth, requireLiveDatabase, isSameOriginRequest, Club,
+  const { requireClubAuth, getClubAccountFromRequest, requireLiveDatabase, isSameOriginRequest, Club,
     getOrCreateStableSpeakerInvite, speakerInviteResponse } = deps;
+  // The shared club check turns supervisors away, so supervisor routes sign in through the account directly.
+  const requireSupervisorAuth = async (req, res, next) => {
+    try {
+      const account = await getClubAccountFromRequest(req, res);
+      if (!account) return res.status(401).json({ message: 'Sign in to your supervisor account.' });
+      req.clubAccount = account;
+      next();
+    } catch { res.status(503).json({ message: 'Sign-in could not be checked. Please try again.' }); }
+  };
   for (const role of ['dean', 'supervisor']) {
-    app.get(`/api/${role}/speaker-invites/clubs`, requireClubAuth, async (req, res) => {
+    const requireAuth = role === 'supervisor' && getClubAccountFromRequest ? requireSupervisorAuth : requireClubAuth;
+    app.get(`/api/${role}/speaker-invites/clubs`, requireAuth, async (req, res) => {
       res.setHeader('Cache-Control', 'no-store');
       if (req.clubAccount?.role !== role) return res.status(403).json({ message: 'This dashboard role cannot create these speaker links.' });
       if (!requireLiveDatabase(res)) return;
@@ -20,7 +30,7 @@ function registerStaffSpeakerInvites(app, deps) {
         res.json([MIU_HOST, ...clubs.map(({ id, name }) => ({ id, name }))]);
       } catch { res.status(503).json({ message: 'Could not load hosting organizations.' }); }
     });
-    app.post(`/api/${role}/speaker-invites`, requireClubAuth, async (req, res) => {
+    app.post(`/api/${role}/speaker-invites`, requireAuth, async (req, res) => {
       res.setHeader('Cache-Control', 'no-store');
       if (req.clubAccount?.role !== role) return res.status(403).json({ message: 'This dashboard role cannot create these speaker links.' });
       if (!isSameOriginRequest(req)) return res.status(403).json({ message: 'Reload the page and try again.' });

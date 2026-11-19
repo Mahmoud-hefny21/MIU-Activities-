@@ -145,7 +145,7 @@ function addDetail(label, value, wide = false) {
 }
 
 function formatStatus(status) {
-  return String(status || 'unknown').replaceAll('_', ' ');
+  return (window.MiuUI?.plainWords || (value => String(value || '').replaceAll('_', ' ')))(status || 'unknown');
 }
 
 function openAttachmentPreview(src, altText) {
@@ -492,7 +492,7 @@ function openDetails(item, context = 'pending') {
         : 'Date unavailable';
       const description = document.createElement('p');
       description.className = 'committee-timeline-description';
-      const action = String(event.action || '').replaceAll('_', ' ');
+      const action = (window.MiuUI?.plainWords || (value => String(value || '').replaceAll('_', ' ')))(event.action || '');
       const actionLabel = action ? `${action[0].toUpperCase()}${action.slice(1)}` : '';
       description.textContent = `${actor}${actionLabel ? ` ${actionLabel}` : ''}${event.comment ? `: ${event.comment}` : ''}`;
       line.append(time, description);
@@ -919,7 +919,7 @@ function displayAction(action) {
     comment: 'Added a comment',
     comment_deleted: 'Deleted a comment',
     deleted: 'Deleted the request'
-  })[action] || String(action || 'Updated the request').replaceAll('_', ' ');
+  })[action] || (action ? (window.MiuUI?.plainWords || (value => String(value || '').replaceAll('_', ' ')))(action) : 'Updated the request');
 }
 
 async function deleteDeanContent() {
@@ -959,7 +959,7 @@ function displayTimelineStatus(status) {
     rejected: 'Rejected',
     published: 'Approved / Published',
     approved: 'Approved · Internal only'
-  })[status] || (status ? String(status).replaceAll('_', ' ') : '—');
+  })[status] || (status ? (window.MiuUI?.plainWords || (value => String(value || '').replaceAll('_', ' ')))(status) : '—');
 }
 
 function focusCommitteeHistory(role) {

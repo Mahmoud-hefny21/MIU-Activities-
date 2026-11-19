@@ -64,38 +64,26 @@ test('existing event identities, legacy collisions and statistics matching', () 
   assert.deepEqual(statistics(a, [{ eventIndex: 0, eventTitle: 'Replacement' }], [{ eventRequestId: -1, eventTitle: 'Replacement', eventDate: a.date }]).verified, null);
   assert.ok(EventReport.schema.indexes().some(([keys, options]) => keys.clubId && keys.eventKey && options.unique));
 });
-test('submission, duplicates, locks, assigned review, resubmission and stale revision', async t => {
+test('narrative report writes are retired in favour of post-event reports and change nothing', async t => {
   const { request, records } = await harness(t);
-  const path = '/clubs/1/events/request:10';
-  assert.equal((await request(path, payload)).status, 200);
-  assert.ok(records[0].submittedAt);
-  assert.equal((await request(path, payload)).status, 409);
-  assert.equal((await request(path, { ...payload, revision: 1 })).status, 409);
-  assert.equal((await request(path, { revision: 1, status: 'changes_requested', note: 'Please clarify outcomes' }, 'supervisor')).status, 200);
-  assert.equal((await request(path, { ...payload, revision: 1 })).status, 409);
-  assert.equal((await request(path, { ...payload, revision: 2, status: 'draft' })).status, 200);
-  assert.equal((await request(path, { ...payload, revision: 3 })).status, 200);
-  assert.equal((await request(path, { revision: 4, status: 'reviewed', note: 'Reviewed' }, 'supervisor')).status, 200);
-  assert.equal((await request(path, { ...payload, revision: 5 })).status, 409);
-  assert.equal(records[0].history.length, 5);
-});
-test('authorization, cross-club writes, role escalation and backend validation', async t => {
-  const { request, records } = await harness(t);
-  assert.equal((await request('/clubs', null, 'none')).status, 401);
-  for (const role of ['head', 'dean', 'student']) assert.equal((await request('/clubs', null, role)).status, 403);
-  for (const role of ['president', 'supervisor']) assert.equal((await request('/clubs/2/events/request:10', payload, role)).status, 403);
-  assert.equal((await request('/clubs/1/events/request:999', payload)).status, 404);
-  for (const body of [{ ...payload, summary: '' }, { ...payload, activities: [] }, { ...payload, revision: -1 }, { ...payload, summary: 'x'.repeat(5001) }, { ...payload, status: 'reviewed' }]) assert.equal((await request('/clubs/1/events/request:10', body)).status, 400);
+  for (const role of ['president', 'supervisor']) {
+    const result = await request('/clubs/1/events/request:10', payload, role);
+    assert.equal(result.status, 410);
+    assert.match(result.body.message, /Post-event reports/);
+  }
   assert.equal(records.length, 0);
 });
-test('database readiness, read and write failures and cross-origin writes', async t => {
+test('authorization, cross-club reads and role escalation', async t => {
+  const { request } = await harness(t);
+  assert.equal((await request('/clubs', null, 'none')).status, 401);
+  for (const role of ['head', 'dean', 'student']) assert.equal((await request('/clubs', null, role)).status, 403);
+  for (const role of ['president', 'supervisor']) assert.equal((await request('/clubs/2?start=2026-01-01&end=2026-12-31', null, role)).status, 403);
+});
+test('database readiness, read failures and cross-origin writes', async t => {
   const offline = await harness(t, { databaseReady: () => false });
   assert.equal((await offline.request('/clubs')).status, 503);
   const broken = await harness(t, { Club: { findOne() { throw new Error('DB_DOWN'); } } });
   assert.equal((await broken.request('/clubs/1?start=2026-01-01&end=2026-12-31')).status, 503);
-  assert.equal((await broken.request('/clubs/1/events/request:10', payload)).status, 503);
-  const write = await harness(t, { Report: { create() { throw new Error('DB_DOWN'); } } });
-  assert.equal((await write.request('/clubs/1/events/request:10', payload)).status, 503);
   const origin = await harness(t, { sameOrigin: () => false });
   assert.equal((await origin.request('/clubs/1/events/request:10', payload)).status, 403);
 });

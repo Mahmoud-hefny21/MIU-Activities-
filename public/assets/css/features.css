@@ -1357,3 +1357,352 @@ body :is(button[aria-label*="close" i], button[aria-label*="exit" i], button[tit
 
 /* Year plan activities in the calendar day list are informational, not links. */
 .calendar-day-event-option.is-year-plan { cursor: default; }
+
+/* Event request form: paused until post-event reports are fully approved. */
+.post-event-block-banner { display: grid; gap: 4px; margin: 0 0 16px; padding: 14px 16px; border: 1px solid var(--border-color); border-left: 4px solid #b45309; border-radius: var(--radius-md); background: var(--bg-soft); }
+.post-event-block-banner p, .post-event-block-banner ul { margin: 0; }
+.post-event-block-banner ul { padding-left: 20px; }
+.post-event-block-banner a { color: var(--primary-700); font-weight: 700; }
+
+/* Completed event: photos and student evaluation on the event page. */
+.event-completion { display: grid; gap: 18px; margin-top: 24px; padding: 20px; border: 1px solid var(--border-color); border-radius: var(--radius-xl); background: var(--bg-panel); }
+.event-completion h2 { margin: 0; font-size: 1.15rem; }
+.event-completion h3 { margin: 0 0 8px; font-size: 1rem; }
+.event-completion-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+.event-completion-photos button { display: block; width: 100%; padding: 0; border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden; background: var(--bg-soft); cursor: zoom-in; aspect-ratio: 4 / 3; }
+.event-completion-photos img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.event-completion-photos button:focus-visible { outline: 3px solid var(--primary-700); outline-offset: 2px; }
+.event-completion-empty { margin: 0; color: var(--text-muted); }
+.event-eval-form { display: grid; gap: 14px; }
+.event-eval-form fieldset { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; }
+.event-eval-form legend { margin-bottom: 6px; font-weight: 700; }
+.event-eval-scale { display: flex; flex-wrap: wrap; gap: 6px; }
+.event-eval-scale label { position: relative; }
+.event-eval-scale input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.event-eval-scale span { display: inline-grid; min-width: 44px; min-height: 40px; place-items: center; padding: 0 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-soft); cursor: pointer; font-weight: 700; }
+.event-eval-scale input:checked + span { border-color: var(--primary-700); background: var(--primary-700); color: #fff; }
+.event-eval-scale input:focus-visible + span { outline: 3px solid var(--primary-700); outline-offset: 2px; }
+.event-eval-form textarea { width: 100%; box-sizing: border-box; min-height: 80px; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-panel); color: var(--text-main); font: inherit; }
+.event-eval-form small { color: var(--text-muted); }
+.event-eval-dialog { width: min(960px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 48px 12px 12px; border: 0; border-radius: var(--radius-lg); background: var(--bg-panel); }
+.event-eval-dialog::backdrop { background: rgba(5, 11, 22, .8); }
+.event-eval-dialog img { display: block; max-width: 100%; max-height: calc(100dvh - 120px); margin: 0 auto; object-fit: contain; }
+@media (max-width: 520px) { .event-completion { padding: 14px; } }
+
+/* Club page content cards (events, feed, sponsors, booths): tag above title, equal heights, action at the bottom. */
+.detail-club-cards .club-content-card { display: flex; flex-direction: column; height: 100%; }
+.detail-club-cards .club-content-card .club-card-content { display: flex; flex: 1; flex-direction: column; align-items: flex-start; gap: 6px; }
+.club-content-card .content-type-badge { margin: 0; }
+.club-content-card .club-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin: 0; font-size: 1rem; line-height: 1.3; overflow-wrap: anywhere; }
+.club-content-when { color: var(--text-main); font-size: .85rem; font-weight: 600; }
+.club-content-where { color: var(--text-muted); font-size: .82rem; overflow-wrap: anywhere; }
+.detail-club-cards .club-content-card .club-actions { grid-template-columns: 1fr; width: 100%; margin-top: auto; padding-top: 8px; }
+.detail-club-cards .club-content-card .event-info-btn { width: 100%; margin-top: 0; }
+
+/* Event info pop-up: approved post-event report. */
+.event-report-summary { display: grid; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-color); }
+.event-report-summary h3 { margin: 0; font-size: 1rem; }
+.event-report-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 0; }
+.event-report-stats div { padding: 8px 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-soft); }
+.event-report-stats dt { color: var(--text-muted); font-size: .74rem; }
+.event-report-stats dd { margin: 2px 0 0; font-weight: 800; }
+.event-report-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
+.event-report-photos a { display: block; aspect-ratio: 1; overflow: hidden; border: 1px solid var(--border-color); border-radius: var(--radius-md); }
+.event-report-photos img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.event-report-photos a:focus-visible, .event-report-link:focus-visible { outline: 3px solid var(--primary-700); outline-offset: 2px; }
+.event-report-link { justify-self: start; }
+
+/* Club page content cards at every size: grid on desktop, a swipeable row on tablets and phones. */
+.detail-club-cards { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+.detail-club-cards .club-content-card .club-card-content { padding: 12px 16px 16px; }
+@media (hover: none) { .detail-club-cards .club-card:hover { transform: none; } }
+@media (max-width: 900px) {
+  .detail-club-cards { gap: 12px; padding-bottom: 12px; }
+  .detail-club-cards > .club-card { flex: 0 0 clamp(200px, 40vw, 280px); }
+}
+@media (max-width: 600px) {
+  .detail-club-cards > .club-card { flex-basis: min(78vw, 280px); }
+  .detail-club-cards .feed-card .club-image-wrap { width: 96px; height: 96px; flex-basis: 96px; margin-top: 14px; }
+  .detail-club-cards .club-content-card .club-card-content { padding: 10px 14px 14px; }
+  .club-content-card .club-name { font-size: .95rem; }
+  .detail-club-cards .club-content-card .event-info-btn { min-height: 42px; }
+  .event-report-stats { grid-template-columns: 1fr 1fr; }
+}
+
+/* Cards without an image show a round placeholder that fits the logo frame. */
+.club-image-wrap .club-image-placeholder { display: grid; place-items: center; width: 100%; height: 100%; border-radius: 50%; background: var(--bg-soft); color: var(--text-muted); font-size: .7rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+
+/* ===== Club dashboard (shared by every club): sidebar, header, overview ===== */
+.president-dashboard-layout.is-president { grid-template-columns: 236px minmax(0, 1fr); gap: 24px; align-items: start; }
+.president-sidebar { top: calc(var(--sticky-site-header-height, 72px) + 12px); max-height: calc(100dvh - var(--sticky-site-header-height, 72px) - 24px); overflow-y: auto; overscroll-behavior: contain; gap: 2px; padding: 12px 10px; background: var(--bg-panel); box-shadow: var(--shadow-sm); }
+.president-sidebar .president-sidebar-title { padding: 4px 10px 8px; color: var(--text-main); font-size: .8rem; letter-spacing: .06em; }
+.president-sidebar .president-sidebar-group-title { margin-top: 6px; padding: 10px 10px 4px; border-top: 0; font-size: .66rem; }
+.president-sidebar :is(a, .president-sidebar-action) { position: relative; justify-content: flex-start; gap: 10px; min-height: 40px; padding: 8px 10px; border-radius: 10px; color: var(--text-main); font-size: .88rem; font-weight: 600; text-decoration: none; }
+.president-sidebar .sidebar-icon { flex: none; width: 18px; height: 18px; color: var(--text-muted); }
+.president-sidebar .sidebar-label { flex: 1; min-width: 0; }
+.president-sidebar .sidebar-unread-badge { margin-left: auto; }
+.president-sidebar :is(a, .president-sidebar-action):hover { background: var(--bg-soft); color: var(--primary-700); }
+.president-sidebar :is(a, .president-sidebar-action):hover .sidebar-icon { color: var(--primary-700); }
+.president-sidebar :is(a, .president-sidebar-action):is(.is-active, [aria-current="page"]) { background: var(--primary-50); color: var(--primary-800); font-weight: 700; }
+.president-sidebar :is(a, .president-sidebar-action):is(.is-active, [aria-current="page"]) .sidebar-icon { color: var(--primary-700); }
+.president-sidebar :is(a, .president-sidebar-action):is(.is-active, [aria-current="page"])::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 3px; background: var(--primary-700); }
+.president-sidebar :is(a, .president-sidebar-action):focus-visible { outline: 3px solid var(--primary-700); outline-offset: 1px; }
+
+/* Header: Back first, then requests, then the main Content Studio action. */
+#headDashboardView .committee-top { align-items: center; gap: 14px; }
+#headDashboardView .top-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+#headDashboardView #backHomeBtn { order: -1; }
+#headDashboardView #openContentStudioBtn { order: 10; border-color: var(--primary-700); background: var(--primary-700); color: #fff; }
+#headDashboardView #openContentStudioBtn:hover { background: var(--primary-800); }
+
+/* Overview */
+.president-dashboard-section .stats-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.president-dashboard-section .stat-box { min-height: 0; padding: 14px 16px; }
+.president-quick-actions { margin: 18px 0; }
+.president-quick-title { margin: 0 0 10px; font-size: 1rem; }
+.president-quick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.president-quick-card { display: grid; gap: 4px; padding: 14px 16px; border: 1px solid var(--border-color); border-radius: var(--radius-lg); background: var(--bg-panel); color: var(--text-main); font: inherit; text-align: left; text-decoration: none; cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease; }
+.president-quick-card strong { color: var(--primary-800); font-size: .95rem; }
+.president-quick-card span { color: var(--text-muted); font-size: .82rem; line-height: 1.4; }
+.president-quick-card:hover { border-color: var(--primary-700); box-shadow: var(--shadow-sm); }
+.president-quick-card:focus-visible { outline: 3px solid var(--primary-700); outline-offset: 2px; }
+.president-quick-card.hidden { display: none; }
+
+@media (max-width: 1100px) {
+  .president-dashboard-layout.is-president { grid-template-columns: 210px minmax(0, 1fr); gap: 18px; }
+  .president-dashboard-section .stats-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .president-dashboard-layout.is-president { grid-template-columns: minmax(0, 1fr); }
+  #headDashboardView .committee-top { flex-direction: column; align-items: stretch; }
+  #headDashboardView .top-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #headDashboardView .top-actions > * { width: 100%; justify-content: center; }
+  #headDashboardView #openContentStudioBtn { grid-column: 1 / -1; }
+  .president-dashboard-section .stats-row { gap: 8px; }
+  .president-dashboard-section .stat-box { padding: 12px; }
+  .president-quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .president-quick-card { padding: 12px; }
+  .dashboard-drawer-toggle { width: 100%; justify-content: flex-start; }
+  .mobile-dashboard-drawer .president-sidebar-group-title { margin-top: 10px; }
+}
+@media (max-width: 380px) { .president-quick-grid { grid-template-columns: 1fr; } }
+.president-sidebar { scrollbar-width: thin; scrollbar-color: var(--border-color) transparent; }
+.president-sidebar::-webkit-scrollbar { width: 4px; }
+.president-sidebar::-webkit-scrollbar-track { background: transparent; }
+.president-sidebar::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 999px; }
+
+/* Phone drawer: same left-aligned rows as the desktop sidebar. */
+@media (max-width: 760px) {
+  #presidentSidebar.mobile-dashboard-drawer > :is(a, .president-sidebar-action) { justify-content: flex-start !important; min-height: 46px; padding: 10px 12px !important; border: 0 !important; border-radius: 10px !important; background: transparent; box-shadow: none !important; text-align: left !important; font-size: .95rem; }
+  #presidentSidebar.mobile-dashboard-drawer > :is(a, .president-sidebar-action):is(.is-active, [aria-current="page"]) { background: var(--primary-50); }
+  #presidentSidebar.mobile-dashboard-drawer.mobile-dashboard-drawer > :is(.president-sidebar-title, .president-sidebar-group-title) { display: block !important; width: 100% !important; text-align: left !important; border-top: 0 !important; padding-inline: 12px !important; }
+}
+#presidentSidebar :is(a, .president-sidebar-action), #presidentSidebar .sidebar-label { text-align: left !important; justify-content: flex-start !important; }
+
+/* ===== Club dashboard sections: one frame, one heading style, one empty state ===== */
+.president-dashboard-main > :is(section, div):not(.hidden):not([hidden]) { box-sizing: border-box; margin: 0 0 18px; padding: 22px; border: 1px solid var(--border-color); border-radius: var(--radius-lg); background: var(--bg-panel); box-shadow: var(--shadow-sm); }
+.president-dashboard-main > #presidentClubStatusPanel { display: grid; }
+.president-dashboard-main .admin-section-heading { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px 16px; margin: 0 0 12px; }
+.president-dashboard-main .admin-section-heading h3, .president-dashboard-main .president-club-status-copy h3 { margin: 4px 0 0; font-size: 1.2rem; line-height: 1.25; }
+.president-dashboard-main .admin-eyebrow { font-size: .7rem; letter-spacing: .08em; }
+.president-dashboard-main > :is(section, div) > p:first-of-type:not([class]) { margin-top: 0; color: var(--text-muted); }
+#clubRegistrationsMessage { margin: 0 0 12px; text-align: left; color: var(--text-muted); }
+.president-dashboard-main :is(.admin-form-empty, .club-registration-empty, .committee-head-empty, .president-recent-empty, .application-filter-empty) {
+  margin: 8px 0; padding: 18px; border: 1px dashed var(--border-color); border-radius: var(--radius-md); background: var(--bg-soft); color: var(--text-muted); text-align: center; font-size: .9rem;
+}
+@media (max-width: 760px) {
+  .president-dashboard-main > :is(section, div):not(.hidden):not([hidden]) { padding: 16px; border-radius: var(--radius-md); }
+  .president-dashboard-main .admin-section-heading h3 { font-size: 1.08rem; }
+}
+@media (max-width: 760px) {
+  .president-dashboard-main .committee-head-actions { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; }
+  .president-dashboard-main .committee-head-actions > * { width: 100% !important; margin: 0 !important; }
+}
+
+/* ===== Club dashboard: full-height sidebar (no inner scrolling) ===== */
+.president-dashboard-layout.is-president .president-sidebar { position: static; max-height: none; overflow: visible; }
+.president-sidebar :is(a, .president-sidebar-action) { min-height: 38px; padding-block: 7px; }
+
+/* Overview statistics: label above the number, colour shows meaning. */
+.president-dashboard-section .stats-row .stat-box { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 6px; min-height: 0; padding: 14px 16px; border: 1px solid var(--border-color); border-top-width: 1px; border-left: 4px solid var(--stat-accent, var(--text-muted)); border-radius: var(--radius-md); box-shadow: none; }
+.president-dashboard-section .stats-row .stat-box span { max-width: none; font-size: .72rem; letter-spacing: .05em; }
+.president-dashboard-section .stats-row .stat-box strong { color: var(--text-main); font-size: clamp(1.6rem, 2.2vw, 2rem); }
+.president-dashboard-section .stats-row .stat-box:nth-child(1) { --stat-accent: var(--primary-700); }
+.president-dashboard-section .stats-row .stat-box:nth-child(2) { --stat-accent: #16a34a; }
+.president-dashboard-section .stats-row .stat-box:nth-child(3) { --stat-accent: #dc2626; }
+.president-dashboard-section .stats-row .stat-box:nth-child(4) { --stat-accent: #d97706; }
+.president-dashboard-section .stats-row .stat-box.has-items { background: #fffbeb; }
+:root[data-theme="dark"] .president-dashboard-section .stats-row .stat-box.has-items { background: rgba(217, 119, 6, .12); }
+:root[data-theme="dark"] .president-dashboard-section .stats-row .stat-box strong { color: var(--text-main); }
+
+/* Application status pills, the same everywhere on the dashboard. */
+.president-dashboard-main .badge { display: inline-flex; align-items: center; padding: 3px 10px; border: 1px solid transparent; border-radius: 999px; font-size: .74rem; font-weight: 700; line-height: 1.4; text-transform: capitalize; white-space: nowrap; }
+.president-dashboard-main .badge.pending { background: #fef3c7; color: #92400e; }
+.president-dashboard-main .badge.processing { background: #e8f0fe; color: #1e4fa3; }
+.president-dashboard-main .badge.accepted { background: #dcfce7; color: #166534; }
+.president-dashboard-main .badge.rejected { background: #fee2e2; color: #b91c1c; }
+.president-dashboard-main .badge.removed { background: var(--bg-soft); color: var(--text-muted); border-color: var(--border-color); }
+
+/* Recent applicants rows */
+.president-recent-applicant { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px; }
+.president-recent-applicant > div { display: grid; gap: 2px; min-width: 0; }
+.president-recent-applicant > div > span { color: var(--text-muted); font-size: .84rem; overflow-wrap: anywhere; }
+
+@media (max-width: 760px) {
+  .president-dashboard-section .stats-row .stat-box { padding: 12px; }
+  .president-dashboard-section .stats-row .stat-box strong { font-size: 1.5rem; }
+  .president-quick-card strong { font-size: .9rem; }
+  .president-quick-card span { font-size: .78rem; }
+  .president-recent-heading { flex-wrap: wrap; gap: 10px; }
+  .president-recent-heading .secondary-btn { width: 100%; }
+  .president-recent-applicant { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "who badge" "action action"; row-gap: 10px; }
+  .president-recent-applicant > div { grid-area: who; }
+  .president-recent-applicant > .badge { grid-area: badge; }
+  .president-recent-applicant > button { grid-area: action; width: 100%; }
+}
+@media (max-width: 760px) {
+  .president-recent-applicant > div > :is(span, strong) { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }
+  .president-dashboard-main #presidentRecentApplicants { padding: 14px; }
+  .president-recent-applicant { padding: 12px; }
+}
+
+/* ===== Overview: "Needs your attention" ===== */
+.president-todo { margin: 18px 0 0; }
+.president-todo-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.president-todo-loading { color: var(--text-muted); font-size: .88rem; }
+.president-todo-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid var(--border-color); border-left: 4px solid var(--todo-accent, var(--text-muted)); border-radius: var(--radius-md); background: var(--bg-panel); }
+.president-todo-item > div { display: grid; gap: 2px; min-width: 0; }
+.president-todo-item strong { font-size: .93rem; }
+.president-todo-item span { color: var(--text-muted); font-size: .82rem; line-height: 1.4; }
+.president-todo-item.is-warning { --todo-accent: #d97706; background: #fffbeb; }
+.president-todo-item.is-danger { --todo-accent: #dc2626; background: #fef2f2; }
+.president-todo-item.is-info { --todo-accent: #2563eb; }
+.president-todo-item.is-done { --todo-accent: #16a34a; }
+:root[data-theme="dark"] .president-todo-item:is(.is-warning, .is-danger) { background: var(--bg-soft); }
+.president-todo-action { flex: none; min-height: 38px; white-space: nowrap; }
+
+/* ===== Quick actions: icon, title and hint ===== */
+.president-quick-actions { margin: 18px 0; }
+.president-quick-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.president-quick-card { display: flex; align-items: flex-start; gap: 12px; }
+.president-quick-icon { flex: none; width: 38px; height: 38px; padding: 8px; box-sizing: border-box; border-radius: 10px; background: var(--primary-50); color: var(--primary-700); }
+.president-quick-text { display: grid; gap: 3px; min-width: 0; }
+.president-quick-card:hover .president-quick-icon { background: var(--primary-700); color: #fff; }
+
+@media (max-width: 1100px) { .president-quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) {
+  .president-todo-item { flex-wrap: wrap; }
+  .president-todo-action { width: 100%; justify-content: center; }
+  /* Phones: one tappable row per action, with an arrow. */
+  .president-quick-grid { grid-template-columns: 1fr; gap: 8px; }
+  .president-quick-card { align-items: center; padding: 12px 14px; }
+  .president-quick-card::after { content: "›"; margin-left: auto; color: var(--text-muted); font-size: 1.4rem; line-height: 1; }
+  .president-quick-icon { width: 34px; height: 34px; padding: 7px; }
+}
+
+/* ===== Staff dashboards (Supervisor, PR, English, Security, SSO, Dean): same sidebar as the club dashboard ===== */
+.committee-sidebar.is-arranged { gap: 2px; padding: 12px 10px; background: var(--bg-panel); box-shadow: var(--shadow-sm); }
+.committee-sidebar.is-arranged > h2 { margin: 4px 10px 8px; color: var(--text-main); font-size: .8rem; }
+.committee-sidebar.is-arranged > .staff-sidebar-group { margin: 6px 0 0; padding: 10px 10px 4px; border-top: 0; color: var(--text-muted); font-size: .66rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.committee-sidebar.is-arranged .committee-sidebar-link { position: relative; justify-content: flex-start; gap: 10px; min-height: 38px; padding: 7px 10px; border-radius: 10px; font-size: .88rem; font-weight: 600; text-align: left; box-shadow: none; }
+.committee-sidebar.is-arranged .sidebar-icon { flex: none; width: 18px; height: 18px; color: var(--text-muted); }
+.committee-sidebar.is-arranged .sidebar-label { flex: 1; min-width: 0; text-align: left; }
+.committee-sidebar.is-arranged .committee-sidebar-link:hover { background: var(--bg-soft); color: var(--primary-700); box-shadow: none; }
+.committee-sidebar.is-arranged .committee-sidebar-link:hover .sidebar-icon { color: var(--primary-700); }
+.committee-sidebar.is-arranged .committee-sidebar-link:is(.is-active, [aria-current="page"]) { background: var(--primary-50); color: var(--primary-800); font-weight: 700; box-shadow: none; }
+.committee-sidebar.is-arranged .committee-sidebar-link:is(.is-active, [aria-current="page"]) .sidebar-icon { color: var(--primary-700); }
+.committee-sidebar.is-arranged .committee-sidebar-link:is(.is-active, [aria-current="page"])::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 3px; background: var(--primary-700); }
+.overview-stat-card { text-decoration: none; color: inherit; }
+.overview-stat-card.has-items { background: #fffbeb; border-color: #f59e0b; }
+:root[data-theme="dark"] .overview-stat-card.has-items { background: rgba(217, 119, 6, .12); }
+@media (max-width: 1024px) {
+  .committee-sidebar.is-arranged.mobile-dashboard-drawer > .committee-sidebar-link { justify-content: flex-start !important; text-align: left !important; border: 0 !important; }
+  .committee-sidebar.is-arranged.mobile-dashboard-drawer > .staff-sidebar-group { display: block !important; text-align: left !important; }
+}
+@media (max-width: 1024px) {
+  aside.committee-sidebar.is-arranged.mobile-dashboard-drawer > :is(a, button).committee-sidebar-link { justify-content: flex-start !important; min-height: 46px; padding: 10px 12px !important; border: 0 !important; border-radius: 10px !important; background: transparent !important; box-shadow: none !important; text-align: left !important; }
+  aside.committee-sidebar.is-arranged.mobile-dashboard-drawer > :is(a, button).committee-sidebar-link:is(.is-active, [aria-current="page"]) { background: var(--primary-50) !important; }
+  aside.committee-sidebar.is-arranged.mobile-dashboard-drawer > :is(h2, h3) { width: 100% !important; text-align: left !important; border-top: 0 !important; padding-inline: 12px !important; }
+}
+@media (max-width: 1024px) {
+  body .committee-dashboard-layout aside.committee-sidebar.is-arranged.mobile-dashboard-drawer > :is(a, button).committee-sidebar-link:not(.dashboard-drawer-close) { justify-content: flex-start !important; border: 0 !important; border-radius: 10px !important; background: transparent !important; color: var(--text-main) !important; font-weight: 600 !important; text-align: left !important; }
+  body .committee-dashboard-layout aside.committee-sidebar.is-arranged.mobile-dashboard-drawer > :is(a, button).committee-sidebar-link:is(.is-active, [aria-current="page"]):not(.dashboard-drawer-close) { background: var(--primary-50) !important; color: var(--primary-800) !important; font-weight: 700 !important; }
+  body .committee-dashboard-layout aside.committee-sidebar.is-arranged.mobile-dashboard-drawer > :is(h2, h3) { display: block !important; width: 100% !important; text-align: left !important; border-top: 0 !important; padding-inline: 12px !important; }
+}
+
+/* ===== Approval team dashboards on phones and tablets: compact, action-first layout ===== */
+@media (max-width: 1024px) {
+  .committee-dashboard-layout { grid-template-columns: minmax(0, 1fr) !important; gap: 12px; }
+  /* Menu bar stays in reach while scrolling and shows where you are. */
+  .committee-dashboard-layout > .dashboard-drawer-toggle { position: static; width: 100%; min-height: 48px; justify-content: flex-start; padding: 10px 14px; border-radius: 12px; background: var(--bg-panel); box-shadow: var(--shadow-sm, 0 2px 8px rgba(15,23,42,.08)); font-weight: 700; }
+  .committee-dashboard-layout > #committee-overview, .committee-dashboard-layout > section { padding: 16px; border-radius: 14px; }
+  .committee-top { gap: 10px; }
+  .committee-top h1, .committee-top h2 { font-size: clamp(1.1rem, 4.4vw, 1.45rem); line-height: 1.25; }
+  .committee-top .top-actions { display: flex; gap: 8px; }
+  .committee-top .top-actions > * { min-height: 40px; padding: 8px 14px; }
+  /* Overview cards: small tiles, several per row; the ones waiting for you come first. */
+  .committee-overview-stats, .committee-overview-stats:is(.overview-grid-2, .overview-grid-3, .overview-grid-4) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 10px; }
+  .committee-overview-stats .overview-stat-card { min-height: 0; grid-template-rows: auto auto; padding: 12px; border-radius: 12px; }
+  .committee-overview-stats .overview-stat-card > strong { font-size: 1.6rem; }
+  .committee-overview-stats .overview-stat-card > small { padding-top: 4px; font-size: .72rem; line-height: 1.3; }
+  .committee-overview-stats .overview-stat-card.is-zero { opacity: .72; border-top-color: var(--border-color, #dce2e9); }
+  .committee-overview-stats .overview-stat-card.is-waiting { order: -1; background: #fffbeb; border-color: #f59e0b; border-top-color: #d97706; }
+  :root[data-theme="dark"] .committee-overview-stats .overview-stat-card.is-waiting { background: rgba(217, 119, 6, .14); }
+  /* Leave room so the floating chat button never covers a card. */
+  .committee-dashboard-layout { padding-bottom: 72px; }
+  /* Request popups use the full screen width. */
+  .status-overview-dialog { width: calc(100% - 20px); max-height: calc(100dvh - 20px); }
+}
+@media (max-width: 640px) {
+  .committee-overview-stats, .committee-overview-stats:is(.overview-grid-2, .overview-grid-3, .overview-grid-4) { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px; }
+  .committee-overview-stats .overview-stat-card > span { font-size: .8rem; }
+  .committee-overview-stats .overview-stat-card > strong { font-size: 1.4rem; }
+  .committee-top .top-actions { width: 100%; }
+  .committee-top .top-actions > * { flex: 1; }
+}
+@media (max-width: 1024px) {
+  .committee-dashboard-layout { align-items: start; grid-auto-rows: auto !important; grid-template-rows: none !important; }
+  .committee-dashboard-layout > .dashboard-drawer-toggle { align-self: start; height: auto; }
+  .committee-dashboard-layout > #committee-overview, .committee-dashboard-layout > section { min-height: 0 !important; }
+  body .committee-dashboard-layout aside.committee-sidebar.mobile-dashboard-drawer > h2 { display: none !important; }
+  .committee-sidebar.mobile-dashboard-drawer > .staff-sidebar-group { border-top: 1px solid var(--border-color) !important; margin-top: 8px !important; }
+}
+
+/* Phones and tablets: keep dashboard sidebars hidden until the menu script turns them into the slide-out menu,
+   so a refresh never flashes a broken sidebar. */
+@media (max-width: 1024px) {
+  :is(.committee-sidebar, .president-sidebar, .student-dashboard-sidebar, .report-admin-sidebar):not(.mobile-dashboard-drawer) { display: none !important; }
+}
+/* Dashboard header buttons (Home, Back, Refresh): same compact pills, side by side, at every size. */
+.committee-top .top-actions { display: flex !important; flex-wrap: wrap; gap: 8px; width: auto !important; }
+.committee-top .top-actions > :is(a, button) { flex: 0 0 auto !important; width: auto !important; min-height: 40px; padding: 7px 16px; border-radius: 999px; }
+
+/* Club page event/feed cards on phones: compact horizontal cards, next card peeks in to show you can swipe. */
+@media (max-width: 640px) {
+  .detail-club-cards { gap: 10px !important; padding: 2px 2px 12px !important; }
+  .detail-club-cards > .club-card.club-content-card { flex: 0 0 78vw !important; max-width: 300px; display: grid !important; grid-template-columns: 72px minmax(0, 1fr); align-items: center; gap: 12px; height: auto; min-height: 0; padding: 12px; border-radius: 16px; }
+  .detail-club-cards .club-content-card .club-image-wrap { width: 72px !important; height: 72px !important; flex-basis: auto !important; margin: 0 !important; border: 0 !important; border-radius: 14px !important; padding: 0 !important; box-shadow: none !important; background: var(--bg-soft) !important; overflow: hidden; }
+  .detail-club-cards .club-content-card .club-image-wrap img { width: 100%; height: 100%; border-radius: 14px; object-fit: cover; }
+  .detail-club-cards .club-content-card .club-card-content { padding: 0 !important; gap: 3px !important; min-width: 0; }
+  .detail-club-cards .club-content-card .content-type-badge { font-size: .62rem; padding: 2px 8px; }
+  .detail-club-cards .club-content-card .club-name { display: -webkit-box !important; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: .95rem !important; line-height: 1.25 !important; }
+  .detail-club-cards .club-content-card :is(.club-content-when, .club-content-where) { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 100%; font-size: .78rem; }
+  .detail-club-cards .club-content-card .club-content-when { color: var(--text-main); font-weight: 600; }
+  .detail-club-cards .club-content-card .club-content-where { color: var(--text-muted); }
+  .detail-club-cards .club-content-card .club-actions { padding-top: 2px !important; margin: 0 !important; }
+  .detail-club-cards .club-content-card .event-info-btn { width: auto !important; min-height: 0 !important; padding: 2px 0 !important; border: 0 !important; background: none !important; box-shadow: none !important; color: var(--primary-700) !important; font-size: .8rem; font-weight: 700; }
+  .detail-club-cards .club-content-card .event-info-btn::after { content: " ›"; }
+}
+
+/* Student dashboard: My clubs */
+.student-clubs-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.student-club-card { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; border: 1px solid var(--border-color); border-radius: 16px; background: var(--bg-panel); color: var(--text-main); font: inherit; text-align: left; cursor: pointer; transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease; }
+.student-club-card:hover { border-color: var(--primary-200, #f3c3c6); box-shadow: 0 6px 18px rgba(15, 23, 42, .08); transform: translateY(-1px); }
+.student-club-card:focus-visible { outline: 3px solid var(--primary-700); outline-offset: 2px; }
+.student-club-card img { flex: none; width: 52px; height: 52px; border-radius: 14px; object-fit: cover; background: var(--bg-soft); }
+.student-club-copy { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; }
+.student-club-copy strong { overflow: hidden; font-size: .98rem; white-space: nowrap; text-overflow: ellipsis; }
+.student-club-copy > span:not(.student-club-tag) { overflow: hidden; color: var(--text-muted); font-size: .82rem; white-space: nowrap; text-overflow: ellipsis; }
+.student-club-tag { align-self: flex-start; margin-top: 2px; padding: 1px 8px; border-radius: 999px; background: var(--primary-50); color: var(--primary-800); font-size: .68rem; font-weight: 700; }
+.student-club-open { flex: none; color: var(--text-muted); font-size: 1.4rem; line-height: 1; }
+@media (max-width: 640px) { .student-clubs-list { grid-template-columns: 1fr; gap: 8px; } }

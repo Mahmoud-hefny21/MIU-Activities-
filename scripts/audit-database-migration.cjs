@@ -7,6 +7,7 @@ const models = {
   ...require('../models'),
   StudentFeedback: require('../services/student-feedback').StudentFeedback,
   EventReport: require('../services/event-reports').EventReport,
+  EventEvaluation: require('../services/post-event-reports').EventEvaluation,
   AccountPhoto: require('../services/account-photo').AccountPhoto
 };
 function value(v) {

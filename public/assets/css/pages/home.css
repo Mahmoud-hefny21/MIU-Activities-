@@ -48,9 +48,11 @@
   #headDashboardView .club-dashboard-logo { width: 48px; height: 48px; flex-basis: 48px; }
   #headDashboardView .committee-label { font-size: .62rem; line-height: 1.4; letter-spacing: .05em; }
   #headDashboardView .club-dashboard-identity h2 { margin-top: 2px; font-size: 1.2rem; line-height: 1.25; }
-  #headDashboardView .committee-top .top-actions { grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+  /* Back and Approval requests side by side; Content Studio, the main action, spans the row. */
+  #headDashboardView .committee-top .top-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  #headDashboardView .committee-top .top-actions > #openContentStudioBtn { grid-column: 1 / -1; }
+  #headDashboardView .committee-top .top-actions > :is(#backHomeBtn, #workflowDashboardShortcut) { grid-column: auto; width: 100%; justify-content: center; }
   #headDashboardView .committee-top .top-actions > :is(#openContentStudioBtn, #backHomeBtn) {
-    grid-column: auto;
     width: 100%;
     min-width: 0;
     min-height: 44px;
@@ -511,4 +513,15 @@
   #homeView .events-slideshow .slide-arrow,
   #homeView .event-slide-copy .event-slide-cta,
   #homeView .events-slideshow-dots button { transition: none; }
+}
+
+/* Club page: empty state for a club with nothing published yet. */
+.detail-content-empty { margin: 0; padding: 18px 20px; border: 1px dashed var(--border, #d6dbe3); border-radius: 14px; color: var(--muted, #5b6472); background: var(--surface-2, transparent); }
+
+/* Home stats on phones: compact 2 × 2 tiles, number on top, label below. */
+@media (max-width: 640px) {
+  .stats-summary { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; }
+  .stats-summary .summary-card { display: flex !important; flex-direction: column-reverse; align-items: flex-start; justify-content: center; gap: 2px; min-height: 0 !important; padding: 12px 14px !important; border-radius: 14px !important; }
+  .stats-summary .summary-card strong { font-size: 1.6rem !important; line-height: 1.1; }
+  .stats-summary .summary-card span { font-size: .7rem !important; letter-spacing: .06em; }
 }

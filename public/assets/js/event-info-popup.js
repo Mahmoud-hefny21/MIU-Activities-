@@ -7,6 +7,68 @@
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
   }
+  // Finished club events: the approved post-event report (totals, average rating and photos).
+  async function appendEventReport(copy, { clubId, eventIndex }, signal) {
+    let data;
+    try {
+      const response = await fetch(`/api/event-feedback/${clubId}/${eventIndex}`, { cache: 'no-store', credentials: 'same-origin', signal });
+      if (!response.ok) return;
+      data = await response.json();
+    } catch { return; }
+    if (!data.completed || signal.aborted) return;
+    const section = document.createElement('section');
+    section.className = 'event-report-summary';
+    section.setAttribute('aria-labelledby', 'eventReportSummaryTitle');
+    const heading = document.createElement('h3');
+    heading.id = 'eventReportSummaryTitle';
+    heading.textContent = 'Event report';
+    section.append(heading);
+    if (data.reportStatus !== 'approved') {
+      const note = document.createElement('p');
+      note.className = 'event-modal-meta';
+      note.textContent = data.reportStatus === 'in_review'
+        ? 'This event has ended. Its report is being reviewed; photos and results appear here once it is approved.'
+        : 'This event has ended. Photos and results appear here once the club’s report is approved.';
+      section.append(note);
+    } else {
+      const stats = document.createElement('dl');
+      stats.className = 'event-report-stats';
+      const rating = data.report.rating;
+      for (const [term, value] of [
+        ['Participants (MIU)', data.report.totalParticipants],
+        ['External beneficiaries', data.report.externalBeneficiaries],
+        ['Student rating', rating.count ? `${rating.average} / 5 (${rating.count})` : 'No ratings yet']
+      ]) {
+        if (value === null || value === undefined) continue;
+        const item = document.createElement('div');
+        const dt = document.createElement('dt'); dt.textContent = term;
+        const dd = document.createElement('dd'); dd.textContent = typeof value === 'number' ? value.toLocaleString('en-US') : value;
+        item.append(dt, dd); stats.append(item);
+      }
+      section.append(stats);
+      if (data.photos.length) {
+        const list = document.createElement('ul');
+        list.className = 'event-report-photos';
+        data.photos.forEach((photo, index) => {
+          const item = document.createElement('li');
+          const link = document.createElement('a');
+          link.href = photo.url; link.target = '_blank'; link.rel = 'noopener';
+          link.setAttribute('aria-label', `Open event photo ${index + 1} in a new tab`);
+          const image = document.createElement('img');
+          image.src = photo.url; image.alt = `Event photo ${index + 1}`; image.loading = 'lazy';
+          link.append(image); item.append(link); list.append(item);
+        });
+        section.append(list);
+      }
+    }
+    const more = document.createElement('a');
+    more.className = 'secondary-btn event-report-link';
+    more.href = `/pages/event.html?club=${encodeURIComponent(clubId)}&event=${encodeURIComponent(eventIndex)}`;
+    more.textContent = data.evaluation?.open ? 'Open event page to rate it' : 'Open event page';
+    section.append(more);
+    copy.append(section);
+  }
+
   window.openEventInfoPopup = (event, trigger = document.activeElement, type = 'event') => {
     if (!event) return;
     active?.close(false);
@@ -55,8 +117,8 @@
     }
     const detailFields = {
       feed: [['author', 'Author']],
-      sponsor: [['sponsorName', 'Sponsor'], ['sponsorCompany', 'Company'], ['sponsorType', 'Sponsorship type'], ['sponsorAmount', 'Amount'], ['sponsorBenefits', 'Benefits'], ['sponsorDescription', 'Sponsor description']],
-      booth: [['boothName', 'Booth'], ['boothPurpose', 'Purpose'], ['boothDescription', 'Booth description'], ['boothLocation', 'Booth location'], ['boothSize', 'Size'], ['boothEquipment', 'Equipment'], ['boothSetupDate', 'Setup date'], ['boothOpenDate', 'Opening date'], ['boothCloseDate', 'Closing date']]
+      sponsor: [['sponsorName', 'Sponsor'], ['sponsorCompany', 'Company'], ['sponsorDescription', 'About the sponsor']],
+      booth: [['boothName', 'Booth'], ['boothDescription', 'About the booth'], ['boothLocation', 'Location'], ['boothOpenDate', 'Opens'], ['boothCloseDate', 'Closes']]
     };
     for (const [key, title] of detailFields[type] || []) {
       if (!text(event[key])) continue;
@@ -64,10 +126,10 @@
       detail.style.whiteSpace = 'pre-wrap';
       detail.style.overflowWrap = 'anywhere';
     }
-    if (text(event.budget)) append('p', 'event-modal-meta', 'Budget: ' + text(event.budget));
     if (typeof event.registrationEnabled === 'boolean') append('p', 'event-modal-meta', 'Student registration: ' + (event.registrationEnabled ? 'Enabled' : 'Not enabled'));
     if ((event.registrationEnabled || event.attendanceEnabled) && ['members', 'all_students'].includes(event.attendanceAudience)) append('p', 'event-modal-meta', event.attendanceAudience === 'members' ? 'Club members only' : 'Open to all university students');
     if (event.attendanceEnabled === true) append('p', 'event-attendance-status', 'Attendance taken');
+    if (type === 'event' && event.reportRef) void appendEventReport(copy, event.reportRef, signal);
     const closeRail = document.createElement('div');
     closeRail.className = 'modal-close-rail';
     closeRail.style.gridColumn = '1 / -1';
@@ -135,6 +197,8 @@
     closeButton.focus({ preventScroll: true });
   };
   window.openClubContentInfoPopup = (item, type, club, trigger) => {
-    window.openEventInfoPopup({ ...item, clubName: club.name, clubImage: club.image }, trigger, type);
+    const eventIndex = type === 'event' && Array.isArray(club.events) ? club.events.indexOf(item) : -1;
+    const reportRef = eventIndex >= 0 && Number(club.id) > 0 ? { clubId: Number(club.id), eventIndex } : null;
+    window.openEventInfoPopup({ ...item, clubName: club.name, clubImage: club.image, reportRef }, trigger, type);
   };
 })();

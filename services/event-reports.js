@@ -3,12 +3,24 @@ const mongoose = require('mongoose');
 const crypto = require('crypto');
 const { assignedIds } = require('./supervisor-dashboard');
 const fields = ['summary', 'objectives', 'activities', 'outcomes', 'lessonsLearned'];
+// 'submitted' and 'reviewed' belong to the earlier narrative reports. Post-event reports move
+// draft -> pending_supervisor -> pending_pr -> pending_english -> pending_dean -> approved.
+const REPORT_STATUSES = ['draft', 'submitted', 'changes_requested', 'reviewed',
+  'pending_supervisor', 'pending_pr', 'pending_english', 'pending_dean', 'approved'];
 const schema = new mongoose.Schema({
   clubId: { type: Number, required: true }, eventKey: { type: String, required: true },
   summary: String, objectives: String, activities: String, outcomes: String, lessonsLearned: String,
-  status: { type: String, enum: ['draft', 'submitted', 'changes_requested', 'reviewed'], required: true },
+  status: { type: String, enum: REPORT_STATUSES, required: true },
   revision: { type: Number, required: true }, submittedAt: Date, updatedBy: String,
-  history: [{ action: String, actor: String, at: Date, note: String }]
+  history: [{ action: String, actor: String, role: String, at: Date, note: String }],
+  // Post-event report: event details are copied from the approved event and stay read-only.
+  eventRequestId: { type: Number, default: null },
+  eventTitle: String, eventDate: String, eventLocation: String,
+  totalParticipants: { type: Number, min: 0, default: null },
+  externalBeneficiaries: { type: Number, min: 0, default: null },
+  photos: { type: [mongoose.Schema.Types.Mixed], default: [] },
+  approvals: { type: [mongoose.Schema.Types.Mixed], default: [] },
+  fullyApprovedAt: { type: Date, default: null }
 }, { timestamps: true });
 schema.index({ clubId: 1, eventKey: 1 }, { unique: true });
 const EventReport = require('../database').bindModel(mongoose.models.EventReport || mongoose.model('EventReport', schema));
@@ -26,6 +38,7 @@ function eventsFor(club) {
       index, title: String(event.title || ''), date: String(event.date || ''),
       startTime: String(event.startTime || event.time || ''), endTime: String(event.endTime || ''),
       location: String(event.location || ''), description: String(event.description || ''),
+      scheduledEnd: String(event.attendanceSettings?.endTime || ''), image: String(event.image || ''),
       registrationEnabled: event.registrationEnabled, attendanceEnabled: event.attendanceEnabled };
   });
 }
@@ -92,39 +105,10 @@ function registerEventReports(app, deps) {
           missingAttendance: events.filter(e => e.statistics.verified === null).length } });
     } catch { res.status(503).json({ message: 'Could not load reports and statistics. No totals are available.' }); }
   });
-  router.put('/clubs/:clubId/events/:eventKey', async (req, res) => {
-    const a = req.reportAccount, body = req.body || {};
-    if (!Number.isSafeInteger(body.revision) || body.revision < 0) return res.status(400).json({ message: 'A valid report revision is required.' });
-    const review = a.role === 'supervisor';
-    if (! (review ? ['reviewed', 'changes_requested'] : ['draft', 'submitted']).includes(body.status)) return res.status(400).json({ message: 'Invalid report status.' });
-    const values = {};
-    if (!review) for (const field of fields) {
-      if (typeof body[field] !== 'string' || body[field].trim().length > 5000 || (body.status === 'submitted' && !body[field].trim())) return res.status(400).json({ message: `Enter ${field} (maximum 5000 characters; required for submission).` });
-      values[field] = body[field].trim();
-    }
-    if (review && (typeof body.note !== 'string' || body.note.trim().length > 2000 || !body.note.trim())) return res.status(400).json({ message: 'A review note of 1–2000 characters is required.' });
-    try {
-      const clubId = req.reportClubId, eventKey = req.params.eventKey;
-      const club = await Club.findOne({ id: clubId, archivedAt: null }).select('events').lean();
-      if (!club || !eventsFor(club).some(e => e.key === eventKey)) return res.status(404).json({ message: 'Existing club event not found.' });
-      const now = new Date();
-      const update = { ...values, status: body.status, updatedBy: a.email };
-      if (body.status === 'submitted') update.submittedAt = now;
-      const history = { action: body.status, actor: a.email, at: now, note: review ? body.note.trim() : '' };
-      let report;
-      if (body.revision === 0 && !review) {
-        report = await Report.create({ clubId, eventKey, ...update, revision: 1, history: [history] });
-      } else {
-        report = await Report.findOneAndUpdate({ clubId, eventKey, revision: body.revision,
-          status: { $in: review ? ['submitted'] : ['draft', 'changes_requested'] } },
-        { $set: update, $inc: { revision: 1 }, $push: { history } }, { new: true, runValidators: true });
-        if (!report) return res.status(409).json({ message: 'Report changed or is locked. Reload before editing. Submitted reports require supervisor changes_requested before editing.' });
-      }
-      res.json({ report });
-    } catch (error) {
-      res.status(error.code === 11000 ? 409 : 503).json({ message: error.code === 11000 ? 'A report already exists. Reload before editing.' : 'The report could not be saved. Reload to check its status before retrying.' });
-    }
+  // Narrative reports were replaced by post-event reports (/api/post-event-reports).
+  router.put('/clubs/:clubId/events/:eventKey', (req, res) => {
+    res.status(410).json({ message: 'Event reports are now written under Post-event reports in your dashboard.' });
   });
   app.use('/api/event-reports', router);
 }
-module.exports = { registerEventReports, EventReport, date, period, eventsFor, statistics, fields };
+module.exports = { registerEventReports, EventReport, REPORT_STATUSES, date, period, eventsFor, statistics, fields };

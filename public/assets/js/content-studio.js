@@ -67,7 +67,7 @@ const ContentStudio = (() => {
         <strong>${escapeHtml(item.title)}</strong>
         <div class="meta"><span class="type-badge type-${escapeHtml(item.type)}">${escapeHtml(label)}</span>${escapeHtml(contentMeta(item)) || 'no details'}</div>
         ${renderPermitItems(item)}
-        <div><span class="status-badge status-${escapeHtml(item.status)}" title="Request status">${escapeHtml(item.status.replaceAll('_', ' '))}</span></div>
+        <div><span class="status-badge status-${escapeHtml(item.status)}" title="Request status">${escapeHtml((window.MiuUI?.plainWords || (value => String(value || '').replaceAll('_', ' ')))(item.status))}</span></div>
         ${item.clubNotice ? `<details class="content-review-update"><summary title="Open the full review update">Review update</summary><p>${escapeHtml(item.clubNotice)}</p></details>` : ''}
         ${activeComment ? `<section class="review-comments" style="margin-top:10px"><strong>Active comment</strong><p class="meta" style="margin:5px 0;white-space:pre-wrap"><strong>${reviewerNames[activeComment.role]}:</strong> ${escapeHtml(activeComment.text)}</p></section>` : ''}
         <div class="content-task-actions">
@@ -172,6 +172,7 @@ const ContentStudio = (() => {
           renderHeadAssignment();
         }
         contentLayout.hidden = false;
+        if (type === 'event' || type === null) void showEventReportBlock();
         return true;
       } catch {
         sessionMessage.textContent = 'Could not check your session.';
@@ -281,7 +282,45 @@ const ContentStudio = (() => {
     }
 
     let saving = false;
+    // New event requests pause while a completed event still needs a fully approved report.
+    let eventReportBlock = null;
+    async function showEventReportBlock() {
+      try {
+        const response = await fetch('/api/post-event-reports/block-status', { cache: 'no-store' });
+        if (!response.ok) return;
+        eventReportBlock = await response.json();
+        if (!eventReportBlock.blocked) return;
+        const banner = document.createElement('div');
+        banner.className = 'post-event-block-banner';
+        banner.setAttribute('role', 'alert');
+        const heading = document.createElement('strong');
+        heading.textContent = 'New event requests are paused';
+        const message = document.createElement('p');
+        message.textContent = type === 'event'
+          ? `${eventReportBlock.message} You can still edit event requests that reviewers sent back to you.`
+          : eventReportBlock.message;
+        const list = document.createElement('ul');
+        for (const pending of eventReportBlock.pendingReports) {
+          const item = document.createElement('li');
+          const link = document.createElement('a');
+          link.href = pending.link;
+          link.textContent = `${pending.title} — ${pending.statusLabel}`;
+          item.append(link);
+          list.append(item);
+        }
+        banner.append(heading, message, list);
+        contentLayout.before(banner);
+      } catch { /* The server still enforces the rule. */ }
+    }
+    function eventRequestPaused() {
+      return type === 'event' && !editingId && eventReportBlock?.blocked === true;
+    }
+
     async function saveContent(submit) {
+      if (eventRequestPaused()) {
+        if (formFeedback) formFeedback.textContent = eventReportBlock.message;
+        return;
+      }
       if (saving) return;
       saving = true;
       const controls = [...contentForm.querySelectorAll('button')];

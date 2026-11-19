@@ -125,7 +125,7 @@
         const card = document.createElement('article'); card.className = 'speaker-request-card'; card.dataset.speakerRequestId = item.id;
         text(card, 'h2', item.speakerName);
         text(card, 'p', `${item.clubName} · Requested by ${item.requesterType === 'student' ? 'student' : item.requesterType === 'speaker' ? 'external speaker' : 'club representative'} · ${item.requesterEmail}`, 'speaker-request-meta');
-        text(card, 'span', item.status.replaceAll('_', ' '), `speaker-status ${item.status}`);
+        text(card, 'span', (window.MiuUI?.plainWords || (value => String(value || '').replaceAll('_', ' ')))(item.status), `speaker-status ${item.status}`);
         if (item.clubReviewedAt) text(card, 'p', `Accepted by the club ${new Date(item.clubReviewedAt).toLocaleString()}${item.clubReviewerEmail ? ` · ${item.clubReviewerEmail}` : ''}${item.clubReviewerComment ? ` · Note: ${item.clubReviewerComment}` : ''}`, 'speaker-request-meta');
         text(card, 'p', `Current position & company: ${item.jobTitleCompany || item.professionalDetails}`);
         if (item.speakerSelectionReason) text(card, 'p', `Why this speaker was chosen: ${item.speakerSelectionReason}`);

@@ -100,7 +100,9 @@ function createWorkflowEngine({ database, ContentRequest, SpeakerRequest, ClubAc
     const ref = String(kind === 'content' ? record.id : record._id);
     const selected = record.workflow.revisionFields?.map(id => P.fields[record.type || 'speaker'][id]?.[0] || id).join(', ');
     for (const email of recipients) if (email) {
-      const eventKey = crypto.createHash('sha256').update(`${kind}:${ref}:${record.workflow.revision}:${email}`).digest('hex');
+      // createdAt keeps keys unique if a request number is ever reused after a deletion.
+      const created = record.createdAt ? new Date(record.createdAt).getTime() : '';
+      const eventKey = crypto.createHash('sha256').update(`${kind}:${ref}:${created}:${record.workflow.revision}:${email}`).digest('hex');
       await notifications.create([{ eventKey, recipientEmail: email, kind, requestRef: ref,
         title: `${record.clubName || 'MIU'}: ${record.title || record.speakerName}`,
         message: `${event.action}. Status: ${record.workflow.state}. Stage: ${stage?.name || 'Completed'}.${selected ? ' Requested fields: ' + selected + '.' : ''}${event.comment ? '\n' + event.comment : ''}`,
