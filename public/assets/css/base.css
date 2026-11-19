@@ -400,6 +400,17 @@ html.site-startup-pending .site-loading-indicator { opacity: 0; visibility: hidd
   to { opacity: 1; transform: translateY(0); }
 }
 
+
+/* No zooming: the page always fits the screen width, double-tap does not zoom, and form fields
+   use at least 16px text on phones so iPhone does not zoom in when a field is tapped. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: manipulation; }
+html { overflow-x: hidden; }
+@supports (overflow: clip) { html { overflow-x: clip; } }
+html, body { max-width: 100%; }
+body { overflow-x: clip; }
+@media (max-width: 1024px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]), select, textarea { font-size: max(16px, 1em) !important; }
+}
 /* ==========================================================================
    HEADER & NAVIGATION BAR (site-header)
    ========================================================================== */

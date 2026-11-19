@@ -464,4 +464,23 @@
 
 /* Swipe back: a dimmed backdrop shows behind the page while it slides. */
 html.swipe-back-active { background: rgb(15 23 42 / var(--swipe-back-shade, .3)); overflow-x: hidden; }
-html.swipe-back-active body { overflow-x: hidden; }
+html.swipe-back-active body { overflow-x: hidden; box-shadow: -12px 0 28px rgba(15, 23, 42, .18); }
+
+/* ===== Bottom bar: one sizing system for every page (overrides the earlier layered sizes) ===== */
+@media (max-width: 1024px) {
+  :root { --bb-gap: 10px; --bb-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--bb-gap)); --bb-col: clamp(58px, 17vw, 76px); --bb-item-h: 52px; --bb-icon: 22px; }
+  .bottom-bar:not(.is-inline) {
+    bottom: var(--bb-bottom); width: auto; max-width: calc(100vw - 24px);
+    grid-auto-columns: var(--bb-col); gap: 2px; padding: 5px; border-radius: 28px;
+  }
+  .bottom-bar:not(.is-inline) .bottom-bar-item { min-height: var(--bb-item-h); padding: 5px 2px; gap: 3px; border-radius: 22px; font-size: .7rem; font-weight: 650; }
+  .bottom-bar .bottom-bar-icon, .bottom-bar .bottom-bar-icon svg { width: var(--bb-icon); height: var(--bb-icon); }
+  .bottom-bar-menu { bottom: calc(var(--bb-bottom) + var(--bb-item-h) + 20px); }
+  body.has-bottom-bar:not(.bottom-bar-away):not(:has(.bottom-bar.is-inline)) .quiz-launcher { --quiz-launcher-bottom: calc(var(--bb-bottom) + var(--bb-item-h) + 22px); }
+  /* Room so the last content is never hidden behind the floating bar. */
+  body.has-bottom-bar:not(:has(.bottom-bar.is-inline)) { padding-bottom: calc(var(--bb-bottom) + var(--bb-item-h) + 24px); }
+  /* Inline (short pages): equal-width buttons that always fit the screen. */
+  .bottom-bar.is-inline { display: flex; flex-wrap: nowrap; gap: 6px; max-width: 100%; overflow: visible; }
+  .bottom-bar.is-inline .bottom-bar-item { flex: 1 1 0; min-width: 0; min-height: var(--bb-item-h); padding: 6px 4px; flex-direction: column; gap: 3px; border-radius: 16px; font-size: .72rem; }
+}
+@media (max-width: 340px) { :root { --bb-icon: 20px; --bb-item-h: 48px; } .bottom-bar .bottom-bar-item { font-size: .64rem !important; } }

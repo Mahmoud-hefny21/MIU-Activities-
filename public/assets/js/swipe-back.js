@@ -24,23 +24,28 @@
   const blocked = (target) => {
     if (document.querySelector('dialog[open], .drawer-open, .bottom-bar-menu:not([hidden]), .event-modal:not(.hidden)')) return true;
     if (target.closest('input, textarea, select, [contenteditable="true"], [data-no-swipe-back], .leaflet-container, canvas, video')) return true;
+    // Horizontal scrollers (chips, carousels, galleries) keep their own swipe; cheap checks first.
     for (let el = target; el && el !== page; el = el.parentElement) {
-      const style = getComputedStyle(el);
-      if (/(auto|scroll)/.test(style.overflowX) && el.scrollWidth > el.clientWidth + 1 && el.scrollLeft > 0) return true;
+      if (el.scrollWidth > el.clientWidth + 1 && el.scrollLeft > 0 && /(auto|scroll)/.test(getComputedStyle(el).overflowX)) return true;
     }
     return false;
   };
 
+  // Only transform and one custom property change per frame (no box-shadow repaints), batched with rAF.
+  let pendingX = null, frame = 0;
   const setOffset = (x) => {
     page.style.transform = x ? `translate3d(${x}px, 0, 0)` : '';
-    page.style.boxShadow = x ? `-12px 0 28px rgba(15, 23, 42, ${Math.max(0, 0.22 - (x / width) * 0.22).toFixed(3)})` : '';
-    root.style.setProperty('--swipe-back-shade', String(Math.max(0, 0.32 - (x / width) * 0.32)));
+    root.style.setProperty('--swipe-back-shade', (0.32 - (x / width) * 0.32).toFixed(3));
+  };
+  const queueOffset = (x) => {
+    pendingX = x;
+    if (!frame) frame = requestAnimationFrame(() => { frame = 0; if (pendingX !== null && state === 'dragging') setOffset(pendingX); });
   };
   const begin = () => { root.classList.add('swipe-back-active'); page.style.willChange = 'transform'; page.style.transition = 'none'; };
-  const finish = () => { root.classList.remove('swipe-back-active'); page.style.willChange = ''; page.style.transition = ''; setOffset(0); state = 'idle'; };
+  const finish = () => { cancelAnimationFrame(frame); frame = 0; pendingX = null; root.classList.remove('swipe-back-active'); page.style.willChange = ''; page.style.transition = ''; setOffset(0); state = 'idle'; };
   const animateTo = (x, duration, done) => {
     if (reduced.matches) { done?.(); return; }
-    page.style.transition = `transform ${duration}ms cubic-bezier(.2, .8, .2, 1), box-shadow ${duration}ms ease`;
+    page.style.transition = `transform ${duration}ms cubic-bezier(.2, .8, .2, 1)`;
     requestAnimationFrame(() => setOffset(x));
     window.setTimeout(() => done?.(), duration);
   };
@@ -66,10 +71,11 @@
     const now = event.timeStamp;
     if (now > lastTime) velocity = (point.clientX - lastX) / (now - lastTime);
     lastX = point.clientX; lastTime = now;
-    if (!reduced.matches) setOffset(Math.max(0, Math.min(width, dx)));
+    if (!reduced.matches) queueOffset(Math.max(0, Math.min(width, dx)));
   }, { passive: false });
 
   const release = () => {
+    cancelAnimationFrame(frame); frame = 0;
     if (state === 'pending') { state = 'idle'; return; }
     if (state !== 'dragging') return;
     const dx = lastX - startX;
