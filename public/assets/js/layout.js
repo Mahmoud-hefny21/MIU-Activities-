@@ -159,6 +159,9 @@ const initFloatingBack = () => {
   // Pages without their own Back control get one at the top of the content (Home excepted).
   setTimeout(() => {
     if (findBack() || isHome() || location.pathname === '/') return;
+    // Sign-in, password and error pages have no Back button.
+    if (/(?:forgot-password|reset-password|applicant-login|admin-login|club-login|\/login|404|500|offline)(?:\.html)?$/.test(location.pathname)
+      || document.querySelector('.home-action, .retry-action, .error-reference')) return;
     const main = document.querySelector('main') || document.querySelector('.page-shell, .container');
     if (!main) return;
     const back = document.createElement('button');
@@ -643,7 +646,10 @@ document.addEventListener('DOMContentLoaded', () => {
     '/assets/js/quiz-scoring.js',
     '/assets/js/quiz-ui.js'
   ];
-  (function loadNext() {
+  // Sign-in, password and error pages are single-purpose screens: no quiz launcher there (same rule as the bottom bar).
+  const singlePurposePage = /(?:forgot-password|reset-password|applicant-login|admin-login|club-login|\/login|404|500|offline)(?:\.html)?$/.test(location.pathname)
+    || document.querySelector('.home-action, .retry-action, .error-reference');
+  if (!singlePurposePage) (function loadNext() {
     const src = quizScripts.shift();
     if (!src) return;
     const script = document.createElement('script');

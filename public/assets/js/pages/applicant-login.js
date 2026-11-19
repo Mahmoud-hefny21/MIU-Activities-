@@ -33,36 +33,48 @@
         const area = document.getElementById('googleLoginArea');
         const fallbackButton = document.getElementById('googleUnavailableButton');
         const hint = document.getElementById('googleLoginHint');
+        // Start loading Google's script and both checks at the same time instead of one after another.
+        const googleScript = new Promise((resolve, reject) => {
+          if (window.google?.accounts?.id) { resolve(); return; }
+          const script = document.createElement('script');
+          script.src = 'https://accounts.google.com/gsi/client'; script.async = true;
+          script.onload = resolve; script.onerror = reject;
+          document.head.append(script);
+        });
+        googleScript.catch(() => {});
         try {
-          const configResponse = await fetch('/api/student-auth/google-config', { cache: 'no-store' });
+          const [configResponse, sessionResponse] = await Promise.all([
+            fetch('/api/student-auth/google-config', { cache: 'no-store' }),
+            fetch('/api/student-auth/session?optional=1', { cache: 'no-store' })
+          ]);
           const config = await configResponse.json();
           if (!configResponse.ok || !config.enabled) {
             fallbackButton.hidden = false;
             return;
           }
-          const sessionResponse = await fetch('/api/student-auth/session?optional=1', { cache: 'no-store' });
           const linkExistingAccount = sessionResponse.status === 200;
           if (linkExistingAccount) hint.hidden = true;
           const studentSession = linkExistingAccount ? await sessionResponse.json() : null;
-          const script = document.createElement('script');
-          script.src = 'https://accounts.google.com/gsi/client';
-          script.async = true;
-          script.onload = () => {
+          const onGoogleReady = () => {
             if (!window.google?.accounts?.id) {
               fallbackButton.hidden = false;
               return;
             }
             const buttonHost = document.getElementById('googleLoginButton');
             let renderedWidth = 0;
+            let resizeFrame = 0;
             const renderGoogleButton = () => {
               const availableWidth = buttonHost.getBoundingClientRect().width;
               if (availableWidth < 120) return;
               const width = Math.min(400, Math.floor(availableWidth));
-              if (width === renderedWidth) return;
+              // Redraw only for a real size change (small changes made the Google frame flicker and reload).
+              if (renderedWidth && Math.abs(width - renderedWidth) < 12) return;
               renderedWidth = width;
               buttonHost.replaceChildren();
-              window.google.accounts.id.renderButton(buttonHost, { theme: 'outline', size: 'large', text: linkExistingAccount ? 'continue_with' : 'signin_with', shape: 'rectangular', width });
+              // English text on every phone, the same width as the Sign In button above it.
+              window.google.accounts.id.renderButton(buttonHost, { theme: 'outline', size: 'large', text: linkExistingAccount ? 'continue_with' : 'signin_with', shape: 'rectangular', logo_alignment: 'center', locale: 'en', width });
             };
+            const scheduleRender = () => { cancelAnimationFrame(resizeFrame); resizeFrame = requestAnimationFrame(renderGoogleButton); };
             const initializeGoogle = (googleConfig) => {
               renderedWidth = 0;
               window.google.accounts.id.initialize({
@@ -83,7 +95,10 @@
                     feedback.classList.add('is-error');
                     return;
                   }
-                  feedback.textContent = 'Checking your MIU Google account...';
+                  // Immediate feedback after choosing an account, and no double submit while the server checks it.
+                  feedback.textContent = 'Signing you in…';
+                  document.getElementById('googleLoginArea').classList.add('is-busy');
+                  document.getElementById('googleLoginArea').setAttribute('aria-busy', 'true');
                   try {
                     const endpoint = linkExistingAccount ? '/api/student-auth/google/link' : '/api/student-auth/google';
                     const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ credential: credentialResponse.credential }) });
@@ -95,6 +110,8 @@
                     }
                     window.location.replace(result.role === 'student' ? studentReturnTarget() : (result.redirect || '/'));
                   } catch (error) {
+                    document.getElementById('googleLoginArea').classList.remove('is-busy');
+                    document.getElementById('googleLoginArea').removeAttribute('aria-busy');
                     feedback.textContent = error.message;
                     feedback.classList.add('is-error');
                     try {
@@ -113,10 +130,9 @@
               renderGoogleButton();
             };
             initializeGoogle(config);
-            if ('ResizeObserver' in window) new ResizeObserver(renderGoogleButton).observe(buttonHost);
+            if ('ResizeObserver' in window) new ResizeObserver(scheduleRender).observe(buttonHost);
           };
-          script.onerror = () => { fallbackButton.hidden = false; area.classList.remove('hidden'); };
-          document.head.append(script);
+          googleScript.then(onGoogleReady, () => { fallbackButton.hidden = false; area.classList.remove('hidden'); });
         } catch {
           fallbackButton.hidden = false;
         }

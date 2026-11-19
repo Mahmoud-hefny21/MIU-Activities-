@@ -34,3 +34,5 @@
         .login-wrap > img { width: 140px; height: 68px; }
         .login-wrap h1 { font-size: 1.3rem; }
       }
+      /* While the server checks the chosen Google account: dim the button and block a second click. */
+      #googleLoginArea.is-busy #googleLoginButton { opacity: .55; pointer-events: none; transition: opacity .15s ease; }

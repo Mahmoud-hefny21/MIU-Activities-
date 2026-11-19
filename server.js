@@ -4158,7 +4158,8 @@ async function requireAttendanceSessionManager(req, res, next) {
   try {
     const account = await getClubAccountFromRequest(req, res);
     if (account) { req.clubAccount = account; return next(); }
-    if (isAdminSessionValid(req, res)) {
+    // isAdminSessionValid is async: without await its Promise is always truthy and every visitor became admin.
+    if (await isAdminSessionValid(req, res)) {
       req.clubAccount = { role: 'admin', email: adminAuthState?.email || getConfiguredAdminEmail() || '' };
       return next();
     }
