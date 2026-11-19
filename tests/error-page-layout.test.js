@@ -9,7 +9,7 @@ const css = fs.readFileSync(path.join(root, 'public/assets/css/pages/error-page.
 test('all branded error pages use the shared responsive layout', () => {
   for (const page of ['private/error-page.html', 'public/404.html', 'public/500.html']) {
     const html = fs.readFileSync(path.join(root, page), 'utf8');
-    assert.match(html, /error-page\.css\?v=20261017errorbrandcenter1/);
+    assert.match(html, /error-page\.css\?v=20261119ui1/);
     assert.match(html, /class="error-card"/);
     assert.match(html, /class="error-actions"/);
   }
