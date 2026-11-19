@@ -13,7 +13,8 @@ playwright-report/
 test-results/
 tests/
 docs/
-scripts/
+scripts/*
+!scripts/stamp-sw.cjs
 .env*
 *.xlsx
 *.pptx
