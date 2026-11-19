@@ -1495,7 +1495,7 @@ function renderEventsSlideshow() {
   const items = getAllEvents().filter((event) => !event.university)
     .map((event) => ({ ...event, contentType: 'event', index: event.eventIndex, parsedDate: parseEventDate(event.date) }))
     .filter((event) => event.parsedDate && event.parsedDate >= todayStart)
-    .concat(universityItems.filter((item) => item.contentType !== 'event' || (item.parsedDate && item.parsedDate >= todayStart)))
+    .concat(universityItems.filter((item) => item.contentType === 'event' && item.parsedDate && item.parsedDate >= todayStart))
     .sort((left, right) => {
       const leftEvent = left.contentType === 'event';
       const rightEvent = right.contentType === 'event';
@@ -1521,7 +1521,7 @@ function renderEventsSlideshow() {
   track.innerHTML = items.map((item, i) => {
     const isToday = startOfLocalDay(item.parsedDate).getTime() === todayStart.getTime();
     const badge = item.university
-      ? ({ poll: 'MIU POLL', evaluation: 'MIU EVALUATION' }[item.interaction] || (item.type === 'event' ? 'MIU EVENT' : 'MIU ANNOUNCEMENT'))
+      ? ({ poll: 'MIU POLL', evaluation: 'MIU EVALUATION' }[item.interaction] || (item.publisherType === 'faculty' ? (item.type === 'event' ? 'FACULTY EVENT' : 'FACULTY ANNOUNCEMENT') : item.type === 'event' ? 'MIU EVENT' : 'MIU ANNOUNCEMENT'))
       : (isToday ? 'TODAY · NEW' : 'UPCOMING EVENT');
     const metaLine = item.contentType === 'sponsor'
       ? escapeHtml(item.sponsorCompany || item.sponsorName || '')
@@ -1547,7 +1547,7 @@ function renderEventsSlideshow() {
       const universityItem = items.find((item) => item.university && Number(slide.dataset.club) === 0 && item.index === Number(slide.dataset.idx));
       if (universityItem) {
         if (universityItem.type === 'event') window.openEventModal(universityItem);
-        else window.location.href = '/pages/feed.html?post=' + universityItem.id;
+        else window.location.href = '/pages/miu-hub.html#post-' + universityItem.id;
         return;
       }
       if (['sponsor', 'booth'].includes(contentType)) {

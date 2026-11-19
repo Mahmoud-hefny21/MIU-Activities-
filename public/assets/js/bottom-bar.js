@@ -22,7 +22,11 @@
     qr: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 20h.01M20 14v.01M14 20v.01"/>',
     report: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
     users: '<circle cx="9" cy="8" r="3"/><path d="M3 20v-1a6 6 0 0 1 12 0v1"/><path d="M16 4a3 3 0 0 1 0 6M21 20v-1a5 5 0 0 0-3-4.6"/>',
-    item: '<circle cx="12" cy="12" r="8"/>'
+hub: '<path d="M3 10 12 4l9 6"/><path d="M5 10v9M9.5 10v9M14.5 10v9M19 10v9M3 21h18"/>',
+    sponsors: '<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
+    booths: '<path d="M3 9h18l-1.5-5h-15z"/><path d="M5 9v11h14V9M9 20v-6h6v6"/>',
+    ai: '<path d="M12 3v3M12 18v3M3 12h3M18 12h3M6 6l2 2M16 16l2 2M6 18l2-2M16 8l2-2"/><circle cx="12" cy="12" r="3"/>',
+        item: '<circle cx="12" cy="12" r="8"/>'
   };
   const svg = (name) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
   const labelOf = (el) => (el.querySelector('.sidebar-label, :scope > span:not(.student-nav-count):not([class*="badge"]):not(.bottom-bar-icon)')?.textContent || el.childNodes[0]?.textContent || el.textContent).replace(/\s+/g, ' ').trim();
@@ -130,14 +134,49 @@
     return items;
   }
 
+  // Visitors and students: the four main sections plus Menu. Menu holds everything else
+  // (Back on inner pages, Calendar, Sponsors, Booths, Ask AI), so nothing appears twice.
+  const siteMenu = document.createElement('div');
+  siteMenu.className = 'bottom-bar-menu'; siteMenu.hidden = true; siteMenu.id = 'bottomBarMenu';
+  siteMenu.setAttribute('role', 'menu'); siteMenu.setAttribute('aria-label', 'More pages');
+  const closeSiteMenu = () => { siteMenu.hidden = true; bar.querySelector('[data-site-menu]')?.setAttribute('aria-expanded', 'false'); bar.querySelector('[data-site-menu]')?.classList.remove('is-active'); };
+  document.addEventListener('click', (event) => { if (!siteMenu.hidden && !siteMenu.contains(event.target) && !event.target.closest('[data-site-menu]')) closeSiteMenu(); });
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !siteMenu.hidden) closeSiteMenu(); });
+  function siteMenuEntries(onHome) {
+    const entry = (label, icon, href, onClick) => {
+      const el = document.createElement(href ? 'a' : 'button');
+      el.className = 'bottom-bar-menu-item'; el.setAttribute('role', 'menuitem');
+      if (href) { el.href = href; if (location.pathname === href.split('#')[0] && !href.includes('#')) el.setAttribute('aria-current', 'page'); } else el.type = 'button';
+      el.innerHTML = `${svg(icon)}<span>${label}</span>`;
+      el.addEventListener('click', () => { closeSiteMenu(); onClick?.(); });
+      return el;
+    };
+    const askAi = document.querySelector('#navLinks a[href="/pages/ask-ai.html"]');
+    return [
+      ...(onHome ? [] : [entry('Back', 'back', '', () => (window.miuGoBack ? window.miuGoBack('/') : history.back()))]),
+      entry('Calendar', 'calendar', '/#calendar'),
+      entry('Sponsors', 'sponsors', '/pages/sponsors.html'),
+      entry('Booths', 'booths', '/pages/booths.html'),
+      ...(askAi && !askAi.hidden ? [entry('Ask AI', 'ai', '/pages/ask-ai.html')] : [])
+    ];
+  }
   function siteItems() {
     const path = location.pathname;
     const onHome = path === '/' && !location.search && location.hash !== '#calendar';
+    const menuButton = makeItem({ label: 'Menu', icon: 'menu', onClick: () => {
+      if (!siteMenu.hidden) { closeSiteMenu(); return; }
+      siteMenu.replaceChildren(...siteMenuEntries(onHome));
+      siteMenu.hidden = false; menuButton.setAttribute('aria-expanded', 'true'); menuButton.classList.add('is-active');
+      siteMenu.querySelector('a, button')?.focus({ preventScroll: true });
+    } });
+    menuButton.dataset.siteMenu = ''; menuButton.setAttribute('aria-haspopup', 'menu'); menuButton.setAttribute('aria-controls', siteMenu.id); menuButton.setAttribute('aria-expanded', 'false');
+    if (!siteMenu.isConnected) document.body.append(siteMenu);
     return [
-      back(),
       makeItem({ label: 'Home', icon: 'home', href: '/', active: onHome }),
+      makeItem({ label: 'MIU Hub', icon: 'hub', href: '/pages/miu-hub.html', active: path === '/pages/miu-hub.html' }),
       makeItem({ label: 'Feed', icon: 'feed', href: '/pages/feed.html', active: path === '/pages/feed.html' }),
-      makeItem({ label: 'Events', icon: 'events', href: '/pages/events.html', active: path === '/pages/events.html' })
+      makeItem({ label: 'Events', icon: 'events', href: '/pages/events.html', active: path === '/pages/events.html' }),
+      menuButton
     ];
   }
 
@@ -147,6 +186,9 @@
     const items = (sidebar && dashboardItems(sidebar)) || siteItems();
     bar.replaceChildren(...items);
     bar.dataset.kind = sidebar ? 'dashboard' : 'site';
+    // The site bar replaces the header's mobile menu, so that menu is hidden to avoid showing links twice.
+    document.body.classList.toggle('bottom-bar-site', !sidebar);
+    if (sidebar) closeSiteMenu?.();
   }
 
   build();

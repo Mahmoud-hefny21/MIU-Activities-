@@ -2367,6 +2367,28 @@ app.get('/api/clubs', async (req, res) => {
   }
 });
 
+// MIU Hub: all official MIU and faculty events and announcements, for every visitor.
+// Upcoming events first (soonest first), then everything else newest first.
+app.get('/api/miu-hub', async (req, res) => {
+  try {
+    if (mongoose.isSqlProvider && (!mongoReady || mongoose.connection.readyState !== 1)) await ensureReady();
+    if (!mongoReady || (mongoose.isSqlProvider && mongoose.connection.readyState !== 1)) return res.status(503).json({ message: 'MIU Hub is temporarily unavailable.' });
+    const { publicFields: fields, toPublicUniversityContent } = require('./services/university-content');
+    const type = ['event', 'announcement'].includes(req.query.type) ? req.query.type : '';
+    const records = (await UniversityContent.find(type ? { type } : {}).select(fields).read('primary').readConcern('majority').lean()).map(toPublicUniversityContent);
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo' }).format(new Date());
+    const upcoming = item => item.type === 'event' && /^\d{4}-\d{2}-\d{2}$/.test(item.date || '') && item.date >= today;
+    const stamp = item => new Date(item.createdAt || 0).getTime();
+    records.sort((a, b) => (upcoming(b) - upcoming(a)) || (upcoming(a) ? a.date.localeCompare(b.date) || String(a.time).localeCompare(String(b.time)) : stamp(b) - stamp(a)));
+    const pageSize = 12, total = records.length, totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const page = Math.min(totalPages, Math.max(1, Number.parseInt(req.query.page, 10) || 1));
+    sendRevalidatedPublicJson(req, res, { items: records.slice((page - 1) * pageSize, page * pageSize).map(item => ({ ...item, upcoming: upcoming(item) })), pagination: { page, pageSize, totalItems: total, totalPages } });
+  } catch (error) {
+    console.error('MIU Hub read failed:', error.name);
+    res.status(503).json({ message: 'MIU Hub is temporarily unavailable.' });
+  }
+});
+
 app.get('/api/university-content', async (req, res) => {
   try {
     if (mongoose.isSqlProvider && (!mongoReady || mongoose.connection.readyState !== 1)) await ensureReady();
@@ -2681,7 +2703,7 @@ async function dispatchPublishedContentNotifications({ source, contentId, revisi
     const parsedBase = new URL(configuredBaseUrl);
     const isLoopback = ['localhost', '127.0.0.1'].includes(parsedBase.hostname);
     if (parsedBase.protocol !== 'https:' && !(isLoopback && parsedBase.protocol === 'http:')) throw new Error('INVALID_ORIGIN');
-    feedUrl = new URL('/pages/feed.html', parsedBase).toString();
+    feedUrl = new URL(source === 'university' ? '/pages/miu-hub.html' : '/pages/feed.html', parsedBase).toString();
   } catch {
     console.error('Published content notification skipped: INVALID_SITE_URL');
     return;

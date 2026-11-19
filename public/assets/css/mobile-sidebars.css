@@ -306,10 +306,8 @@
   /* The bar replaces the floating Back, the added Back and the dashboard menu bar. */
   body.has-bottom-bar :is(.floating-back-control, .page-back-inline, .dashboard-drawer-toggle) { display: none !important; }
   /* Keep the chat button above the bar; it follows the bar when it slides away. */
-  body.has-bottom-bar .quiz-launcher-circle { transform: translateY(-74px); transition: transform .45s cubic-bezier(.22, .8, .25, 1); }
-  body.has-bottom-bar.bottom-bar-away .quiz-launcher-circle { transform: none; }
 }
-@media (prefers-reduced-motion: reduce) { .bottom-bar, body.has-bottom-bar .quiz-launcher-circle { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .bottom-bar { transition: none; } }
 
 /* Dashboard menu opened from the bottom bar: a sheet that slides up from the bottom. */
 @media (max-width: 1024px) {
@@ -403,7 +401,6 @@
   .bottom-bar.is-inline .bottom-bar-item.is-active { background: var(--primary-50, #fdeced); border-color: var(--primary-200, #f3c3c6); color: var(--primary-800); }
   .bottom-bar.is-inline .bottom-bar-icon, .bottom-bar.is-inline .bottom-bar-icon svg { width: 18px; height: 18px; }
   .bottom-bar.is-inline .bottom-bar-badge { top: -8px; right: -8px; }
-  body.has-bottom-bar:has(.bottom-bar.is-inline) .quiz-launcher-circle { transform: none; }
 }
 @media (max-width: 1024px) {
   .committee-dashboard-layout:has(> .bottom-bar.is-inline), main:has(> .bottom-bar.is-inline) { align-content: start !important; grid-template-rows: none !important; grid-auto-rows: auto !important; }
@@ -432,3 +429,39 @@
   }
   html body.has-bottom-bar .mobile-dashboard-drawer.as-sheet.opens-down.drawer-open { transform: none; }
 }
+
+/* ===== Bottom bar v2: compact width, Menu card for the remaining pages ===== */
+@media (max-width: 1024px) {
+  .bottom-bar:not(.is-inline) { width: auto; max-width: calc(100vw - 24px); grid-auto-columns: 62px; padding: 4px; gap: 0; }
+  .bottom-bar:not(.is-inline) .bottom-bar-item { min-height: 48px; padding: 4px 2px; font-size: .66rem; }
+  .bottom-bar:not(.is-inline) .bottom-bar-icon, .bottom-bar:not(.is-inline) .bottom-bar-icon svg { width: 20px; height: 20px; }
+  .bottom-bar-menu {
+    position: fixed; z-index: 61; right: max(12px, calc(50vw - 155px)); bottom: calc(max(10px, env(safe-area-inset-bottom)) + 64px);
+    display: flex; flex-direction: column; gap: 2px; width: min(230px, calc(100vw - 24px)); padding: 6px;
+    border: 1px solid var(--border-color, #e2e8f0); border-radius: 18px; background: var(--bg-panel, #fff);
+    box-shadow: 0 18px 44px rgba(15, 23, 42, .2); transform-origin: bottom right; animation: bottomMenuIn .2s ease;
+  }
+  .bottom-bar-menu[hidden] { display: none; }
+  .bottom-bar-menu-item { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 8px 12px; border: 0; border-radius: 12px; background: transparent; color: var(--text-main); font: inherit; font-size: .92rem; font-weight: 550; text-align: left; text-decoration: none; cursor: pointer; }
+  .bottom-bar-menu-item svg { flex: none; width: 20px; height: 20px; color: var(--text-muted); }
+  .bottom-bar-menu-item:hover, .bottom-bar-menu-item[aria-current="page"] { background: var(--primary-50); color: var(--primary-800); }
+  .bottom-bar-menu-item:focus-visible { outline: 3px solid var(--primary-700); outline-offset: 1px; }
+  /* One menu only: the bar's Menu replaces the header's mobile menu on visitor and student pages. */
+  body.has-bottom-bar.bottom-bar-site .mobile-menu-toggle { display: none !important; }
+  /* The quiz bubble and button sit above the bar, never on it. */
+}
+@keyframes bottomMenuIn { from { opacity: 0; transform: translateY(8px) scale(.97); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .bottom-bar-menu { animation: none; } }
+@media (max-width: 1024px) { .bottom-bar-menu { z-index: 10002; } body:has(.bottom-bar-menu:not([hidden])) :is(.quiz-launcher-circle, .quiz-launcher-bubble) { opacity: 0; pointer-events: none; } }
+@media (max-width: 1024px) { .bottom-bar:not(.is-inline) { padding: 3px; } .bottom-bar:not(.is-inline) .bottom-bar-item { min-height: 42px; padding: 3px 2px; gap: 1px; font-size: .64rem; } .bottom-bar:not(.is-inline) .bottom-bar-icon, .bottom-bar:not(.is-inline) .bottom-bar-icon svg { width: 18px; height: 18px; } .bottom-bar-menu { bottom: calc(max(10px, env(safe-area-inset-bottom)) + 56px); } }
+
+/* The quiz icon and its "Can't find your club?" text share one position, so the text always comes out of
+   the icon. With the floating bar showing, both sit just above the bar. */
+@media (max-width: 1024px) {
+  body.has-bottom-bar:not(.bottom-bar-away):not(:has(.bottom-bar.is-inline)) .quiz-launcher { --quiz-launcher-bottom: calc(max(10px, env(safe-area-inset-bottom, 0px)) + 62px); }
+}
+@media (max-width: 1024px) { :is(.quiz-launcher-circle, .quiz-launcher-bubble) { transition: bottom .45s cubic-bezier(.22, .8, .25, 1); } }
+
+/* Swipe back: a dimmed backdrop shows behind the page while it slides. */
+html.swipe-back-active { background: rgb(15 23 42 / var(--swipe-back-shade, .3)); overflow-x: hidden; }
+html.swipe-back-active body { overflow-x: hidden; }

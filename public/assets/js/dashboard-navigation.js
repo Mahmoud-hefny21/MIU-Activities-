@@ -35,6 +35,7 @@
       saved.stack = saved.stack.slice(-40); saved.current = next; persist();
     }
   }, true);
+  window.miuDashboardCanGoBack = () => saved.stack.some((entry) => find(entry));
   window.miuDashboardGoBack = () => {
     while (saved.stack.length) {
       const previous = saved.stack.pop(), control = find(previous);

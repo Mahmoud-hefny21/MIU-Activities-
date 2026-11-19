@@ -6,6 +6,7 @@
   const list = $('universityPostRecords'), listMessage = $('universityPostListMessage');
   const formMessage = $('universityPostMessage'), submit = $('publishUniversityPostBtn');
   const imageInput = $('universityPostImage'), preview = $('universityPostPreview');
+  let canPublish = true, faculties = [];
   let previewUrl = '', loadVersion = 0, editing = null, publishKey = '', publishSignature = '', uploadedFile, uploadedImage;
   const cancelEdit = document.createElement('button');
   cancelEdit.type = 'button'; cancelEdit.className = 'secondary-btn'; cancelEdit.textContent = 'Cancel editing'; cancelEdit.hidden = true;
@@ -31,10 +32,38 @@
     $('universityOptionsField').hidden = $('universityInteraction').value !== 'poll';
     $('universityOptions').required = $('universityInteraction').value === 'poll';
   }
+  // "Published as": MIU or one faculty; the preview shows the name and logo students will see.
+  const MIU = { key: 'miu', name: 'Misr International University', image: '/assets/img/pics/logo.svg.png' };
+  const publisherOf = key => faculties.find(faculty => faculty.key === key) || MIU;
+  function showPublisher() {
+    const publisher = publisherOf($('universityPublishedAs').value);
+    $('universityPublisherName').textContent = publisher.name;
+    $('universityPublisherLogo').src = publisher.image || MIU.image;
+  }
+  async function loadFaculties() {
+    try {
+      faculties = await request('/api/miu-events/faculties', { cache: 'no-store' });
+      const select = $('universityPublishedAs'), current = select.value;
+      select.innerHTML = '<option value="miu">MIU — Misr International University</option>' + (faculties.length ? `<optgroup label="Faculty">${faculties.map(faculty => `<option value="${escapeHtml(faculty.key)}">${escapeHtml(faculty.name)}</option>`).join('')}</optgroup>` : '');
+      select.value = [...select.options].some(option => option.value === current) ? current : 'miu';
+      showPublisher();
+    } catch { /* MIU stays available when the faculty list cannot load. */ }
+  }
+  function setReadOnly(readOnly) {
+    canPublish = !readOnly;
+    form.hidden = readOnly;
+    document.querySelector('.university-publisher-preview')?.toggleAttribute('hidden', readOnly);
+    const notice = $('miuReadOnlyNotice'); if (notice) notice.hidden = !readOnly;
+  }
   function render(posts) {
     $('miuEventsCount').textContent = String(posts.length);
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo' }).format(new Date());
+    const setStat = (id, value) => { const node = $(id); if (node) node.textContent = String(value); };
+    setStat('miuUpcomingCount', posts.filter(post => post.type === 'event' && post.date && post.date >= today).length);
+    setStat('miuAnnouncementCount', posts.filter(post => post.type === 'announcement').length);
+    setStat('miuFacultyCount', posts.filter(post => post.organization?.type === 'faculty').length);
     listMessage.textContent = posts.length ? `${posts.length} update${posts.length === 1 ? '' : 's'} published by MIU.` : 'No MIU posts published yet.';
-    list.innerHTML = posts.map(post => `<article class="record"><div class="record-head"><div><h3 class="record-title">${escapeHtml(post.title)}</h3><p class="record-meta">${escapeHtml(post.organization?.name || 'Misr International University')}</p><p class="record-meta">${post.type === 'event' ? 'Event' : 'Announcement'}${post.date ? ` · ${escapeHtml(post.date)}` : ''}${post.time ? ` · ${escapeHtml(window.formatSiteTime?.(post.time) || post.time)}` : ''}${post.location ? ` · ${escapeHtml(post.location)}` : ''}</p>${post.type === 'event' ? `<p class="record-meta">${post.attendanceAudience === 'members' ? 'Current members of any MIU club' : 'All university students'}${post.registrationEnabled ? ` · ${post.attendanceEnabled ? 'Attendance will be recorded' : 'Attendance will not be recorded'}` : ''}</p>` : ''}</div><div class="record-actions"><button type="button" data-edit-university-post="${Number(post.id)}">Edit</button><button class="danger" type="button" data-delete-university-post="${Number(post.id)}">Delete</button></div></div><p>${escapeHtml(post.description)}</p></article>`).join('') || '<p class="empty">No university posts have been published.</p>';
+    list.innerHTML = posts.map(post => `<article class="record"><div class="record-head"><div><h3 class="record-title">${escapeHtml(post.title)}</h3><p class="record-meta miu-record-publisher"><img src="${escapeHtml(post.organization?.image || MIU.image)}" alt="">${escapeHtml(post.organization?.name || MIU.name)}</p><p class="record-meta">${post.type === 'event' ? 'Event' : 'Announcement'}${post.date ? ` · ${escapeHtml(post.date)}` : ''}${post.time ? ` · ${escapeHtml(window.formatSiteTime?.(post.time) || post.time)}` : ''}${post.location ? ` · ${escapeHtml(post.location)}` : ''}</p>${post.type === 'event' ? `<p class="record-meta">${post.attendanceAudience === 'members' ? 'Current members of any MIU club' : 'All university students'}${post.registrationEnabled ? ` · ${post.attendanceEnabled ? 'Attendance will be recorded' : 'Attendance will not be recorded'}` : ''}</p>` : ''}</div>${canPublish ? `<div class="record-actions"><button type="button" data-edit-university-post="${Number(post.id)}">Edit</button><button class="danger" type="button" data-delete-university-post="${Number(post.id)}">Delete</button></div>` : ''}</div><p>${escapeHtml(post.description)}</p></article>`).join('') || '<p class="empty">No university posts have been published.</p>';
     list.querySelectorAll('[data-edit-university-post]').forEach(button => button.addEventListener('click', () => {
       editing = posts.find(post => Number(post.id) === Number(button.dataset.editUniversityPost));
       if (!editing) return;
@@ -45,6 +74,9 @@
       $('universityPostAttendance').value = String(editing.attendanceEnabled === true);
       $('universityPostAudience').value = editing.attendanceAudience || 'all_students';
       $('universityPostType').disabled = true;
+      // The publisher stays the same when editing, so links and identity do not change.
+      $('universityPublishedAs').value = editing.organization?.type === 'faculty' ? editing.organization.key : 'miu';
+      $('universityPublishedAs').disabled = true; showPublisher();
       const customImage = editing.image && editing.image !== '/assets/img/pics/logo.svg.png';
       form.elements.imageChoice.value = customImage ? 'custom' : 'logo';
       imageInput.value = ''; uploadedFile = uploadedImage = null;
@@ -65,7 +97,14 @@
   async function loadPosts() {
     const version = ++loadVersion;
     showMessage(listMessage, 'Loading published posts…');
-    try { const posts = await request('/api/miu-events/content', { cache: 'no-store', siteStartupNonBlocking: true }); if (version === loadVersion) render(Array.isArray(posts) ? posts : []); }
+    try {
+      const response = await fetch('/api/miu-events/content', { credentials: 'same-origin', cache: 'no-store', siteStartupNonBlocking: true });
+      const posts = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(posts.message || `Request failed (${response.status}).`);
+      if (version !== loadVersion) return;
+      setReadOnly(response.headers.get('X-Can-Publish') === '0');
+      render(Array.isArray(posts) ? posts : []);
+    }
     catch (error) { if (version === loadVersion) { showMessage(listMessage, error.message, true); list.replaceChildren(); $('miuEventsCount').textContent = '—'; } }
   }
   let registrationLoadVersion = 0;
@@ -87,6 +126,8 @@
     }
   }
   $('universityPostType').addEventListener('change', updateFields);
+  $('universityPublishedAs').addEventListener('change', showPublisher);
+  void loadFaculties();
   $('universityPostRegistration').addEventListener('change', updateFields);
   $('universityInteraction').addEventListener('change', updateFields);
   $('refreshUniversityPostsBtn').addEventListener('click', loadPosts);
@@ -104,7 +145,8 @@
   });
   form.addEventListener('reset', () => {
     editing = null; publishKey = publishSignature = ''; uploadedFile = uploadedImage = null;
-    $('universityPostType').disabled = false; submit.textContent = 'Publish update'; cancelEdit.hidden = true;
+    $('universityPostType').disabled = false; $('universityPublishedAs').disabled = false; submit.textContent = 'Publish update';
+    setTimeout(showPublisher, 0); cancelEdit.hidden = true;
     $('universityPostFormTitle').textContent = 'New university update';
     form.dataset.miuDirty = 'false';
     setTimeout(() => { updateFields(); $('universityImageField').hidden = true; preview.src = '/assets/img/pics/logo.svg.png'; }, 0);
@@ -115,7 +157,7 @@
       const isEvent = $('universityPostType').value === 'event', registrationEnabled = isEvent && $('universityPostRegistration').value === 'true';
       const imageChoice = form.elements.imageChoice.value, file = imageInput.files?.[0];
       if (imageChoice === 'custom' && !file && !editing?.image) throw new Error('Choose an image to upload, or select the MIU logo.');
-      const payload = { type: $('universityPostType').value, interaction: $('universityInteraction').value, question: $('universityQuestion').value.trim(), options: $('universityOptions').value.split('\n').map(x => x.trim()).filter(Boolean), title: $('universityPostTitle').value.trim(), description: $('universityPostDescription').value.trim(), date: $('universityPostDate').value, time: $('universityPostTime').value, location: $('universityPostLocation').value.trim(), registrationEnabled, attendanceEnabled: registrationEnabled && $('universityPostAttendance').value === 'true', attendanceAudience: $('universityPostAudience').value, imageChoice };
+      const payload = { type: $('universityPostType').value, interaction: $('universityInteraction').value, question: $('universityQuestion').value.trim(), options: $('universityOptions').value.split('\n').map(x => x.trim()).filter(Boolean), title: $('universityPostTitle').value.trim(), description: $('universityPostDescription').value.trim(), date: $('universityPostDate').value, time: $('universityPostTime').value, location: $('universityPostLocation').value.trim(), registrationEnabled, attendanceEnabled: registrationEnabled && $('universityPostAttendance').value === 'true', attendanceAudience: $('universityPostAudience').value, imageChoice, publishedAs: $('universityPublishedAs').value };
       if (imageChoice === 'custom' && file) {
         if (typeof window.uploadImageToCloudinary !== 'function') throw new Error('Image upload is not available right now.');
         if (uploadedFile !== file) { uploadedImage = await window.uploadImageToCloudinary(file, 'university'); uploadedFile = file; }

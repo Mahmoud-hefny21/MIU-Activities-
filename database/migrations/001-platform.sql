@@ -906,6 +906,8 @@ CREATE TABLE [dbo].[UniversityContent] (
   [image] NVARCHAR(MAX) COLLATE Latin1_General_100_BIN2 NULL,
   [imagePublicId] NVARCHAR(MAX) COLLATE Latin1_General_100_BIN2 NULL,
   [publishedBy] NVARCHAR(MAX) COLLATE Latin1_General_100_BIN2 NULL,
+  [publisherType] NVARCHAR(MAX) COLLATE Latin1_General_100_BIN2 NULL,
+  [publisherKey] NVARCHAR(60) COLLATE Latin1_General_100_BIN2 NULL,
   [_id] CHAR(24) COLLATE Latin1_General_100_BIN2 NOT NULL,
   [createdAt] DATETIME2(3) NULL,
   [updatedAt] DATETIME2(3) NULL,
@@ -916,6 +918,7 @@ CREATE TABLE [dbo].[UniversityContent] (
   CHECK ([interaction] IS NULL OR [interaction] IN (N'none', N'poll', N'evaluation')),
   CHECK ([type] IS NULL OR [type] IN (N'event', N'announcement')),
   CHECK ([attendanceAudience] IS NULL OR [attendanceAudience] IN (N'members', N'all_students')),
+  CHECK ([publisherType] IS NULL OR [publisherType] IN (N'miu', N'faculty')),
   CHECK ([_id] IS NULL OR (LEN([_id]) = 24 AND [_id] NOT LIKE '%[^0-9a-f]%'))
 );
 CREATE UNIQUE NONCLUSTERED INDEX [IX_UniversityContent_0_037c92] ON [dbo].[UniversityContent] ([id] ASC);

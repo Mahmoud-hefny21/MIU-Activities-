@@ -10,7 +10,8 @@ function pageQuery(o) {
     c.updatedAt, c._version AS sourceVersion, CAST(0 AS BIT) AS university, '${collection}' AS collection, TRY_CONVERT(INT,a.[key]) AS [index], a.[value] AS item
     FROM dbo.Club c CROSS APPLY OPENJSON(c._payload, '$.${collection}') a
     WHERE c.archivedAt IS NULL AND a.[type]=5 ${o.clubId ? 'AND c.id=@clubId' : ''}`);
-  if (['feed', 'events', 'updates'].includes(o.section) && !o.clubId) clubSources.push(`SELECT 0, N'Misr International University',
+  // Feed and Events are club-only; official MIU and faculty content is listed in MIU Hub.
+  if (o.section === 'updates' && !o.clubId) clubSources.push(`SELECT 0, N'Misr International University',
     NULL, u._version, CAST(1 AS BIT), CASE WHEN JSON_VALUE(u._payload,'$.type')='event' THEN 'events' ELSE 'posts' END, u.id, u._payload
     FROM dbo.UniversityContent u WHERE u.[type] ${o.section === 'events' ? "= 'event'" : o.section === 'updates' ? "= 'announcement'" : "IN ('event','announcement')"}`);
   const where = [];

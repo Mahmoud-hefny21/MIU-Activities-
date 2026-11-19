@@ -10,10 +10,10 @@
   <link rel="stylesheet" href="/assets/css/features.css?v=20261119myclubs1">
   <link rel="stylesheet" href="/assets/css/modal-controls.css?v=20261116closeunify2">
   <link rel="stylesheet" href="/assets/css/pages/event-reports.css?v=20261014mobileoptions1">
-  <link rel="stylesheet" href="/assets/css/pages/miu-events-dashboard.css?v=20261019miusync1">
+  <link rel="stylesheet" href="/assets/css/pages/miu-events-dashboard.css?v=20261119hub4">
   <script src="/assets/js/shared.js?v=20261119plain1"></script>
   <script src="/assets/js/site-loading.js?v=20261014promptqueue1"></script>
-  <script src="/assets/js/layout.js?v=20261119myclubs2" defer></script>
+  <script src="/assets/js/layout.js?v=20261119swipe1" defer></script>
   <script src="/assets/js/public-live-data.js?v=20261019miusync1"></script>
   <script src="/assets/js/theme.js?v=20261009c" defer></script>
   <script src="/assets/js/install-welcome.js?v=20261014promptqueue1" defer></script>
@@ -35,15 +35,20 @@
     <section id="committee-overview" class="committee-card miu-events-dashboard-content">
       <header class="committee-top"><div><span class="committee-label">MIU EVENTS OPERATIONS</span><h1>MIU Events Dashboard</h1><p>Publish university updates, manage MIU events, open event attendance and download MIU event reports.</p></div><div class="top-actions"><a class="secondary-btn" href="/">Home</a></div></header>
       <section id="miuEventsOverview" class="committee-overview-panel">
-        <h2>Overview</h2><p>Manage MIU posts and events from the sidebar. Attendance files and semester event reports are available under Downloads.</p>
-        <div class="committee-overview-stats overview-grid-1"><button class="overview-stat-card" type="button" data-dashboard-panel="miuEventsPanel"><span>Published MIU updates</span><strong id="miuEventsCount">—</strong><small>Open event and post management</small></button></div>
+        <h2>Overview</h2><p>Publish official events and announcements as MIU or as a faculty. Everything published appears in MIU Hub; upcoming events also appear on Home and in the Calendar.</p>
+        <div class="committee-overview-stats overview-grid-4"><button class="overview-stat-card" type="button" data-dashboard-panel="miuEventsPanel"><span>Published updates</span><strong id="miuEventsCount">—</strong><small>All events and announcements</small></button><button class="overview-stat-card" type="button" data-dashboard-panel="miuEventsPanel"><span>Upcoming events</span><strong id="miuUpcomingCount">—</strong><small>Shown on Home and Calendar</small></button><button class="overview-stat-card" type="button" data-dashboard-panel="miuEventsPanel"><span>Announcements</span><strong id="miuAnnouncementCount">—</strong><small>Listed in MIU Hub</small></button><button class="overview-stat-card" type="button" data-dashboard-panel="miuEventsPanel"><span>Faculty posts</span><strong id="miuFacultyCount">—</strong><small>Published as a faculty</small></button></div>
+        <p class="miu-events-overview-actions"><a class="secondary-btn" href="/pages/miu-hub.html">Open MIU Hub</a></p>
       </section>
       <section id="miuEventsPanel" class="committee-overview-panel" hidden>
-        <header class="miu-events-section-heading"><div><span class="committee-label">MIU POSTS</span><h2>Manage MIU events and posts</h2><p>Changes publish to the existing public Events &amp; News and Community Feed.</p></div><div class="miu-events-section-actions"><button id="refreshUniversityPostsBtn" class="secondary-btn" type="button">Refresh from database</button></div></header>
+        <header class="miu-events-section-heading"><div><span class="committee-label">MIU POSTS</span><h2>Manage MIU events and posts</h2><p>Published updates appear in MIU Hub. Upcoming events also appear on Home and in the Calendar.</p></div><div class="miu-events-section-actions"><button id="refreshUniversityPostsBtn" class="secondary-btn" type="button">Refresh from database</button></div></header>
+        <p id="miuReadOnlyNotice" class="miu-read-only-notice" hidden>You can view official MIU content here. Only MIU Events accounts can publish, edit or remove it.</p>
         <div class="miu-events-management-grid">
           <form id="universityPostForm" class="university-publisher-form">
             <h3 id="universityPostFormTitle">New university update</h3>
-            <label for="universityPostType">Post type<select id="universityPostType" name="type"><option value="event">Event</option><option value="announcement">Announcement</option></select></label>
+            <div class="form-row miu-publish-row">
+              <label for="universityPostType">Post type<select id="universityPostType" name="type"><option value="event">Event</option><option value="announcement">Announcement</option></select></label>
+              <label for="universityPublishedAs">Published as<select id="universityPublishedAs" name="publishedAs"><option value="miu">MIU — Misr International University</option></select><small id="universityPublishedAsHint">Students see this name and logo on the post.</small></label>
+            </div>
             <label for="universityPostTitle">Title<input id="universityPostTitle" name="title" required maxlength="140" placeholder="e.g. University welcome event"></label>
             <label for="universityPostDescription">Details<textarea id="universityPostDescription" name="description" required maxlength="2000" placeholder="Write the information students need to know"></textarea></label>
             <label>Student response<select id="universityInteraction"><option value="none">No response</option><option value="poll">Poll — choose one option</option><option value="evaluation">Evaluation — rate from 1 to 5</option></select></label>
@@ -63,7 +68,7 @@
             <button id="publishUniversityPostBtn" class="primary-btn" type="submit">Publish to website</button>
             <p id="universityPostMessage" class="message" role="status" aria-live="polite"></p>
           </form>
-          <aside class="university-publisher-preview"><img id="universityPostPreview" src="/assets/img/pics/logo.svg.png" alt="MIU post image preview"><strong>Misr International University</strong><p>Published updates appear in Events &amp; News and the Community Feed.</p></aside>
+          <aside class="university-publisher-preview"><img id="universityPostPreview" src="/assets/img/pics/logo.svg.png" alt="Post image preview"><div class="miu-publisher-chip"><img id="universityPublisherLogo" src="/assets/img/pics/logo.svg.png" alt=""><strong id="universityPublisherName">Misr International University</strong></div><p>Published updates appear in MIU Hub. Upcoming events also appear on Home and in the Calendar.</p></aside>
         </div>
         <section class="miu-post-records"><h3>Published MIU updates</h3><p id="universityPostListMessage" class="message" role="status" aria-live="polite">Loading updates</p><div id="universityPostRecords" class="records"></div></section>
       </section>
@@ -78,5 +83,5 @@
   <script src="/assets/js/committee-sidebar.js?v=20261013lighter1" defer></script>
   <script src="/assets/js/pages/report-downloads.js?v=20261014progressive1" defer></script>
   <script src="/assets/js/report-dashboard-panels.js?v=20261119icons1" defer></script>
-  <script src="/assets/js/miu-events-dashboard.js?v=20261019miusync1" defer></script>
+  <script src="/assets/js/miu-events-dashboard.js?v=20261119hub1" defer></script>
 </body></html>

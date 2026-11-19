@@ -1,7 +1,10 @@
 function registerMiuEventAdmin(app, deps) {
   const { UniversityContent, EventRegistration, databaseReady, requireMiuEventsDashboard } = deps;
   app.use('/api/miu-events', requireMiuEventsDashboard);
-  require('./university-content-admin').registerUniversityContentAdmin(app, deps, '/api/miu-events/content');
+  require('./university-content-admin').registerUniversityContentAdmin(app, deps, '/api/miu-events/content',
+    { canWrite: req => req.clubAccount?.role === 'miu_events' });
+  // Faculties offered in "Published As".
+  app.get('/api/miu-events/faculties', (req, res) => { res.setHeader('Cache-Control', 'no-store'); res.json(require('./faculties').publicFaculties()); });
   app.get('/api/miu-events/registrations', async (req, res) => {
     try {
       if (!databaseReady()) return res.status(503).json({ message: 'MIU event storage is temporarily unavailable.' });

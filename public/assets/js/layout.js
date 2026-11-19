@@ -71,6 +71,8 @@
     else previous = previous || (saved?.current ? safePrevious(saved.current) : '');
     sessionStorage.setItem('miu:page-navigation', JSON.stringify({ current, previous }));
   } catch { /* Private browsing can disable storage. */ }
+  // True only when Back leads to a real earlier page (or dashboard section), never to a fallback page.
+  window.miuCanGoBack = () => Boolean(window.miuDashboardCanGoBack?.() || previous);
   window.miuGoBack = (fallback = '/') => {
     if (window.miuDashboardGoBack?.()) return;
     if (previous) {
@@ -174,13 +176,14 @@ document.addEventListener('DOMContentLoaded', () => {
   window.MiuUI.initModalControls();
   initFloatingBack();
 
-  const navigationScript = document.createElement('script'); navigationScript.src = '/assets/js/dashboard-navigation.js?v=20261014freshvisit1'; document.head.append(navigationScript);
-  const drawerStyles = document.createElement('link'); drawerStyles.rel = 'stylesheet'; drawerStyles.href = '/assets/css/mobile-sidebars.css?v=20261119down1';
+  const navigationScript = document.createElement('script'); navigationScript.src = '/assets/js/dashboard-navigation.js?v=20261119swipe1'; document.head.append(navigationScript);
+  const drawerStyles = document.createElement('link'); drawerStyles.rel = 'stylesheet'; drawerStyles.href = '/assets/css/mobile-sidebars.css?v=20261119swipe1';
   const drawerScript = document.createElement('script'); drawerScript.src = '/assets/js/mobile-sidebars.js?v=20261119bar5';
   let drawerStarted = false;
-  const bottomBarScript = document.createElement('script'); bottomBarScript.src = '/assets/js/bottom-bar.js?v=20261119myclubs2';
+  const bottomBarScript = document.createElement('script'); bottomBarScript.src = '/assets/js/bottom-bar.js?v=20261119bar9';
   // The bottom bar starts after the drawer script so dashboards can open their menu from it.
-  drawerScript.addEventListener('load', () => document.head.append(bottomBarScript), { once: true });
+  const swipeBackScript = document.createElement('script'); swipeBackScript.src = '/assets/js/swipe-back.js?v=20261119swipe1';
+  drawerScript.addEventListener('load', () => { document.head.append(bottomBarScript); document.head.append(swipeBackScript); }, { once: true });
   const loadMobileDrawers = () => { if (drawerStarted) return; drawerStarted = true; document.head.append(drawerScript); };
   drawerStyles.addEventListener('load', loadMobileDrawers, { once: true });
   drawerStyles.addEventListener('error', loadMobileDrawers, { once: true });
@@ -626,7 +629,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  inject('site-header', '/components/site-header.html?v=20261118feedicon1');
+  inject('site-header', '/components/site-header.html?v=20261119hub1');
   inject('site-footer', '/components/site-footer.html?v=20261017mobilecolon1');
   const workflowShortcuts = document.createElement('script');
   workflowShortcuts.src = '/assets/js/workflow-shortcuts.js?v=20261018workflowNavigation1';

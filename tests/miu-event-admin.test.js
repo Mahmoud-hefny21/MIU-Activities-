@@ -27,7 +27,7 @@ async function fixture(t, options = {}) {
     readCloudinaryAsset: async () => null,
     cloudinary: { uploader: { destroy: async () => ({}) } }, cloudinaryFolders: { university: 'university' }, cloudinaryConfigured: false,
     dispatchPublishedContentNotifications: async () => {}, toApiRecord: item => item,
-    requireMiuEventsDashboard(req, res, next) { if (req.headers['x-role'] === 'miu_events') { req.clubAccount = { email: 'events@miuegypt.edu.eg' }; return next(); } return res.status(403).json({ message: 'MIU role required.' }); }
+    requireMiuEventsDashboard(req, res, next) { if (req.headers['x-role'] === 'miu_events') { req.clubAccount = { email: 'events@miuegypt.edu.eg', role: 'miu_events' }; return next(); } return res.status(403).json({ message: 'MIU role required.' }); }
   });
   const server = await new Promise(resolve => { const current = app.listen(0, '127.0.0.1', () => resolve(current)); });
   t.after(() => new Promise(resolve => server.close(resolve)));

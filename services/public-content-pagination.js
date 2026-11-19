@@ -45,7 +45,8 @@ function mongoPipeline(Club, UniversityContent, o) {
     { $project: { clubId: '$id', clubName: '$name', clubImage: '$image', updatedAt: 1, rows: { $concatArrays: branches } } },
     { $unwind: '$rows' }, { $project: { _id: 0, clubId: 1, clubName: 1, clubImage: 1, updatedAt: 1,
       item: '$rows.item', index: '$rows.index', collection: '$rows.collection', university: { $literal: false } } }];
-  if (['feed', 'events', 'updates'].includes(o.section) && !o.clubId) pipeline.push({ $unionWith: {
+  // Feed and Events are club-only; official MIU and faculty content is listed in MIU Hub.
+  if (o.section === 'updates' && !o.clubId) pipeline.push({ $unionWith: {
     coll: UniversityContent.collection.name, pipeline: [{ $match: { type: o.section === 'events' ? 'event' : o.section === 'updates' ? 'announcement' : { $in: ['event', 'announcement'] } } },
       { $project: { _id: 0, item: '$$ROOT', index: '$id', collection: { $cond: [{ $eq: ['$type', 'event'] }, 'events', 'posts'] },
         clubId: { $literal: 0 }, university: { $literal: true } } }] } });

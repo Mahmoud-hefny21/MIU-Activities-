@@ -1,14 +1,22 @@
 // UniversityContent is the existing organization source. Its registration scope
 // is clubId=0; there is no separate organization table or student Club record.
 const organization = Object.freeze({ id: 0, type: 'university', name: 'Misr International University', image: '/assets/img/pics/logo.svg.png' });
-const publicFields = 'id type title description interaction question options date time location image registrationEnabled attendanceEnabled attendanceAudience createdAt updatedAt';
+const publicFields = 'id type title description interaction question options date time location image registrationEnabled attendanceEnabled attendanceAudience publisherType publisherKey createdAt updatedAt';
+const { facultyByKey, MIU_LOGO } = require('./faculties');
+// Records without a publisher (all content made before faculties existed) belong to MIU.
+function publisherFor(record) {
+  const faculty = record?.publisherType === 'faculty' ? facultyByKey(record.publisherKey) : null;
+  return faculty ? { id: 0, type: 'faculty', key: faculty.key, name: faculty.name, image: faculty.image || MIU_LOGO } : organization;
+}
 function toPublicUniversityContent(record) {
   const result = Object.fromEntries(publicFields.split(' ').filter(key => Object.hasOwn(record, key)).map(key => [key, record[key]]));
   result.interaction = record.interaction || 'none'; result.question = record.question || ''; result.options = record.options || [];
   result.registrationEnabled = record.type === 'event' && record.registrationEnabled === true;
   result.attendanceEnabled = result.registrationEnabled ? (typeof record.attendanceEnabled === 'boolean' ? record.attendanceEnabled : null) : false;
   result.attendanceAudience = record.type === 'event' ? (record.attendanceAudience === 'members' ? 'members' : 'all_students') : undefined;
-  result.organization = organization;
+  result.organization = publisherFor(record);
+  result.publisherType = result.organization.type === 'faculty' ? 'faculty' : 'miu';
+  result.publisherKey = result.organization.key || '';
   return result;
 }
 function registerPublicUniversityContentDetail(app, { UniversityContent, ensureReady, requireLiveDatabase }) {
@@ -28,4 +36,4 @@ function registerPublicUniversityContentDetail(app, { UniversityContent, ensureR
     }
   });
 }
-module.exports = { organization, publicFields, toPublicUniversityContent, registerPublicUniversityContentDetail };
+module.exports = { organization, publisherFor, publicFields, toPublicUniversityContent, registerPublicUniversityContentDetail };

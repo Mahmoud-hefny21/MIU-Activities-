@@ -47,8 +47,8 @@ function renderDashboardPage(root, tool = '') {
   }
   html = html.replace('data-tool=""', `data-tool="${tool}"`)
     .replace('<!-- TOOL_CONTENT -->', content)
-    .replace('<!-- TOOL_STYLES -->', assets.map(name => `<link rel="stylesheet" href="/assets/css/pages/${name}.css${name === 'miu-events-dashboard' ? '?v=20261019miusync1' : name === 'workflow' ? '?v=20261019blockedBadge1' : ''}">`).join('\n'))
-    .replace('<!-- TOOL_SCRIPTS -->', scripts.map(name => `<script src="/assets/js/${name}.js?v=${name === 'pages/admin-excel-import' ? '20261019excelRowLog1' : name === 'workflow-ui' ? '20261019requiredRevisionFields1' : name === 'miu-events-dashboard' ? '20261019miusync1' : ['custom-role-admin', 'staff-management'].includes(name) ? '20261018customRoles1' : '20261017clubimport2'}" defer></script>`).join('\n'));
+    .replace('<!-- TOOL_STYLES -->', assets.map(name => `<link rel="stylesheet" href="/assets/css/pages/${name}.css${name === 'miu-events-dashboard' ? '?v=20261119hub4' : name === 'workflow' ? '?v=20261019blockedBadge1' : ''}">`).join('\n'))
+    .replace('<!-- TOOL_SCRIPTS -->', scripts.map(name => `<script src="/assets/js/${name}.js?v=${name === 'pages/admin-excel-import' ? '20261019excelRowLog1' : name === 'workflow-ui' ? '20261019requiredRevisionFields1' : name === 'miu-events-dashboard' ? '20261119hub2' : ['custom-role-admin', 'staff-management'].includes(name) ? '20261018customRoles1' : '20261017clubimport2'}" defer></script>`).join('\n'));
   if (tool) html = html.replace('id="overviewPage"', 'id="overviewPage" hidden').replace('id="toolPage" hidden', 'id="toolPage"');
   return html;
 }

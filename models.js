@@ -124,7 +124,10 @@ const universityContentSchema = new mongoose.Schema({
   location: { type: String, default: '', trim: true, maxlength: 160 },
   image: { type: String, default: '' },
   imagePublicId: { type: String, default: '' },
-  publishedBy: { type: String, default: '' }
+  publishedBy: { type: String, default: '' },
+  // Who the content is published as: MIU itself or one faculty (key from services/faculties.js).
+  publisherType: { type: String, enum: ['miu', 'faculty'], default: 'miu' },
+  publisherKey: { type: String, default: '', trim: true, maxlength: 60 }
 }, { timestamps: true });
 universityContentSchema.index({ createdAt: -1, id: -1 });
 

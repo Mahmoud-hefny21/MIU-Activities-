@@ -1,0 +1,6 @@
+/* MIU Hub: reuses the Community Feed cards; only the differences live here. */
+.miu-hub-card.is-upcoming { border-left: 3px solid var(--primary-700); }
+.miu-hub-card.is-highlighted { box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-700) 30%, transparent); }
+.miu-hub-card .feed-timeline-avatar.university-brand-avatar { object-fit: contain; background: #fff; }
+.miu-hub-more { display: flex; justify-content: center; margin-top: 16px; }
+.miu-hub-more .secondary-btn[hidden] { display: none; }

@@ -44,7 +44,7 @@ function fixtureModel() {
     readCloudinaryAsset: async (url, publicId) => url ? { url, publicId } : null,
     cloudinaryFolders: { university: 'university' }, toApiRecord: record => ({ ...record }),
     dispatchPublishedContentNotifications: async () => { notifications++; if (failNotice) throw new Error('NOTIFICATION_DOWN'); },
-    requireMiuEventsDashboard(req, res, next) { if (req.get('X-Role') !== 'miu_events') return res.sendStatus(403); req.clubAccount = { email: 'events@miuegypt.edu.eg' }; next(); },
+    requireMiuEventsDashboard(req, res, next) { if (req.get('X-Role') !== 'miu_events') return res.sendStatus(403); req.clubAccount = { email: 'events@miuegypt.edu.eg', role: 'miu_events' }; next(); },
     EventRegistration: { find: () => query(() => []) }
   };
   return { deps, rows, get writes() { return writes; }, get notifications() { return notifications; },
@@ -120,4 +120,27 @@ test('protected MIU/admin APIs and public details reflect the same create/edit/d
   response = await request(`/api/miu-events/content/${created.id}`, 'DELETE'); assert.equal(response.status, 204);
   assert.equal((await request(`/api/university-content/${created.id}`)).status, 404);
   assert.equal((await request('/api/miu-events/content')).status, 200); assert.equal(f.rows.size, 0);
+});
+
+test('MIU Events can publish as a faculty; the publisher is kept on edit and shown publicly', async () => {
+  const f = fixtureModel(), publisher = createUniversityPublisher(f.deps);
+  const { record } = await publisher.create({ ...payload, publishedAs: 'computer-science' }, 'events@miuegypt.edu.eg');
+  assert.equal(record.publisherType, 'faculty'); assert.equal(record.publisherKey, 'computer-science');
+  const shown = toPublicUniversityContent(record);
+  assert.equal(shown.organization.type, 'faculty'); assert.equal(shown.organization.name, 'Faculty of Computer Science');
+  const edited = await publisher.update(record.id, { ...payload, publishedAs: 'miu', description: 'New details', updatedAt: record.updatedAt });
+  assert.equal(edited.publisherType, 'faculty'); assert.equal(edited.publisherKey, 'computer-science');
+  await assert.rejects(publisher.create({ ...payload, title: 'Other', publishedAs: 'not-a-faculty' }, 'events@miuegypt.edu.eg'), /Published As/);
+  assert.equal(toPublicUniversityContent({ ...payload, id: 5 }).organization.name, organization.name);
+});
+
+test('only the MIU Events role can write official content; other viewers read only', async t => {
+  const f = fixtureModel(), app = express(); app.use(express.json());
+  registerUniversityContentAdmin(app, { ...f.deps, actorEmail: () => 'admin' }, '/api/admin/university-content');
+  const server = app.listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve));
+  t.after(() => new Promise(resolve => server.close(resolve)));
+  const url = `http://127.0.0.1:${server.address().port}/api/admin/university-content`;
+  const write = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'http://localhost' }, body: JSON.stringify(payload) });
+  assert.equal(write.status, 403); assert.equal(f.rows.size, 0);
+  const read = await fetch(url); assert.equal(read.status, 200); assert.equal(read.headers.get('x-can-publish'), '0');
 });

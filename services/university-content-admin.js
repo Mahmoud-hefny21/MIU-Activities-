@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
-const { organization } = require('./university-content');
-const editableKeys = 'interaction question options type title description date time registrationEnabled attendanceEnabled attendanceAudience location image imagePublicId'.split(' ');
+const { organization, publisherFor } = require('./university-content');
+const { facultyByKey } = require('./faculties');
+const editableKeys = 'interaction question options type title description date time registrationEnabled attendanceEnabled attendanceAudience location image imagePublicId publisherType publisherKey'.split(' ');
 const fail = (status, message) => Object.assign(new Error(message), { status });
 const signature = item => JSON.stringify(editableKeys.map(key => item[key] ?? (key === 'options' ? [] : key.endsWith('Enabled') ? false : '')));
 function createUniversityPublisher(deps) {
@@ -23,7 +24,13 @@ function createUniversityPublisher(deps) {
       if (!uploaded) throw fail(400, 'Choose a valid PNG, JPG, or WebP image up to 10 MB.');
       image = uploaded.url; imagePublicId = uploaded.publicId;
     }
-    return { ...interaction, type, title, description, date, time, location: cleanText(body.location, 160), image, imagePublicId,
+    let publisherType = 'miu', publisherKey = '';
+    if (previous) { publisherType = previous.publisherType === 'faculty' ? 'faculty' : 'miu'; publisherKey = publisherType === 'faculty' ? previous.publisherKey || '' : ''; }
+    else if (body.publishedAs && body.publishedAs !== 'miu') {
+      if (!facultyByKey(body.publishedAs)) throw fail(400, 'Choose MIU or a listed faculty in Published As.');
+      publisherType = 'faculty'; publisherKey = body.publishedAs;
+    }
+    return { ...interaction, type, title, description, date, time, location: cleanText(body.location, 160), image, imagePublicId, publisherType, publisherKey,
       registrationEnabled: type === 'event' && body.registrationEnabled === true,
       attendanceEnabled: type === 'event' && body.registrationEnabled === true && body.attendanceEnabled === true,
       attendanceAudience: type === 'event' ? body.attendanceAudience : undefined };
@@ -82,19 +89,24 @@ function createUniversityPublisher(deps) {
   }
   return { create, update };
 }
-function registerUniversityContentAdmin(app, deps, basePath) {
+// canWrite decides who may create, edit or delete. Only the MIU Events role publishes official content;
+// other viewers (such as the general admin) can read the list but not change it.
+function registerUniversityContentAdmin(app, deps, basePath, { canWrite = () => false } = {}) {
   const { UniversityContent, databaseReady, sameOrigin, toApiRecord } = deps;
   const publisher = deps.publisher || createUniversityPublisher(deps);
-  const output = record => ({ ...toApiRecord(record), organization });
+  // Keep the timestamps: the dashboard sends updatedAt back so edits can detect a newer change.
+  const output = record => ({ ...toApiRecord(record), createdAt: record.createdAt, updatedAt: record.updatedAt, organization: publisherFor(record) });
+  const denyWrite = (req, res) => { if (canWrite(req)) return false; res.status(403).json({ message: 'Only MIU Events accounts can publish, edit or remove official MIU content.' }); return true; };
   app.get(basePath, async (req, res) => {
     try {
       if (!databaseReady()) return res.status(503).json({ message: 'MIU event storage is temporarily unavailable.' });
       const records = await UniversityContent.find().read('primary').readConcern('majority').sort({ createdAt: -1, id: -1 }).lean();
-      res.setHeader('Cache-Control', 'no-store'); res.json(records.map(output));
+      res.setHeader('Cache-Control', 'no-store'); res.setHeader('X-Can-Publish', canWrite(req) ? '1' : '0'); res.json(records.map(output));
     } catch (error) { console.error('University content list failed:', error.name); res.status(503).json({ message: 'Could not load MIU updates right now.' }); }
   });
   for (const method of ['post', 'put']) app[method](method === 'post' ? basePath : `${basePath}/:id`, async (req, res) => {
     if (!sameOrigin(req)) return res.status(403).json({ message: 'Reload and try again.' });
+    if (denyWrite(req, res)) return;
     if (!databaseReady()) return res.status(503).json({ message: 'MIU event storage is temporarily unavailable.' });
     const id = Number(req.params.id);
     if (method === 'put' && (!Number.isSafeInteger(id) || id < 1)) return res.status(400).json({ message: 'Choose a valid MIU post.' });
@@ -109,6 +121,7 @@ function registerUniversityContentAdmin(app, deps, basePath) {
   });
   app.delete(`${basePath}/:id`, async (req, res) => {
     if (!sameOrigin(req)) return res.status(403).json({ message: 'Reload and try again.' });
+    if (denyWrite(req, res)) return;
     const id = Number(req.params.id);
     if (!Number.isSafeInteger(id) || id < 1) return res.status(400).json({ message: 'Choose a valid MIU post.' });
     try {
