@@ -1565,6 +1565,8 @@
 .footer-authors { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 0 5px; }
 .footer-authors > a { white-space: nowrap; }
 
+.footer-authors .footer-author-link { display: inline-flex; align-items: center; min-height: 26px; }
+
 .footer-author-link {
   color: #ffb4ba;
   font-weight: 700;

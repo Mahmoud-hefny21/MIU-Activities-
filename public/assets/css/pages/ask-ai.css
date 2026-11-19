@@ -41,12 +41,12 @@
 .ask-ai-send { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; gap: 7px; min-height: 40px; padding: 0 14px; }
 .ask-ai-send svg { width: 16px; height: 16px; }
 .ask-ai-send:disabled { opacity: .6; cursor: wait; }
-.ask-ai-disclaimer { margin: 10px 20px 17px; color: var(--text-light); font-size: .7rem; line-height: 1.6; text-align: center; }
+.ask-ai-disclaimer { margin: 10px 20px 17px; color: var(--text-light); font-size: .75rem; line-height: 1.6; text-align: center; }
 .ask-ai-disclaimer a { color: var(--text-muted); text-decoration: underline; text-underline-offset: 2px; }
 .ask-ai-typing { display: inline-flex; gap: 4px; padding: 5px 2px; }
 .ask-ai-typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--primary-600); animation: askAiPulse 1s ease-in-out infinite; }
 .ask-ai-typing span:nth-child(2) { animation-delay: .15s; }
 .ask-ai-typing span:nth-child(3) { animation-delay: .3s; }
 @keyframes askAiPulse { 0%, 60%, 100% { opacity: .35; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
-@media (max-width: 620px) { .ask-ai-page { padding: 18px 10px 36px; } .ask-ai-heading { gap: 12px; margin-bottom: 15px; padding: 0 5px; } .ask-ai-mark { flex-basis: 46px; width: 46px; height: 46px; border-radius: 14px; font-size: 1.4rem; } .ask-ai-heading > div > p:last-child { font-size: .84rem; line-height: 1.55; } .ask-ai-card { min-height: calc(100dvh - 170px); border-radius: var(--radius-lg); } .ask-ai-card-head { padding: 12px 14px; } .ask-ai-messages { max-height: none; min-height: 200px; padding: 18px 13px; } .ask-ai-suggestions { gap: 7px; padding: 0 13px 14px; } .ask-ai-suggestions button { font-size: .71rem; } .ask-ai-form { gap: 5px; margin: 0 10px; padding: 7px; border-radius: 15px; } .ask-ai-send { min-height: 38px; padding: 0 11px; } .ask-ai-disclaimer { margin-right: 12px; margin-left: 12px; font-size: .66rem; } }
+@media (max-width: 620px) { .ask-ai-page { padding: 18px 10px 36px; } .ask-ai-heading { gap: 12px; margin-bottom: 15px; padding: 0 5px; } .ask-ai-mark { flex-basis: 46px; width: 46px; height: 46px; border-radius: 14px; font-size: 1.4rem; } .ask-ai-heading > div > p:last-child { font-size: .84rem; line-height: 1.55; } .ask-ai-card { min-height: calc(100dvh - 170px); border-radius: var(--radius-lg); } .ask-ai-card-head { padding: 12px 14px; } .ask-ai-messages { max-height: none; min-height: 200px; padding: 18px 13px; } .ask-ai-suggestions { gap: 7px; padding: 0 13px 14px; } .ask-ai-suggestions button { font-size: .71rem; } .ask-ai-form { gap: 5px; margin: 0 10px; padding: 7px; border-radius: 15px; } .ask-ai-send { min-height: 38px; padding: 0 11px; } .ask-ai-disclaimer { margin-right: 12px; margin-left: 12px; font-size: .72rem; } }
 @media (prefers-reduced-motion: reduce) { .ask-ai-suggestions button { transition: none; } .ask-ai-typing span { animation: none; opacity: .7; } }

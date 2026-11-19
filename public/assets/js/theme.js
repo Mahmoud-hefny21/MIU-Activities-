@@ -8,7 +8,7 @@
 
   const stylesheet = document.createElement('link');
   stylesheet.rel = 'stylesheet';
-  stylesheet.href = '/assets/css/theme-toggle.css?v=20261009c';
+  stylesheet.href = '/assets/css/theme-toggle.css?v=20261119ui1';
   document.head.append(stylesheet);
 
   const button = document.createElement('button');

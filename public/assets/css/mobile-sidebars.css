@@ -478,8 +478,8 @@ html.swipe-back-active body { overflow-x: hidden; box-shadow: -12px 0 28px rgba(
   .bottom-bar-menu { bottom: calc(var(--bb-bottom) + var(--bb-item-h) + 20px); }
   body.has-bottom-bar:not(.bottom-bar-away):not(:has(.bottom-bar.is-inline)) .quiz-launcher { --quiz-launcher-bottom: calc(var(--bb-bottom) + var(--bb-item-h) + 22px); }
   /* Room so the last content is never hidden behind the floating bar. */
-  /* The footer itself grows under the bar (its dark background fills the space); pages without a footer get body padding. */
-  body.has-bottom-bar:not(:has(.bottom-bar.is-inline)) .site-footer { padding-bottom: calc(var(--bb-bottom) + var(--bb-item-h) + 24px) !important; }
+  /* The bar slides away over the footer, so the footer keeps only safe-area room; pages without a footer get body padding. */
+  body.has-bottom-bar:not(:has(.bottom-bar.is-inline)) .site-footer { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 18px) !important; }
   body.has-bottom-bar:not(:has(.bottom-bar.is-inline)):not(:has(.site-footer)) { padding-bottom: calc(var(--bb-bottom) + var(--bb-item-h) + 24px); }
   /* Inline (short pages): equal-width buttons that always fit the screen. */
   .bottom-bar.is-inline { display: flex; flex-wrap: nowrap; gap: 6px; max-width: 100%; overflow: visible; }

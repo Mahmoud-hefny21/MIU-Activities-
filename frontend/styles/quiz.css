@@ -192,8 +192,8 @@ html.quiz-scroll-lock .quiz-launcher-circle,
 .quiz-launcher-dismiss {
   position: static;
   flex: 0 0 auto;
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   border: 1px solid var(--slate-300);
   background-color: var(--bg-panel);
@@ -233,8 +233,8 @@ html.quiz-scroll-lock .quiz-launcher-circle,
   }
 
   .quiz-launcher-dismiss {
-    width: 20px;
-    height: 20px;
+    width: 26px;
+    height: 26px;
     font-size: 16px;
   }
 }

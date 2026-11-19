@@ -214,7 +214,19 @@
         ]).catch(() => {});
         return;
       }
-      navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' }).catch((error) => {
+      // A new deployment installs a new worker; reload once so the app shows it without reinstalling.
+      const hadController = !!navigator.serviceWorker.controller;
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!hadController || reloaded) return;
+        reloaded = true;
+        location.reload();
+      });
+      navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' }).then((registration) => {
+        const check = () => registration.update().catch(() => {});
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); });
+        setInterval(check, 30 * 60 * 1000);
+      }).catch((error) => {
         console.warn('PWA service worker registration failed:', error);
       });
     }, { once: true });

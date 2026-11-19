@@ -32,8 +32,9 @@
   color: var(--primary-700);
 }
 
-.site-theme-toggle:focus-visible {
-  outline: 3px solid var(--primary-200);
+.site-theme-toggle:focus-visible,
+.site-theme-toggle.is-floating:focus-visible {
+  outline: 3px solid var(--primary-500, #b91c1c) !important;
   outline-offset: 2px;
 }
 

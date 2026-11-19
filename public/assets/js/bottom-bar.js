@@ -201,7 +201,7 @@ hub: '<path d="M3 10 12 4l9 6"/><path d="M5 10v9M9.5 10v9M14.5 10v9M19 10v9M3 21
   function fitLabels() {
     bar.querySelectorAll('.bottom-bar-label').forEach((label) => {
       label.style.fontSize = '';
-      for (let size = 0.95; label.scrollWidth > label.clientWidth + 1 && size >= 0.75; size -= 0.05) label.style.fontSize = `${size.toFixed(2)}em`;
+      for (let size = 0.95; label.scrollWidth > label.clientWidth + 1 && size >= 0.9; size -= 0.05) label.style.fontSize = `${size.toFixed(2)}em`;
     });
   }
   window.addEventListener('resize', () => requestAnimationFrame(fitLabels));
@@ -241,15 +241,17 @@ hub: '<path d="M3 10 12 4l9 6"/><path d="M5 10v9M9.5 10v9M14.5 10v9M19 10v9M3 21
   let lastY = window.scrollY, footerVisible = false;
   const show = () => { bar.classList.remove('is-away'); document.body.classList.remove('bottom-bar-away'); };
   const hide = () => { bar.classList.add('is-away'); document.body.classList.add('bottom-bar-away'); };
-  const footer = document.querySelector('footer, .site-footer, #site-footer');
-  if (footer && 'IntersectionObserver' in window) {
-    new IntersectionObserver(([entry]) => { footerVisible = entry.isIntersecting; if (!footerVisible) show(); }, { rootMargin: '0px 0px -40px 0px' }).observe(footer);
-  }
+  // The footer can be added after the bar starts (Home), so it is looked up on scroll.
   window.addEventListener('scroll', () => {
     const y = window.scrollY;
+    const footer = document.querySelector('.site-footer, footer');
+    const wasVisible = footerVisible;
+    footerVisible = !!footer && footer.getBoundingClientRect().top < window.innerHeight - 40;
+    if (wasVisible && !footerVisible) show();
     if (bar.classList.contains('is-inline')) return;
-    if (y < lastY - 4) show();
-    else if (y > lastY + 4 && footerVisible) hide();
+    const atEnd = footerVisible && y + window.innerHeight >= document.documentElement.scrollHeight - 8;
+    if (atEnd || (y > lastY + 4 && footerVisible)) hide();
+    else if (y < lastY - 4) show();
     lastY = y;
   }, { passive: true });
 })();

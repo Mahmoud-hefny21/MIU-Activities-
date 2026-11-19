@@ -27,7 +27,8 @@
     "sql:operations:verify": "node scripts/verify-sql-operations.cjs",
     "test:sql": "node --test tests/sqlserver*.test.js",
     "sql:routes:verify": "node scripts/verify-provider-routes.cjs --write",
-    "sql:api:compare": "node scripts/verify-database-api-parity.cjs"
+    "sql:api:compare": "node scripts/verify-database-api-parity.cjs",
+    "vercel-build": "node scripts/stamp-sw.cjs"
   },
   "dependencies": {
     "cloudinary": "^2.11.0",
