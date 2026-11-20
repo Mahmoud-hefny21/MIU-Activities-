@@ -171,13 +171,6 @@
     grid-template-columns: 1fr;
   }
 
-  .interview-section-heading {
-    grid-template-columns: 1fr;
-    align-items: stretch;
-  }
-
-  .interview-section-heading > .delete-btn { justify-self: start; }
-  .application-question-controls { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .interview-form-panel { padding: 16px; }
 
   .committee-head-form > .primary-btn {
@@ -229,14 +222,6 @@
 
   .stats-summary {
     grid-template-columns: 1fr;
-  }
-
-  .application-question-controls {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  }
-
-  .application-question-required {
-    margin: 0;
   }
 
   .admin-field-full {

@@ -14,9 +14,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" /></noscript>
-    <link rel="stylesheet" href="/assets/css/base.css?v=20261120fixall1" />
-    <link rel="stylesheet" href="/assets/css/responsive.css?v=20261120fixall1" />
-    <link rel="stylesheet" href="/assets/css/dark.css?v=20261120dead1" />
+    <link rel="stylesheet" href="/assets/css/base.css?v=20261120qb2" />
+    <link rel="stylesheet" href="/assets/css/responsive.css?v=20261120qb1" />
+    <link rel="stylesheet" href="/assets/css/dark.css?v=20261120qb1" />
     <link rel="stylesheet" href="/assets/css/features.css?v=20261120menus1" />
     <link rel="stylesheet" href="/assets/css/event-modal.css?v=20261017mobilepopup1" />
     <link rel="icon" type="image/png" sizes="192x192" href="/assets/img/pics/pwa-icon-192.png?v=20261013favicon1">
@@ -466,15 +466,29 @@
                   <label for="presidentApplicationIntro">Form introduction</label>
                   <textarea id="presidentApplicationIntro" rows="3" maxlength="500" placeholder="Tell applicants what to expect"></textarea>
                 </div>
-                <div class="admin-section-heading president-questions-heading">
-                  <h3>Questions</h3>
-                  <button id="addPresidentApplicationFieldBtn" class="secondary-btn" type="button">Add question</button>
+                <div class="qb-heading">
+                  <div><h3>Extra questions</h3><p class="admin-form-hint">Asked after the standard fields. <span id="presidentQuestionCount">0 of 12 questions</span></p></div>
                 </div>
-                <p class="admin-form-hint">Up to 12 questions. Choose short text, long text, or a list of options.</p>
-                <div id="presidentApplicationFieldList" class="application-field-editor-list"></div>
+                <div id="presidentApplicationFieldList" class="qb-list"></div>
+                <div class="qb-add-row">
+                  <button id="addPresidentApplicationFieldBtn" class="secondary-btn qb-add-btn" type="button">+ Add question</button>
+                  <label class="qb-template-picker"><span class="visually-hidden">Add a ready question</span>
+                    <select id="presidentQuestionTemplate">
+                      <option value="">Add a ready question…</option>
+                      <option value="0">Which year are you in?</option>
+                      <option value="1">How many hours per week can you give?</option>
+                      <option value="2">Member of a student club before?</option>
+                      <option value="3">Experience related to this committee</option>
+                      <option value="4">Skills you would bring</option>
+                      <option value="5">LinkedIn or portfolio link</option>
+                      <option value="6">How did you hear about us?</option>
+                    </select>
+                  </label>
+                </div>
                 <div class="president-form-actions">
                   <button id="reloadApplicationQuestionsBtn" class="secondary-btn" type="button">Reload questions</button>
                   <button id="savePresidentApplicationFormBtn" class="primary-btn" type="submit">Save application form</button>
+                  <span id="presidentFormUnsaved" class="qb-unsaved" hidden>Unsaved changes</span>
                   <p id="presidentFormFeedback" class="admin-feedback" aria-live="polite"></p>
                 </div>
               </form>
@@ -486,14 +500,18 @@
                   <span class="admin-eyebrow">INTERVIEW EVALUATION</span>
                   <h3 id="interviewFormHeading">Manage interview questions</h3>
                 </div>
-                <button id="addInterviewSectionBtn" class="secondary-btn" type="button">Add section</button>
               </div>
               <p id="interviewFormDescription">Organize your interview into sections and add the questions you need.</p>
               <div class="field-group"><label for="interviewQuestionScope">Questions for</label><select id="interviewQuestionScope"><option value="">Club interviews</option></select></div>
-              <div id="interviewSectionList" class="interview-section-list"></div>
+              <div id="interviewSectionList" class="qb-list"></div>
+              <div class="qb-add-row">
+                <button id="addInterviewSectionBtn" class="secondary-btn qb-add-btn" type="button">+ Add section</button>
+                <button id="useInterviewTemplateBtn" class="secondary-btn" type="button">Use the standard template</button>
+              </div>
               <div class="president-form-actions">
                 <button id="reloadInterviewQuestionsBtn" class="secondary-btn" type="button">Reload questions</button>
                 <button id="saveInterviewFormBtn" class="primary-btn" type="button">Save interview form</button>
+                <span id="interviewFormUnsaved" class="qb-unsaved" hidden>Unsaved changes</span>
                 <p id="interviewFormFeedback" class="admin-feedback" aria-live="polite"></p>
               </div>
             </section>
@@ -914,7 +932,7 @@
     <script src="/assets/js/event-info-popup.js?v=20261119pub1" defer></script>
     <script src="/assets/js/president-interview-slots.js?v=20261120slots1" defer></script>
     <script src="/assets/js/club-qr.js?v=20261120clubqr1" defer></script>
-    <script src="/assets/js/app-forms.js?v=20261120ids1" defer></script>
+    <script src="/assets/js/app-forms.js?v=20261120qb1" defer></script>
     <script src="/assets/js/app-dashboard.js?v=20261120ids1" defer></script>
     <script src="/assets/js/student-checkin-auto.js?v=20261119checkin1" defer></script>
     <script src="/assets/js/president-overview.js?v=20261119todo1" defer></script>

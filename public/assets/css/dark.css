@@ -88,8 +88,7 @@
   .request-dialog-inner, .member-directory-inner, .member-directory-card, .panel,
   .content-card, .module-card, .module-nav a, #adminDataStatusSections > *,
   .committee-head-manager, .committee-head-row, .committee-head-edit-form,
-  .application-form-builder, .application-question-editor, .interview-section-editor,
-  .interview-question-editor, .modal-interview-section,
+  .qb-card, .qb-section, .modal-interview-section,
   .approval-checkpoint-request, .approval-checkpoint-more-row, .calendar-panel,
   .calendar-detail, .calendar-day, .event-tile, .post-tile, .post-detail,
   .event-timeline-content, .feed-timeline-content, .event-page-content,
@@ -352,8 +351,6 @@
   #site-header { width: 100%; margin-right: 0; margin-left: 0; }
   .stats-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .summary-card { padding: 14px 12px; }
-  .application-question-controls { grid-template-columns: 1fr; }
-  .application-question-controls input[type="checkbox"] { width: 18px; }
   .modal-actions { grid-template-columns: 1fr; }
   .application-row { flex-direction: column; }
   .card-actions { gap: 8px; }

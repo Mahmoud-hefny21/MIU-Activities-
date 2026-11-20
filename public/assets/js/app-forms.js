@@ -1,3 +1,161 @@
+// President / head dashboard: application form and interview question builders.
+// Both use the same question cards; saved data keeps the same shape ({ key, label, type, required, options }).
+const QUESTION_LIMIT = 12;
+const SECTION_LIMIT = 10;
+const OPTION_LIMIT = 20;
+const QUESTION_TYPES = [['text', 'Short answer'], ['textarea', 'Paragraph'], ['select', 'Multiple choice']];
+const RATING = ['Weak', 'Fair', 'Good', 'Excellent'];
+const HOURS = ['1–3 hours', '4–6 hours', '7–10 hours', 'More than 10 hours'];
+// Ready questions for the application form (the standard fields such as motivation are already on every form).
+const APPLICATION_QUESTION_TEMPLATES = [
+  { label: 'Which year are you in?', type: 'select', required: true, options: ['First year', 'Second year', 'Third year', 'Fourth year', 'Fifth year'] },
+  { label: 'How many hours per week can you give to the club?', type: 'select', required: true, options: HOURS },
+  { label: 'Have you been a member of a student club before?', type: 'select', required: false, options: ['Yes', 'No'] },
+  { label: 'Tell us about any experience related to this committee', type: 'textarea', required: false },
+  { label: 'What skills would you bring to the team?', type: 'textarea', required: false },
+  { label: 'Link to your LinkedIn or portfolio', type: 'text', required: false },
+  { label: 'How did you hear about us?', type: 'select', required: false, options: ['Instagram', 'Facebook', 'A friend', 'Club booth', 'Other'] }
+];
+// The standard interview evaluation used by clubs.
+const INTERVIEW_TEMPLATE = [
+  { title: 'First impression', questions: [
+    { label: 'Communication skills', type: 'select', required: true, options: RATING },
+    { label: 'Confidence', type: 'select', required: true, options: RATING },
+    { label: 'Punctuality and appearance', type: 'select', required: false, options: RATING }] },
+  { title: 'Motivation and commitment', questions: [
+    { label: 'Why does the applicant want to join?', type: 'textarea', required: true },
+    { label: 'Hours per week they can commit', type: 'select', required: true, options: HOURS },
+    { label: 'Teamwork', type: 'select', required: false, options: RATING }] },
+  { title: 'Skills and experience', questions: [
+    { label: 'Relevant skills or experience', type: 'textarea', required: false },
+    { label: 'Fit for the chosen committee', type: 'select', required: true, options: RATING }] },
+  { title: 'Final decision', questions: [
+    { label: 'Overall rating', type: 'select', required: true, options: ['1 – Poor', '2 – Fair', '3 – Good', '4 – Very good', '5 – Excellent'] },
+    { label: 'Recommendation', type: 'select', required: true, options: ['Accept', 'Waiting list', 'Reject'] },
+    { label: 'Interviewer notes', type: 'textarea', required: false }] }
+];
+const newKey = prefix => `${prefix}_${crypto.randomUUID().replaceAll('-', '')}`;
+const newQuestion = (template = {}) => ({ key: newKey('q'), label: template.label || '', type: template.type || 'text',
+  required: Boolean(template.required), options: Array.isArray(template.options) ? [...template.options] : [] });
+const cloneQuestion = question => ({ ...question, options: Array.isArray(question.options) ? [...question.options] : [] });
+const QB_ICONS = {
+  up: '<path d="m18 15-6-6-6 6"/>',
+  down: '<path d="m6 9 6 6 6-6"/>',
+  remove: '<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>',
+  close: '<path d="M18 6 6 18M6 6l12 12"/>'
+};
+const qbIcon = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${QB_ICONS[name]}</svg>`;
+const qbTool = (action, label, icon, { disabled = false, danger = false } = {}) =>
+  `<button type="button" class="qb-icon-btn${danger ? ' is-danger' : ''}" data-qb="${action}" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}"${disabled ? ' disabled' : ''}>${qbIcon(icon)}</button>`;
+
+function questionCardHtml(question, index, total, placeholder) {
+  const number = index + 1;
+  const isChoice = question.type === 'select';
+  const options = isChoice && question.options.length ? question.options : (isChoice ? ['', ''] : []);
+  return `
+    <article class="qb-card" data-q="${index}">
+      <header class="qb-card-head">
+        <span class="qb-number">Question ${number}</span>
+        <span class="qb-tools">
+          ${qbTool('up', `Move question ${number} up`, 'up', { disabled: index === 0 })}
+          ${qbTool('down', `Move question ${number} down`, 'down', { disabled: index === total - 1 })}
+          ${qbTool('remove', `Delete question ${number}`, 'remove', { danger: true })}
+        </span>
+      </header>
+      <div class="qb-card-body">
+        <label class="qb-field qb-field-question"><span>Question</span>
+          <input type="text" data-qp="label" maxlength="100" value="${escapeHtml(question.label)}" placeholder="${escapeHtml(placeholder)}"></label>
+        <label class="qb-field"><span>Answer type</span>
+          <select data-qp="type">${QUESTION_TYPES.map(([value, label]) => `<option value="${value}"${question.type === value ? ' selected' : ''}>${label}</option>`).join('')}</select></label>
+        <label class="qb-switch"><input type="checkbox" role="switch" data-qp="required"${question.required ? ' checked' : ''}><span class="qb-switch-track" aria-hidden="true"></span><span>Required</span></label>
+      </div>
+      ${isChoice ? `<div class="qb-options">
+        <span class="qb-options-title">Choices</span>
+        <ol class="qb-option-list">${options.map((option, optionIndex) => `
+          <li><input type="text" data-qo="${optionIndex}" maxlength="100" value="${escapeHtml(option)}" placeholder="Choice ${optionIndex + 1}" aria-label="Question ${number}, choice ${optionIndex + 1}">
+            ${qbTool('remove-option', `Remove choice ${optionIndex + 1}`, 'close', { disabled: options.length <= 2 })}</li>`).join('')}
+        </ol>
+        <button type="button" class="qb-text-btn" data-qb="add-option"${options.length >= OPTION_LIMIT ? ' disabled' : ''}>+ Add choice</button>
+      </div>` : ''}
+    </article>`;
+}
+
+// Turns editor state into the saved shape, or explains the first problem (and which input to focus).
+function cleanQuestions(questions, where = '') {
+  const cleaned = [];
+  for (const [index, question] of questions.entries()) {
+    const name = `${where}question ${index + 1}`;
+    const label = String(question.label || '').trim();
+    if (!label) return { error: `Write the text for ${name}.`, index, focus: '[data-qp="label"]' };
+    if (label.length > 100) return { error: `Keep ${name} within 100 characters.`, index, focus: '[data-qp="label"]' };
+    let options = [];
+    if (question.type === 'select') {
+      options = question.options.map(option => String(option || '').trim()).filter(Boolean);
+      if (options.length < 2) return { error: `Add at least two choices to ${name}.`, index, focus: '[data-qo]' };
+      if (new Set(options.map(option => option.toLowerCase())).size !== options.length) return { error: `Each choice in ${name} must be different.`, index, focus: '[data-qo]' };
+    }
+    cleaned.push({ key: question.key, label, type: question.type, required: Boolean(question.required), options });
+  }
+  return { questions: cleaned };
+}
+
+// Shared editing of one question list (clicks and typing inside the cards).
+function editQuestionList(questions, event, rerender) {
+  const card = event.target.closest('[data-q]');
+  if (!card) return false;
+  const index = Number(card.dataset.q);
+  const question = questions[index];
+  if (!question) return false;
+  if (event.type === 'click') {
+    const action = event.target.closest('[data-qb]')?.dataset.qb;
+    if (!action) return false;
+    if (action === 'up' && index > 0) [questions[index - 1], questions[index]] = [questions[index], questions[index - 1]];
+    else if (action === 'down' && index < questions.length - 1) [questions[index + 1], questions[index]] = [questions[index], questions[index + 1]];
+    else if (action === 'remove') questions.splice(index, 1);
+    else if (action === 'add-option') {
+      if (question.options.length < 2) question.options = [...question.options, '', ''].slice(0, 2);
+      if (question.options.length < OPTION_LIMIT) question.options.push('');
+    } else if (action === 'remove-option') {
+      question.options.splice(Number(event.target.closest('li').querySelector('[data-qo]').dataset.qo), 1);
+    } else return false;
+    const focusAfter = action === 'add-option' ? { q: index, option: question.options.length - 1 }
+      : action === 'up' ? { q: index - 1, tool: 'up' } : action === 'down' ? { q: index + 1, tool: 'down' } : null;
+    rerender(focusAfter);
+    return true;
+  }
+  const property = event.target.dataset.qp;
+  if (property === 'required') question.required = event.target.checked;
+  else if (property === 'label') question.label = event.target.value;
+  else if (property === 'type') {
+    question.type = event.target.value;
+    if (question.type === 'select' && question.options.filter(option => option.trim()).length < 2) question.options = [...question.options.filter(option => option.trim()), '', ''].slice(0, Math.max(2, question.options.length));
+    if (event.type === 'change') rerender({ q: index, type: true });
+  } else if (event.target.dataset.qo !== undefined) question.options[Number(event.target.dataset.qo)] = event.target.value;
+  else return false;
+  return true;
+}
+
+function focusAfterRender(list, focus) {
+  if (!focus) return;
+  const card = list.querySelector(`[data-q="${focus.q}"]`) || list.querySelector('[data-q]:last-of-type');
+  const target = focus.option !== undefined ? card?.querySelector(`[data-qo="${focus.option}"]`)
+    : focus.tool ? (card?.querySelector(`[data-qb="${focus.tool}"]:not(:disabled)`) || card?.querySelector('[data-qp="label"]'))
+      : focus.type ? card?.querySelector('[data-qp="type"]') : card?.querySelector('[data-qp="label"]');
+  target?.focus();
+  if (focus.scroll) card?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function markQuestionFormDirty(kind, dirty = true) {
+  state[kind === 'application' ? 'applicationFormDirty' : 'interviewFormDirty'] = dirty;
+  document.getElementById(kind === 'application' ? 'presidentFormUnsaved' : 'interviewFormUnsaved')?.toggleAttribute('hidden', !dirty);
+}
+
+function setQuestionFeedback(id, message, isError = false) {
+  const feedback = document.getElementById(id);
+  feedback.textContent = message;
+  feedback.classList.toggle('is-error', isError);
+}
+
 document.getElementById('reloadApplicationQuestionsBtn').addEventListener('click', () => loadPresidentApplicationForm().catch(() => {}));
 document.getElementById('reloadInterviewQuestionsBtn').addEventListener('click', () => loadInterviewForm().catch(() => {}));
 function questionEditorScope(kind) {
@@ -18,281 +176,92 @@ for (const kind of ['application', 'interview']) {
     load().catch(() => {});
   });
 }
-function validateQuestionEditor(questions) {
-  const keys = new Set();
-  for (const question of questions) {
-    if (!question.label?.trim() || question.label.trim().length > 100) return 'Each question needs text up to 100 characters.';
-    if (!['text', 'textarea', 'select'].includes(question.type) || typeof question.required !== 'boolean') return 'Check the question type and required setting.';
-    if (keys.has(question.key)) return 'Each question must have a unique identifier.';
-    keys.add(question.key);
-    if (question.type === 'select' && (question.options.length < 2 || question.options.length > 20 || new Set(question.options).size !== question.options.length || question.options.some(o => !o.trim() || o.length > 100))) return 'Choice questions need 2-20 unique options, up to 100 characters each.';
-  }
-  return '';
-}
+
+// ---- Application form ----
 async function loadPresidentApplicationForm() {
-  const feedback = document.getElementById('presidentFormFeedback');
   const button = document.getElementById('savePresidentApplicationFormBtn');
   button.disabled = true;
-  feedback.textContent = 'Loading questions...';
+  setQuestionFeedback('presidentFormFeedback', 'Loading questions…');
   try {
-  const scope = state.clubAccount?.role === 'head' ? state.clubAccount.committee : questionEditorScope('application').value;
-  const response = await fetch('/api/club/application-form?committee=' + encodeURIComponent(scope || ''), { cache: 'no-store' });
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.message || 'Could not load your application form.');
-  updateQuestionScope('application', result);
-  state.applicationQuestionVersion = result.version;
-  document.getElementById('presidentApplicationIntro').value = result.applicationIntro || '';
-  state.presidentApplicationFields = (result.applicationFields || []).map((field) => ({
-    ...field,
-    options: Array.isArray(field.options) ? [...field.options] : []
-  }));
-  renderPresidentApplicationFields();
-  feedback.textContent = '';
-  feedback.classList.remove('is-error');
-  button.disabled = false;
-  } catch (error) { feedback.textContent = error.message; feedback.classList.add('is-error'); throw error; }
-}
-
-function renderPresidentApplicationFields() {
-  const list = document.getElementById('presidentApplicationFieldList');
-  if (!state.presidentApplicationFields.length) {
-    list.innerHTML = '<p class="admin-form-empty">No extra questions. Add one if your club needs it.</p>';
-    return;
-  }
-  list.innerHTML = state.presidentApplicationFields.map((field, index) => `
-    <article class="application-question-editor" data-president-index="${index}">
-      <div class="application-question-controls">
-        <div class="field-group">
-          <label>Question label</label>
-          <input type="text" data-president-property="label" value="${escapeHtml(field.label)}" maxlength="100" required />
-        </div>
-        <div class="field-group">
-          <label>Answer type</label>
-          <select data-president-property="type">
-            <option value="text" ${field.type === 'text' ? 'selected' : ''}>Short text</option>
-            <option value="textarea" ${field.type === 'textarea' ? 'selected' : ''}>Long text</option>
-            <option value="select" ${field.type === 'select' ? 'selected' : ''}>Choose from options</option>
-          </select>
-        </div>
-        <label class="admin-checkbox-field application-question-required">
-          <input type="checkbox" data-president-property="required" ${field.required ? 'checked' : ''} />
-          <span>Required</span>
-        </label>
-        <button class="delete-btn application-question-remove" type="button" data-president-action="remove">Remove</button>
-      </div>
-      <div class="field-group application-question-options ${field.type === 'select' ? '' : 'hidden'}">
-        <label>Options, one per line</label>
-        <textarea data-president-property="options" rows="3">${escapeHtml(field.options.join('\n'))}</textarea>
-      </div>
-    </article>
-  `).join('');
-  list.querySelectorAll('[data-president-property]').forEach((input) => {
-    input.addEventListener('input', updatePresidentApplicationField);
-    input.addEventListener('change', updatePresidentApplicationField);
-  });
-  list.querySelectorAll('[data-president-action="remove"]').forEach((button) => {
-    button.addEventListener('click', () => {
-      state.presidentApplicationFields.splice(Number(button.closest('[data-president-index]').dataset.presidentIndex), 1);
-      renderPresidentApplicationFields();
-    });
-  });
-}
-
-function updatePresidentApplicationField(event) {
-  const row = event.currentTarget.closest('[data-president-index]');
-  const field = state.presidentApplicationFields[Number(row.dataset.presidentIndex)];
-  const property = event.currentTarget.dataset.presidentProperty;
-  if (property === 'required') field.required = event.currentTarget.checked;
-  else if (property === 'options') field.options = event.currentTarget.value.split('\n').map((value) => value.trim()).filter(Boolean);
-  else field[property] = event.currentTarget.value;
-  if (property === 'type') row.querySelector('.application-question-options').classList.toggle('hidden', field.type !== 'select');
-}
-
-async function loadInterviewForm() {
-  const button = document.getElementById('saveInterviewFormBtn');
-  button.disabled = true;
-  setInterviewFeedback('Loading questions...');
-  try {
-  const scope = state.clubAccount?.role === 'head' ? state.clubAccount.committee : questionEditorScope('interview').value;
-  const response = await fetch('/api/club/interview-form?committee=' + encodeURIComponent(scope || ''), { cache: 'no-store' });
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.message || 'Could not load interview questions.');
-  updateQuestionScope('interview', result);
-  state.interviewQuestionVersion = result.version;
-  state.interviewSections = (result.sections || []).map((section) => ({
-    ...section,
-    questions: (section.questions || []).map((question) => ({
-      ...question,
-      options: Array.isArray(question.options) ? [...question.options] : []
-    }))
-  }));
-  renderInterviewSections();
-  setInterviewFeedback('');
-  button.disabled = false;
-  } catch (error) { setInterviewFeedback(error.message, true); throw error; }
-}
-
-function renderInterviewSections() {
-  const list = document.getElementById('interviewSectionList');
-  if (!state.interviewSections.length) {
-    list.innerHTML = '<p class="admin-form-empty">No interview sections yet. Add a section to set up your evaluation.</p>';
-    return;
-  }
-  list.innerHTML = state.interviewSections.map((section, sectionIndex) => `
-    <section class="interview-section-editor" data-section-index="${sectionIndex}">
-      <div class="interview-section-heading">
-        <div class="field-group">
-          <label>Section name</label>
-          <input data-interview-section-property="title" maxlength="80" value="${escapeHtml(section.title)}" required />
-        </div>
-        <button class="delete-btn" type="button" data-interview-action="remove-section">Delete section</button>
-      </div>
-      <div class="interview-question-list">
-        ${section.questions.map((question, questionIndex) => `
-          <article class="interview-question-editor" data-question-index="${questionIndex}">
-            <div class="application-question-controls">
-              <div class="field-group">
-                <label>Question</label>
-                <input data-interview-question-property="label" maxlength="100" value="${escapeHtml(question.label)}" required />
-              </div>
-              <div class="field-group">
-                <label>Answer type</label>
-                <select data-interview-question-property="type">
-                  <option value="text" ${question.type === 'text' ? 'selected' : ''}>Short text</option>
-                  <option value="textarea" ${question.type === 'textarea' ? 'selected' : ''}>Long text</option>
-                  <option value="select" ${question.type === 'select' ? 'selected' : ''}>Choose from options</option>
-                </select>
-              </div>
-              <label class="admin-checkbox-field application-question-required">
-                <input type="checkbox" data-interview-question-property="required" ${question.required ? 'checked' : ''} />
-                <span>Required</span>
-              </label>
-              <button class="delete-btn application-question-remove" type="button" data-interview-action="remove-question">Remove</button>
-            </div>
-            <div class="field-group application-question-options ${question.type === 'select' ? '' : 'hidden'}">
-              <label>Options, one per line</label>
-              <textarea data-interview-question-property="options" rows="2">${escapeHtml(question.options.join('\n'))}</textarea>
-            </div>
-          </article>
-        `).join('')}
-      </div>
-      <button class="secondary-btn interview-add-question" type="button" data-interview-action="add-question">Add question</button>
-    </section>
-  `).join('');
-
-  list.querySelectorAll('[data-interview-section-property], [data-interview-question-property]').forEach((input) => {
-    input.addEventListener('input', updateInterviewSectionEditor);
-    input.addEventListener('change', updateInterviewSectionEditor);
-  });
-  list.querySelectorAll('[data-interview-action]').forEach((button) => {
-    button.addEventListener('click', () => {
-      const sectionElement = button.closest('[data-section-index]');
-      const sectionIndex = Number(sectionElement?.dataset.sectionIndex);
-      const section = state.interviewSections[sectionIndex];
-      if (button.dataset.interviewAction === 'remove-section') {
-        state.interviewSections.splice(sectionIndex, 1);
-      } else if (button.dataset.interviewAction === 'add-question') {
-        if (section.questions.length >= 12) return setInterviewFeedback('A section can have up to 12 questions.', true);
-        section.questions.push({ key: `q_${crypto.randomUUID().replaceAll('-', '')}`, label: 'New question', type: 'text', required: false, options: [] });
-      } else if (button.dataset.interviewAction === 'remove-question') {
-        section.questions.splice(Number(button.closest('[data-question-index]').dataset.questionIndex), 1);
-      }
-      renderInterviewSections();
-    });
-  });
-}
-
-function updateInterviewSectionEditor(event) {
-  const sectionElement = event.currentTarget.closest('[data-section-index]');
-  const section = state.interviewSections[Number(sectionElement.dataset.sectionIndex)];
-  if (event.currentTarget.dataset.interviewSectionProperty) {
-    section[event.currentTarget.dataset.interviewSectionProperty] = event.currentTarget.value;
-    return;
-  }
-  const questionElement = event.currentTarget.closest('[data-question-index]');
-  const question = section.questions[Number(questionElement.dataset.questionIndex)];
-  const property = event.currentTarget.dataset.interviewQuestionProperty;
-  if (property === 'required') question.required = event.currentTarget.checked;
-  else if (property === 'options') question.options = event.currentTarget.value.split('\n').map((value) => value.trim()).filter(Boolean);
-  else question[property] = event.currentTarget.value;
-  if (property === 'type') questionElement.querySelector('.application-question-options').classList.toggle('hidden', question.type !== 'select');
-}
-
-function setInterviewFeedback(message, isError = false) {
-  const feedback = document.getElementById('interviewFormFeedback');
-  feedback.textContent = message;
-  feedback.classList.toggle('is-error', isError);
-}
-
-document.getElementById('addInterviewSectionBtn').addEventListener('click', () => {
-  if (state.interviewSections.length >= 10) return setInterviewFeedback('An interview form can have up to 10 sections.', true);
-  state.interviewSections.push({ key: `s_${crypto.randomUUID().replaceAll('-', '')}`, title: 'New section', questions: [] });
-  renderInterviewSections();
-});
-
-document.getElementById('saveInterviewFormBtn').addEventListener('click', async () => {
-  if (document.getElementById('saveInterviewFormBtn').disabled) return;
-  const validation = validateQuestionEditor(state.interviewSections.flatMap(s => s.questions));
-  if (validation) return setInterviewFeedback(validation, true);
-  for (const section of state.interviewSections) {
-    if (!section.title.trim()) return setInterviewFeedback('Every section needs a name.', true);
-    for (const question of section.questions) {
-      if (!question.label.trim()) return setInterviewFeedback('Every question needs text.', true);
-      if (question.type === 'select' && new Set(question.options.map((option) => option.trim()).filter(Boolean)).size < 2) {
-        return setInterviewFeedback(`Add at least two options to “${question.label}”.`, true);
-      }
-    }
-  }
-  const button = document.getElementById('saveInterviewFormBtn');
-  button.disabled = true;
-  setInterviewFeedback('Saving…');
-  try {
-    const response = await fetch('/api/club/interview-form', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sections: state.interviewSections, committee: questionEditorScope('interview').value, version: state.interviewQuestionVersion })
-    });
+    const scope = state.clubAccount?.role === 'head' ? state.clubAccount.committee : questionEditorScope('application').value;
+    const response = await fetch('/api/club/application-form?committee=' + encodeURIComponent(scope || ''), { cache: 'no-store' });
     const result = await response.json();
-    if (!response.ok) throw new Error(result.message || 'Could not save interview questions.');
-    state.interviewQuestionVersion = result.version;
-    state.interviewSections = result.sections;
-    renderInterviewSections();
-    setInterviewFeedback('Interview form saved.');
-  } catch (error) {
-    setInterviewFeedback(error.message, true);
-  } finally {
+    if (!response.ok) throw new Error(result.message || 'Could not load your application form.');
+    updateQuestionScope('application', result);
+    state.applicationQuestionVersion = result.version;
+    document.getElementById('presidentApplicationIntro').value = result.applicationIntro || '';
+    state.presidentApplicationFields = (result.applicationFields || []).map(cloneQuestion);
+    renderPresidentApplicationFields();
+    markQuestionFormDirty('application', false);
+    setQuestionFeedback('presidentFormFeedback', '');
     button.disabled = false;
-  }
-});
+  } catch (error) { setQuestionFeedback('presidentFormFeedback', error.message, true); throw error; }
+}
 
-document.getElementById('addPresidentApplicationFieldBtn').addEventListener('click', () => {
-  if (state.presidentApplicationFields.length >= 12) {
-    document.getElementById('presidentFormFeedback').textContent = 'A form can have up to 12 extra questions.';
-    document.getElementById('presidentFormFeedback').classList.add('is-error');
+function renderPresidentApplicationFields(focus = null) {
+  const list = document.getElementById('presidentApplicationFieldList');
+  const fields = state.presidentApplicationFields;
+  list.innerHTML = fields.length
+    ? fields.map((field, index) => questionCardHtml(field, index, fields.length, 'e.g. Which year are you in?')).join('')
+    : '<p class="qb-empty">No extra questions yet. Your form already asks for name, MIU ID, major, email, phone, photo, committee, age and motivation. Add a question below, or pick a ready one.</p>';
+  document.getElementById('presidentQuestionCount').textContent = `${fields.length} of ${QUESTION_LIMIT} questions`;
+  document.getElementById('addPresidentApplicationFieldBtn').disabled = fields.length >= QUESTION_LIMIT;
+  const templates = document.getElementById('presidentQuestionTemplate');
+  const used = new Set(fields.map(field => String(field.label || '').trim().toLowerCase()));
+  templates.disabled = fields.length >= QUESTION_LIMIT;
+  [...templates.options].slice(1).forEach(option => { option.disabled = used.has(APPLICATION_QUESTION_TEMPLATES[Number(option.value)].label.toLowerCase()); });
+  focusAfterRender(list, focus);
+}
+
+const presidentApplicationFieldList = document.getElementById('presidentApplicationFieldList');
+for (const type of ['click', 'input', 'change']) {
+  presidentApplicationFieldList.addEventListener(type, (event) => {
+    if (type === 'input' && event.target.dataset.qp === 'type') return;
+    if (editQuestionList(state.presidentApplicationFields, event, focus => renderPresidentApplicationFields(focus))) {
+      event.target.classList?.remove('is-invalid');
+      markQuestionFormDirty('application');
+    }
+  });
+}
+document.getElementById('presidentApplicationIntro').addEventListener('input', () => markQuestionFormDirty('application'));
+// Enter never saves by accident: in a choice it adds the next choice; elsewhere it does nothing.
+function questionListKeydown(event) {
+  if (event.key !== 'Enter' || event.target.tagName !== 'INPUT' || event.target.type === 'checkbox') return;
+  event.preventDefault();
+  if (event.target.dataset.qo !== undefined) event.target.closest('[data-q]')?.querySelector('[data-qb="add-option"]:not(:disabled)')?.click();
+}
+presidentApplicationFieldList.addEventListener('keydown', questionListKeydown);
+
+function addApplicationQuestion(template) {
+  if (state.presidentApplicationFields.length >= QUESTION_LIMIT) {
+    setQuestionFeedback('presidentFormFeedback', `A form can have up to ${QUESTION_LIMIT} extra questions.`, true);
     return;
   }
-  state.presidentApplicationFields.push({ key: `q_${crypto.randomUUID().replaceAll('-', '')}`, label: 'New question', type: 'text', required: false, options: [] });
-  renderPresidentApplicationFields();
-  document.querySelector('#presidentApplicationFieldList article:last-child [data-president-property="label"]')?.focus();
+  state.presidentApplicationFields.push(newQuestion(template));
+  markQuestionFormDirty('application');
+  renderPresidentApplicationFields({ q: state.presidentApplicationFields.length - 1, scroll: true });
+}
+document.getElementById('addPresidentApplicationFieldBtn').addEventListener('click', () => addApplicationQuestion());
+document.getElementById('presidentQuestionTemplate').addEventListener('change', (event) => {
+  const template = APPLICATION_QUESTION_TEMPLATES[Number(event.target.value)];
+  event.target.value = '';
+  if (template) addApplicationQuestion(template);
 });
 
 document.getElementById('presidentFormEditor').addEventListener('submit', async (event) => {
   event.preventDefault();
-  const feedback = document.getElementById('presidentFormFeedback');
   const button = document.getElementById('savePresidentApplicationFormBtn');
   if (button.disabled) return;
-  const validation = validateQuestionEditor(state.presidentApplicationFields);
-  if (validation) { feedback.textContent = validation; feedback.classList.add('is-error'); return; }
-  const invalidChoice = state.presidentApplicationFields.find((field) => field.type === 'select'
-    && new Set(field.options.map((option) => option.trim()).filter(Boolean)).size < 2);
-  if (invalidChoice) {
-    feedback.textContent = `Add at least two options to “${invalidChoice.label}”.`;
-    feedback.classList.add('is-error');
+  const { questions, error, index, focus } = cleanQuestions(state.presidentApplicationFields);
+  if (error) {
+    setQuestionFeedback('presidentFormFeedback', error, true);
+    const field = presidentApplicationFieldList.querySelector(`[data-q="${index}"] ${focus}`);
+    field?.classList.add('is-invalid');
+    field?.focus();
     return;
   }
   button.disabled = true;
-  feedback.textContent = 'Saving…';
-  feedback.classList.remove('is-error');
+  setQuestionFeedback('presidentFormFeedback', 'Saving…');
   try {
     const response = await fetch('/api/club/application-form', {
       method: 'PUT',
@@ -300,27 +269,196 @@ document.getElementById('presidentFormEditor').addEventListener('submit', async 
       body: JSON.stringify({
         applicationIntro: document.getElementById('presidentApplicationIntro').value,
         committee: questionEditorScope('application').value, version: state.applicationQuestionVersion,
-        applicationFields: state.presidentApplicationFields
+        applicationFields: questions
       })
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.message || 'Could not save your application form.');
     state.applicationQuestionVersion = result.version;
-    state.presidentApplicationFields = result.applicationFields;
+    state.presidentApplicationFields = (result.applicationFields || []).map(cloneQuestion);
+    renderPresidentApplicationFields();
+    markQuestionFormDirty('application', false);
     const club = state.clubs.find((item) => item.id === state.clubAccount.id);
     if (club) {
       club.applicationIntro = result.applicationIntro;
       club.applicationFields = [...(club.applicationFields || []).filter(f => (f.committee || '') !== (result.committee || '')), ...result.applicationFields];
     }
-    feedback.textContent = 'Application form saved. New applicants will see these changes.';
+    setQuestionFeedback('presidentFormFeedback', 'Application form saved. New applicants will see these changes.');
   } catch (error) {
-    feedback.textContent = error.message;
-    feedback.classList.add('is-error');
+    setQuestionFeedback('presidentFormFeedback', error.message, true);
   } finally {
     button.disabled = false;
   }
 });
 
+// ---- Interview form ----
+function setInterviewFeedback(message, isError = false) { setQuestionFeedback('interviewFormFeedback', message, isError); }
+
+async function loadInterviewForm() {
+  const button = document.getElementById('saveInterviewFormBtn');
+  button.disabled = true;
+  setInterviewFeedback('Loading questions…');
+  try {
+    const scope = state.clubAccount?.role === 'head' ? state.clubAccount.committee : questionEditorScope('interview').value;
+    const response = await fetch('/api/club/interview-form?committee=' + encodeURIComponent(scope || ''), { cache: 'no-store' });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.message || 'Could not load interview questions.');
+    updateQuestionScope('interview', result);
+    state.interviewQuestionVersion = result.version;
+    state.interviewSections = (result.sections || []).map(section => ({ ...section, questions: (section.questions || []).map(cloneQuestion) }));
+    renderInterviewSections();
+    markQuestionFormDirty('interview', false);
+    setInterviewFeedback('');
+    button.disabled = false;
+  } catch (error) { setInterviewFeedback(error.message, true); throw error; }
+}
+
+function renderInterviewSections(focus = null) {
+  const list = document.getElementById('interviewSectionList');
+  const sections = state.interviewSections;
+  list.innerHTML = sections.length ? sections.map((section, sectionIndex) => {
+    const number = sectionIndex + 1;
+    return `
+    <section class="qb-section" data-s="${sectionIndex}">
+      <header class="qb-section-head">
+        <span class="qb-number">Section ${number}</span>
+        <span class="qb-tools">
+          ${qbTool('section-up', `Move section ${number} up`, 'up', { disabled: sectionIndex === 0 })}
+          ${qbTool('section-down', `Move section ${number} down`, 'down', { disabled: sectionIndex === sections.length - 1 })}
+          ${qbTool('remove-section', `Delete section ${number}`, 'remove', { danger: true })}
+        </span>
+        <label class="qb-field qb-section-title"><span>Section name</span>
+          <input type="text" data-sp="title" maxlength="80" value="${escapeHtml(section.title)}" placeholder="e.g. First impression"></label>
+      </header>
+      <div class="qb-question-list">
+        ${section.questions.length ? section.questions.map((question, index) => questionCardHtml(question, index, section.questions.length, 'e.g. Communication skills')).join('')
+          : '<p class="qb-empty">No questions in this section yet.</p>'}
+      </div>
+      <footer class="qb-list-footer">
+        <button type="button" class="secondary-btn qb-add-btn" data-qb="add-question"${section.questions.length >= QUESTION_LIMIT ? ' disabled' : ''}>+ Add question</button>
+        <span class="qb-count">${section.questions.length} of ${QUESTION_LIMIT} questions</span>
+      </footer>
+    </section>`;
+  }).join('') : '<p class="qb-empty">No interview questions yet. Start from the standard template, or add your own section.</p>';
+  document.getElementById('addInterviewSectionBtn').disabled = sections.length >= SECTION_LIMIT;
+  const template = document.getElementById('useInterviewTemplateBtn');
+  template.disabled = sections.length + INTERVIEW_TEMPLATE.length > SECTION_LIMIT;
+  template.textContent = sections.length ? 'Add the standard template' : 'Use the standard template';
+  if (!focus) return;
+  const sectionElement = list.querySelector(`[data-s="${focus.s}"]`);
+  if (focus.title) {
+    const title = sectionElement?.querySelector('[data-sp="title"]');
+    title?.focus();
+    if (focus.scroll) sectionElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else if (focus.sectionTool) sectionElement?.querySelector(`[data-qb="${focus.sectionTool}"]:not(:disabled)`)?.focus();
+  else if (sectionElement) focusAfterRender(sectionElement, focus);
+}
+
+const interviewSectionList = document.getElementById('interviewSectionList');
+interviewSectionList.addEventListener('keydown', questionListKeydown);
+for (const type of ['click', 'input', 'change']) {
+  interviewSectionList.addEventListener(type, (event) => {
+    const sectionElement = event.target.closest('[data-s]');
+    if (!sectionElement) return;
+    const sectionIndex = Number(sectionElement.dataset.s);
+    const sections = state.interviewSections;
+    const section = sections[sectionIndex];
+    if (!section) return;
+    if (type === 'click') {
+      const action = event.target.closest('[data-qb]')?.dataset.qb;
+      if (action === 'section-up' && sectionIndex > 0) {
+        [sections[sectionIndex - 1], sections[sectionIndex]] = [sections[sectionIndex], sections[sectionIndex - 1]];
+        markQuestionFormDirty('interview'); renderInterviewSections({ s: sectionIndex - 1, sectionTool: 'section-up' }); return;
+      }
+      if (action === 'section-down' && sectionIndex < sections.length - 1) {
+        [sections[sectionIndex + 1], sections[sectionIndex]] = [sections[sectionIndex], sections[sectionIndex + 1]];
+        markQuestionFormDirty('interview'); renderInterviewSections({ s: sectionIndex + 1, sectionTool: 'section-down' }); return;
+      }
+      if (action === 'remove-section') {
+        const name = section.title.trim() || `Section ${sectionIndex + 1}`;
+        if (section.questions.length && !window.confirm(`Delete “${name}” and its ${section.questions.length} question${section.questions.length === 1 ? '' : 's'}? You can undo with “Reload questions” before saving.`)) return;
+        sections.splice(sectionIndex, 1);
+        markQuestionFormDirty('interview'); renderInterviewSections(); return;
+      }
+      if (action === 'add-question') {
+        if (section.questions.length >= QUESTION_LIMIT) return setInterviewFeedback(`A section can have up to ${QUESTION_LIMIT} questions.`, true);
+        section.questions.push(newQuestion());
+        markQuestionFormDirty('interview');
+        renderInterviewSections({ s: sectionIndex, q: section.questions.length - 1, scroll: true }); return;
+      }
+    }
+    if (event.target.dataset.sp === 'title') {
+      if (type !== 'click') { section.title = event.target.value; event.target.classList.remove('is-invalid'); markQuestionFormDirty('interview'); }
+      return;
+    }
+    if (type === 'input' && event.target.dataset.qp === 'type') return;
+    if (editQuestionList(section.questions, event, focus => renderInterviewSections(focus && { ...focus, s: sectionIndex }))) {
+      event.target.classList?.remove('is-invalid');
+      markQuestionFormDirty('interview');
+    }
+  });
+}
+
+document.getElementById('addInterviewSectionBtn').addEventListener('click', () => {
+  if (state.interviewSections.length >= SECTION_LIMIT) return setInterviewFeedback(`An interview form can have up to ${SECTION_LIMIT} sections.`, true);
+  state.interviewSections.push({ key: newKey('s'), title: '', questions: [newQuestion()] });
+  markQuestionFormDirty('interview');
+  renderInterviewSections({ s: state.interviewSections.length - 1, title: true, scroll: true });
+});
+document.getElementById('useInterviewTemplateBtn').addEventListener('click', () => {
+  if (state.interviewSections.length + INTERVIEW_TEMPLATE.length > SECTION_LIMIT) return setInterviewFeedback(`An interview form can have up to ${SECTION_LIMIT} sections.`, true);
+  const first = state.interviewSections.length;
+  state.interviewSections.push(...INTERVIEW_TEMPLATE.map(section => ({ key: newKey('s'), title: section.title, questions: section.questions.map(newQuestion) })));
+  markQuestionFormDirty('interview');
+  renderInterviewSections({ s: first, title: true, scroll: true });
+  setInterviewFeedback('Standard template added. Change anything you need, then save.');
+});
+
+document.getElementById('saveInterviewFormBtn').addEventListener('click', async () => {
+  const button = document.getElementById('saveInterviewFormBtn');
+  if (button.disabled) return;
+  const sections = [];
+  const seen = new Set();
+  for (const [sectionIndex, section] of state.interviewSections.entries()) {
+    const sectionElement = interviewSectionList.querySelector(`[data-s="${sectionIndex}"]`);
+    const title = String(section.title || '').trim();
+    if (!title) {
+      setInterviewFeedback(`Give section ${sectionIndex + 1} a name.`, true);
+      const input = sectionElement?.querySelector('[data-sp="title"]');
+      input?.classList.add('is-invalid'); input?.focus();
+      return;
+    }
+    const { questions, error, index, focus } = cleanQuestions(section.questions, `section ${sectionIndex + 1}, `);
+    if (error) {
+      setInterviewFeedback(error, true);
+      const field = sectionElement?.querySelector(`[data-q="${index}"] ${focus}`);
+      field?.classList.add('is-invalid'); field?.focus();
+      return;
+    }
+    for (const question of questions) { if (seen.has(question.key)) question.key = newKey('q'); seen.add(question.key); }
+    sections.push({ key: section.key, title, questions });
+  }
+  button.disabled = true;
+  setInterviewFeedback('Saving…');
+  try {
+    const response = await fetch('/api/club/interview-form', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sections, committee: questionEditorScope('interview').value, version: state.interviewQuestionVersion })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.message || 'Could not save interview questions.');
+    state.interviewQuestionVersion = result.version;
+    state.interviewSections = (result.sections || []).map(section => ({ ...section, questions: (section.questions || []).map(cloneQuestion) }));
+    renderInterviewSections();
+    markQuestionFormDirty('interview', false);
+    setInterviewFeedback('Interview form saved.');
+  } catch (error) {
+    setInterviewFeedback(error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
 
 // Shared club application, interview and student forms.
 function parseClubContentDate(value) {
