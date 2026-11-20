@@ -428,6 +428,7 @@
   $('adminNavSignout').addEventListener('click', async () => {
     $('adminNavSignout').disabled = true;
     try {
+      try { localStorage.removeItem('miu:header-session'); } catch (_) {}
       await request('/api/admin/logout', { method: 'POST' });
       for (const key of Object.keys(sessionStorage)) if (key.startsWith('miu:admin-dashboard:')) sessionStorage.removeItem(key);
       location.assign('/admin/login');

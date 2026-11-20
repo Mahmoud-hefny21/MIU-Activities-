@@ -177,7 +177,7 @@
       feedback(error.message, true);
     }
   }
-  document.getElementById('speakerReviewLogout')?.addEventListener('click', async () => { try { await fetch('/api/club-auth/logout', { method: 'POST' }); } finally { window.location.href = '/'; } });
+  document.getElementById('speakerReviewLogout')?.addEventListener('click', async () => { try { try { localStorage.removeItem('miu:header-session'); } catch (_) {} await fetch('/api/club-auth/logout', { method: 'POST' }); } finally { window.location.href = '/'; } });
   if (!document.getElementById('speakerReviewPanel')) {
     speakerRequestsLoaded = true;
     load();

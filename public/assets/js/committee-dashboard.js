@@ -1260,6 +1260,7 @@ document.getElementById('historyReturnComment')?.addEventListener('input', (even
 document.getElementById('logoutBtn')?.addEventListener('click', async () => {
   clearStatusOverviewCache();
   clearRequestsSnapshot();
+  try { localStorage.removeItem('miu:header-session'); } catch (_) {}
   await fetch('/api/club-auth/logout', { method: 'POST' });
   window.location.href = '/';
 });

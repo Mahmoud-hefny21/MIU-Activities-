@@ -396,6 +396,7 @@ const ContentStudio = (() => {
     if (resetFormBtn) resetFormBtn.addEventListener('click', resetForm);
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) logoutBtn.addEventListener('click', async () => {
+      try { localStorage.removeItem('miu:header-session'); } catch (_) {}
       await fetch('/api/club-auth/logout', { method: 'POST' });
       window.location.href = '/';
     });

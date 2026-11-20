@@ -235,6 +235,7 @@
   document.getElementById('overviewReviewsBtn')?.addEventListener('click', () => openButton.click());
   closeButton?.addEventListener('click', () => window.dashboardPanels?.showOverview());
   document.getElementById('ssoLogoutBtn')?.addEventListener('click', async () => {
+    try { localStorage.removeItem('miu:header-session'); } catch (_) {}
     await fetch('/api/club-auth/logout', { method: 'POST' });
     window.location.assign('/');
   });

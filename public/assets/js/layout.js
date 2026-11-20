@@ -467,15 +467,28 @@ document.addEventListener('DOMContentLoaded', () => {
     studentProfileDropdown?.querySelectorAll('a').forEach((link) => link.addEventListener('click', closeStudentProfileMenu));
     document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeStudentProfileMenu(); });
     if (authBtn) {
-      const refreshHeaderAccountState = async () => {
+      const headerSessionCacheKey = 'miu:header-session';
+      const renderHeaderAccountState = async (cachedSession = null) => {
         const requestId = ++headerAccountRequestId;
-        if (attendanceUsherTaskLink) attendanceUsherTaskLink.hidden = true;
+        const fromCache = Boolean(cachedSession);
+        if (attendanceUsherTaskLink && !fromCache) attendanceUsherTaskLink.hidden = true;
         try {
-          const session = await window.__miuAccountSessionRequest();
+          const session = cachedSession || await window.__miuAccountSessionRequest();
           if (!session) return;
+          if (!fromCache) {
+            try {
+              // Only a non-identifying hint is kept: no name, email, club or dashboard list at rest.
+              if (session.authenticated) localStorage.setItem(headerSessionCacheKey, JSON.stringify({
+                authenticated: true, type: session.type, role: session.role, hasStudentDashboard: Boolean(session.hasStudentDashboard)
+              }));
+              else localStorage.removeItem(headerSessionCacheKey);
+            } catch (_) {}
+          }
           currentHeaderSession = session;
-          window.__miuAccountSession = session;
-          window.dispatchEvent(new CustomEvent('miu:push-account-session-changed', { detail: session }));
+          if (!fromCache) {
+            window.__miuAccountSession = session;
+            window.dispatchEvent(new CustomEvent('miu:push-account-session-changed', { detail: session }));
+          }
           const destinations = {
             admin: { label: 'Admin Dashboard', href: '/admin' },
             president: { label: 'Club President Dashboard', href: '/club-dashboard' },
@@ -495,8 +508,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!/^custom_[a-z_]{1,30}$/.test(choice.role)) continue;
             destinations[choice.role] = { label: choice.label, href: '/dashboards/custom-role.html?role=' + encodeURIComponent(choice.role) };
           }
+          const accountKey = session.type === 'club' ? session.role : session.type;
           const account = session?.authenticated
-            ? destinations[session.type === 'club' ? session.role : session.type]
+            ? (Object.hasOwn(destinations, accountKey) ? destinations[accountKey]
+              : fromCache ? { label: 'My Account', href: '/' } : null)
             : null;
 
           if (account) {
@@ -557,7 +572,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
           }
           if (studentFormsLink) studentFormsLink.hidden = !isStudent;
-          if (attendanceUsherTaskLink && isAuthenticated) {
+          if (attendanceUsherTaskLink && isAuthenticated && !fromCache) {
             fetch('/api/miu-attendance-task', { credentials: 'same-origin', cache: 'no-store', siteStartupNonBlocking: true })
               .then(response => response.ok ? response.json() : null)
               .then(result => {
@@ -582,7 +597,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (studentProfileName) studentProfileName.textContent = accountIdentity;
             if (studentProfileEmail) studentProfileEmail.textContent = '';
             renderAccountPhoto(null);
-            window.loadAccountPhoto().then(photo => {
+            if (!fromCache) window.loadAccountPhoto().then(photo => {
               if (requestId === headerAccountRequestId) {
                 renderAccountPhoto(photo);
                 showPhotoPrompt(photo);
@@ -596,8 +611,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       };
 
+      const refreshHeaderAccountState = () => renderHeaderAccountState();
       window.refreshHeaderAccountState = refreshHeaderAccountState;
       window.addEventListener('miu:account-session-changed', refreshHeaderAccountState);
+      try {
+        const cached = JSON.parse(localStorage.getItem(headerSessionCacheKey) || 'null');
+        const validHint = cached?.authenticated === true
+          && ['student', 'club', 'admin'].includes(cached.type)
+          && /^[a-z_]{1,40}$/.test(String(cached.role || ''));
+        if (validHint) {
+          renderHeaderAccountState({ authenticated: true, type: cached.type, role: cached.role, hasStudentDashboard: cached.hasStudentDashboard === true, dashboards: [] });
+        } else if (cached) localStorage.removeItem(headerSessionCacheKey);
+      } catch (_) {}
       refreshHeaderAccountState();
     }
     studentSignoutBtn?.addEventListener('click', async () => {
@@ -606,6 +631,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const logoutPath = currentHeaderSession?.type === 'student'
           ? '/api/student-auth/logout'
           : currentHeaderSession?.type === 'admin' ? '/api/admin/logout' : '/api/club-auth/logout';
+        try { localStorage.removeItem('miu:header-session'); } catch (_) {}
         if (['student', 'club', 'admin'].includes(currentHeaderSession?.type)) await window.miuPushNotifications?.logout();
         const response = await fetch(logoutPath, { method: 'POST', cache: 'no-store' });
         if (!response.ok) {
