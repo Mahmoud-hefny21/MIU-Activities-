@@ -38,4 +38,4 @@ async function deviceChecks(AttendanceRecord, records) {
   return result;
 }
 
-module.exports = { deviceChecks, DEVICE_OK: OK };
+module.exports = { deviceChecks };

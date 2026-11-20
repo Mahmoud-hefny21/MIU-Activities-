@@ -92,12 +92,7 @@
     const visible = new Set(visibleRecords().map((item) => item.id));
     list.querySelectorAll('[data-speaker-request-id]').forEach((card) => { card.hidden = !visible.has(card.dataset.speakerRequestId); });
   }
-  function csvCell(value) {
-    let text = String(value ?? '').replace(/[\r\n]+/g, ' ');
-    if (/^[=+@\-\t]/.test(text)) text = `'${text}`;
-    return `"${text.replace(/"/g, '""')}"`;
-  }
-  function exportCsv() {
+  function exportExcel() {
     const columns = [
       ['Name', 'speakerName'], ['Current position and company', 'jobTitleCompany'], ['LinkedIn', 'linkedinProfile'],
       ['Topic', 'proposedTopic'], ['Why this speaker was chosen', 'speakerSelectionReason'], ['Expected benefit to students', 'expectedStudentBenefit'], ['Email', 'speakerEmail'], ['Short bio', 'shortBio'],
@@ -109,7 +104,7 @@
   }
   search.addEventListener('input', filterCards);
   statusFilter.addEventListener('change', filterCards);
-  exportButton.addEventListener('click', exportCsv);
+  exportButton.addEventListener('click', exportExcel);
   async function load() {
     feedback('Loading speaker requests…'); list.replaceChildren();
     try {

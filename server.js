@@ -612,10 +612,6 @@ if (httpSecurity.production(process.env) && (!process.env.ADMIN_SESSION_SECRET |
 let adminAuthState = null;
 
 const cleanText = (value, maxLength) => String(value || '').trim().slice(0, maxLength);
-const positiveNumber = (value, fallback = 0) => {
-  const number = Number.parseInt(value, 10);
-  return Number.isFinite(number) && number >= 0 ? number : fallback;
-};
 
 function normalizeApplicationFields(fields) {
   if (!Array.isArray(fields)) return [];
@@ -5139,13 +5135,6 @@ function committeeCanAccessRequest(role, type) {
 
 // Dedicated content types. Each module (Event, Feed, Sponsor, Booth) assigns its own type.
 const CONTENT_TYPES = ['event', 'feed', 'sponsor', 'booth', 'entry_permit'];
-const contentTypeLabels = { event: 'Event', feed: 'Feed', sponsor: 'Sponsor', booth: 'Booth', entry_permit: 'Entry Permit', year_plan: 'Year Plan' };
-const contentHomeLabels = {
-  event: 'Upcoming Event',
-  feed: 'Latest Feed',
-  sponsor: 'Upcoming Sponsor',
-  booth: 'Booth Opening Soon'
-};
 const contentSingular = { event: 'event', feed: 'feed post', sponsor: 'sponsor request', booth: 'booth request', entry_permit: 'entry permit', year_plan: 'year plan' };
 
 // An approved year plan replaces the club's public calendar as a whole.
@@ -5159,18 +5148,8 @@ function isContentType(value) {
   return CONTENT_TYPES.includes(value);
 }
 
-function contentLabel(type) {
-  return contentTypeLabels[type] || 'Content';
-}
-
 function contentSingularLabel(type) {
   return contentSingular[type] || 'content';
-}
-
-// The date used for "upcoming" sorting: booths sort by their opening date.
-function contentRequestDate(record) {
-  if (record.type === 'booth') return record.boothOpenDate || record.date || '';
-  return record.date || '';
 }
 
 function extractSponsorFields(body) {

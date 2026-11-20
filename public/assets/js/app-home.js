@@ -1254,62 +1254,6 @@ function startOfLocalDay(value) {
   return day;
 }
 
-const CONTENT_TYPE_LABELS = { event: 'Event', feed: 'Feed', sponsor: 'Sponsor', booth: 'Booth' };
-const CONTENT_HOME_LABELS = { event: 'Upcoming Event', feed: 'Latest Feed', sponsor: 'Upcoming Sponsor', booth: 'Booth Opening Soon' };
-
-function parseContentDate(value) {
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-// Upcoming items sort by the nearest date first; equal dates show the most recently created item first.
-function compareUpcoming(left, right) {
-  const leftDate = parseContentDate(left.date);
-  const rightDate = parseContentDate(right.date);
-  if (leftDate && rightDate && leftDate.getTime() !== rightDate.getTime()) return leftDate - rightDate;
-  if (leftDate && !rightDate) return -1;
-  if (!leftDate && rightDate) return 1;
-  const leftCreated = new Date(left.createdAt || 0).getTime();
-  const rightCreated = new Date(right.createdAt || 0).getTime();
-  if (leftCreated !== rightCreated) return rightCreated - leftCreated;
-  return (Number(right.requestId) || 0) - (Number(left.requestId) || 0);
-}
-
-// Regular listings show the newest content first.
-function compareNewest(left, right) {
-  const leftCreated = new Date(left.createdAt || 0).getTime();
-  const rightCreated = new Date(right.createdAt || 0).getTime();
-  if (leftCreated !== rightCreated) return rightCreated - leftCreated;
-  return (Number(right.requestId) || 0) - (Number(left.requestId) || 0);
-}
-
-function collectClubContent(kind) {
-  const typeByKind = { events: 'event', posts: 'feed', sponsors: 'sponsor', booths: 'booth' };
-  return (state.clubs || []).flatMap((club) =>
-    (Array.isArray(club[kind]) ? club[kind] : []).map((item, index) => ({
-      ...item,
-      contentType: item.contentType || typeByKind[kind] || 'event',
-      clubId: club.id,
-      clubName: club.name,
-      clubImage: club.image,
-      index
-    }))
-  );
-}
-
-// The upcoming section shows events, sponsors and booths. Feeds stay in the feed section.
-function getAllUpcomingContent() {
-  const universityEvents = (state.universityContent || []).filter((item) => item.type === 'event').map((item, index) => ({
-    ...item, contentType: 'event', clubId: 0, clubName: item.organization?.name || 'Misr International University',
-    clubImage: item.organization?.image || '/assets/img/pics/logo.svg.png', index: item.id, eventIndex: item.id, university: true, universityContentId: item.id
-  }));
-  return [...collectClubContent('events'), ...universityEvents, ...collectClubContent('sponsors'), ...collectClubContent('booths')];
-}
-
-function getAllFeeds() {
-  return collectClubContent('posts');
-}
-
 function renderTodayEvents() {
   const strip = document.getElementById('todayEvents');
   if (!strip) return;
@@ -1812,7 +1756,3 @@ function getOrderedClubs(clubs) {
   });
 }
 
-function clubsShareOrderGroup(left, right) {
-  return getClubStatusPriority(left.status) === getClubStatusPriority(right.status)
-    && Boolean(left.pinned) === Boolean(right.pinned);
-}
