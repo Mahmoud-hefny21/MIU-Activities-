@@ -827,7 +827,8 @@ async function loadClubReviewNotifications(showNotifications = true) {
 }
 
 window.addEventListener('club:entry-permit-submitted', () => {
-  if (state.clubAccount?.role === 'president') loadClubReviewNotifications();
+  // Review decisions reach presidents as OneSignal app notifications; the dashboard only refreshes its status list.
+  if (state.clubAccount?.role === 'president') loadClubReviewNotifications(false);
 });
 
 document.getElementById('openClubRequestHistoryBtn')?.addEventListener('click', async () => {
@@ -992,7 +993,7 @@ async function openClubPortal(initialSession = null) {
       window.siteStartup?.afterStartup?.(async () => {
         const results = await Promise.allSettled([
           loadPresidentApplicationForm(),
-          loadClubReviewNotifications(),
+          loadClubReviewNotifications(false),
           loadClubMembers()
         ]);
         if (results[0].status === 'rejected') {

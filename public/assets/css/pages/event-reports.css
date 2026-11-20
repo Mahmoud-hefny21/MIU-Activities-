@@ -96,3 +96,9 @@ body.miu-attendance-page .footer-container { width: min(100%, 1240px); }
 .miu-attendance-event-details[hidden] { display: none !important; }
 #usherSelfCheckinForm { display: grid; gap: .75rem; max-width: 36rem; margin-block: 1rem; }
 #usherSelfCheckinForm[hidden] { display: none; }
+
+/* Keyboard users see which date or field is selected. */
+.report-filter input:focus-visible, main input[type="date"]:focus-visible, main select:focus-visible { outline: 3px solid var(--primary-500, #b91c1c); outline-offset: 2px; }
+
+/* The floating Back button sits above the card instead of over its top edge. */
+body:has(.floating-back-control:not([hidden])) main { padding-top: 58px; }

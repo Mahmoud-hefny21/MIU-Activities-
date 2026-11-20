@@ -118,6 +118,11 @@ app.use('/api', httpSecurity.protectMutations);
 // Base64 expands binary images by roughly one third, so allow enough JSON
 // request space for an image whose decoded size is capped at 10 MiB.
 app.use(express.json({ limit: '15mb' }));
+// Public lists cached in memory are refreshed after any successful change request.
+app.use((req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD' && !/\/view$|visitor|presence|ping/.test(req.path)) res.on('finish', () => { if (res.statusCode < 400) globalThis.miuDataVersion = (globalThis.miuDataVersion || 0) + 1; });
+  next();
+});
 // API responses are always revalidated against their source of truth. In
 // particular, browsers and intermediary caches must not reuse old dashboards.
 app.use('/api', (req, res, next) => {
@@ -2315,10 +2320,30 @@ require('./services/public-data-stream').registerPublicDataStream(app, {
   }
 });
 
+// The public club list is the same for everyone: requests in the same 10 seconds share one database read
+// (Vercel's edge already caches it for 20 seconds; this keeps the local server fast under load too).
+// Any successful change request bumps globalThis.miuDataVersion, so edits show at once.
 app.get('/api/clubs', async (req, res) => {
   try {
     if (!mongoReady) await ensureReady();
     if (!requireLiveDatabase(res)) return;
+    const variant = req.query.media === 'links' ? 'links' : 'full';
+    const publicClubListCache = globalThis.miuPublicClubListCache ||= new Map();
+    let entry = publicClubListCache.get(variant);
+    if (!entry || entry.expires < Date.now() || entry.version !== globalThis.miuDataVersion) {
+      entry = { expires: Date.now() + 10000, version: globalThis.miuDataVersion, records: readPublicClubList(req) };
+      publicClubListCache.set(variant, entry);
+      entry.records.catch(() => publicClubListCache.delete(variant));
+    }
+    sendRevalidatedPublicJson(req, res, await entry.records);
+  } catch (error) {
+    console.error('Database operation failed:', error.name);
+    res.status(503).json({ message: 'The data store is temporarily unavailable.' });
+  }
+});
+
+async function readPublicClubList(req) {
+  {
     const [clubsFromDatabase, acceptedMemberGroups] = await Promise.all([
       req.query.media === 'links'
         ? Club.aggregate([{ $match: { archivedAt: null } }, { $sort: { sortOrder: 1, id: 1 } },
@@ -2375,12 +2400,9 @@ app.get('/api/clubs', async (req, res) => {
       ratingAverage: ratingByClub.get(String(club._id))?.average || 0,
       ratingCount: ratingByClub.get(String(club._id))?.count || 0
     }));
-    sendRevalidatedPublicJson(req, res, records);
-  } catch (error) {
-    console.error('Database operation failed:', error.name);
-    res.status(503).json({ message: 'The data store is temporarily unavailable.' });
+    return records;
   }
-});
+}
 
 // MIU Hub: all official MIU and faculty events and announcements, for every visitor.
 // Upcoming events first (soonest first), then everything else newest first.

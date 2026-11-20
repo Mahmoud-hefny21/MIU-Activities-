@@ -201,10 +201,16 @@ hub: '<path d="M3 10 12 4l9 6"/><path d="M5 10v9M9.5 10v9M14.5 10v9M19 10v9M3 21
   function fitLabels() {
     bar.querySelectorAll('.bottom-bar-label').forEach((label) => {
       label.style.fontSize = '';
-      for (let size = 0.95; label.scrollWidth > label.clientWidth + 1 && size >= 0.9; size -= 0.05) label.style.fontSize = `${size.toFixed(2)}em`;
+      let size = 0.95;
+      for (; label.scrollWidth > label.clientWidth + 1 && size >= (bar.classList.contains("is-inline") ? 0.72 : 0.9); size -= 0.05) label.style.fontSize = `${size.toFixed(2)}em`;
+      // One more small step for a label that had to shrink, so sub-pixel rounding never shows "…".
+      if (label.style.fontSize) label.style.fontSize = `${(size - 0.05).toFixed(2)}em`;
     });
   }
   window.addEventListener('resize', () => requestAnimationFrame(fitLabels));
+  // The web font can arrive after the first check and make labels wider; check again then.
+  document.fonts?.ready.then(() => requestAnimationFrame(fitLabels));
+  window.addEventListener('load', () => requestAnimationFrame(fitLabels), { once: true });
 
   build();
   document.body.append(bar);

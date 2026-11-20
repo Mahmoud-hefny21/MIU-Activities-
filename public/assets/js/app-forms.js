@@ -451,13 +451,15 @@ function openClubDetail(clubId) {
         <img class="detail-logo${club.imageFit === 'contain' ? ' detail-logo-contain' : ''}" src="${escapeHtml(club.image)}" alt="${escapeHtml(club.name)} logo" />
       </div>
       <div class="detail-hero-copy">
+        <div class="detail-title-row">
+          <h2 class="detail-title">${escapeHtml(club.name)}</h2>
+          ${clubSocialLinks(club)}
+        </div>
         <div class="detail-chip-row">
-          <span class="status-pill status-${escapeHtml(club.status)}">${escapeHtml(getClubStatusLabel(club.status))}</span>
-          <span class="club-tag">${escapeHtml(club.category)}</span>
-          ${club.committee && club.committee !== club.category ? `<span class="club-tag">${escapeHtml(club.committee)}</span>` : ''}
+          <span class="detail-status-dot status-${escapeHtml(club.status)}"><span aria-hidden="true"></span>${escapeHtml(getClubStatusLabel(club.status))}</span>
+          <span class="detail-meta">${[club.category, club.committee && club.committee !== club.category ? club.committee : ''].filter(Boolean).map(escapeHtml).join(' · ')}</span>
           ${club.pinned ? '<span class="detail-pinned-label">Featured club</span>' : ''}
         </div>
-        <h2 class="detail-title">${escapeHtml(club.name)}</h2>
         ${club.tagline && club.tagline !== club.category ? `<p class="detail-tagline">${escapeHtml(club.tagline)}</p>` : ''}
         <div class="club-detail-actions">
           <button class="primary-btn club-detail-apply" data-action="apply-club" data-id="${club.id}" ${canApply ? '' : 'disabled'}>${canApply ? 'Apply Now' : escapeHtml(getClubActionLabel(club.status))}</button>
@@ -934,4 +936,29 @@ applicationForm.addEventListener('submit', async (event) => {
   }
 });
 
-
+// Small social icons beside the club name, from the links saved by the clubs Excel import.
+const CLUB_SOCIAL_ICONS = {
+  instagram: ['Instagram', '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>'],
+  tiktok: ['TikTok', '<path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5"/><path d="M14 3c.4 2.6 2.2 4.4 5 4.7"/>'],
+  facebook: ['Facebook', '<path d="M15 3h-2.5A3.5 3.5 0 0 0 9 6.5V9H6.5v3.5H9V21h3.5v-8.5H15l.5-3.5h-3V7a1 1 0 0 1 1-1H15z"/>'],
+  linkedin: ['LinkedIn', '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 10.5V16M8 7.5v.01M12 16v-5.5M12 13a2.5 2.5 0 0 1 5 0v3"/>'],
+  website: ['Website', '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>']
+};
+function clubSocialKind(url) {
+  let host = '';
+  try { host = new URL(url).hostname.replace(/^www\./, '').toLowerCase(); } catch { return null; }
+  if (host === 'instagram.com' || host.endsWith('.instagram.com') || host === 'instagr.am') return 'instagram';
+  if (host === 'tiktok.com' || host.endsWith('.tiktok.com')) return 'tiktok';
+  if (host === 'facebook.com' || host.endsWith('.facebook.com') || host === 'fb.com') return 'facebook';
+  if (host === 'linkedin.com' || host.endsWith('.linkedin.com')) return 'linkedin';
+  return 'website';
+}
+function clubSocialLinks(club) {
+  const links = (Array.isArray(club.socialLinks) ? club.socialLinks : []).filter(link => /^https:\/\//i.test(link));
+  if (!links.length) return '';
+  return `<nav class="club-social-links" aria-label="${escapeHtml(club.name)} social media">${links.map((link) => {
+    const kind = clubSocialKind(link); if (!kind) return '';
+    const [label, path] = CLUB_SOCIAL_ICONS[kind];
+    return `<a class="club-social-link is-${kind}" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(club.name)} on ${label}" title="${label}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg></a>`;
+  }).join('')}</nav>`;
+}

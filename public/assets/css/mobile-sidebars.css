@@ -406,7 +406,7 @@
   .committee-dashboard-layout:has(> .bottom-bar.is-inline), main:has(> .bottom-bar.is-inline) { align-content: start !important; grid-template-rows: none !important; grid-auto-rows: auto !important; }
   main > .bottom-bar.is-inline { align-self: start; justify-self: stretch; }
   /* The bar already has Back, so page Back buttons are not repeated on phones and tablets. */
-  body.has-bottom-bar .page-back-control:not(.bottom-bar-item) { display: none !important; }
+  body.has-bottom-bar .page-back-control:not(.bottom-bar-item):not(.club-profile-back) { display: none !important; }
 }
 @media (max-width: 640px) {
   .bottom-bar.is-inline { flex-wrap: nowrap; gap: 6px; overflow-x: auto; scrollbar-width: none; }

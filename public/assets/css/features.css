@@ -1718,3 +1718,58 @@ body :is(button[aria-label*="close" i], button[aria-label*="exit" i], button[tit
 .student-checkin-row span:not(.admin-eyebrow) { color: var(--text-muted); font-size: .88rem; }
 .student-checkin-row .primary-btn { min-height: 44px; }
 @media (max-width: 520px) { .student-checkin-row .primary-btn { width: 100%; justify-content: center; } }
+
+/* Club view: small social icons to the right of the club name. */
+.detail-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.detail-title-row .detail-title { min-width: 0; }
+.club-social-links { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.club-social-link { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border-color, #e2e8f0); background: var(--bg-panel, #fff); color: var(--text-muted, #475569); transition: color .15s, border-color .15s, background-color .15s; }
+.club-social-link:hover, .club-social-link:focus-visible { color: var(--primary-700, #8b1a1a); border-color: var(--primary-200, #fecaca); background: var(--primary-50, #fef2f2); }
+.club-social-link:focus-visible { outline: 3px solid var(--primary-500, #b91c1c); outline-offset: 2px; }
+
+/* Club view header (every club): name with small social icons, one quiet info line, logo beside the text. */
+.club-detail-hero .detail-title-row { justify-content: flex-start; gap: 8px 12px; margin: 0 0 8px; }
+.club-detail-hero .detail-title-row .detail-title { margin: 0; }
+.club-detail-hero .detail-chip-row { gap: 8px; }
+.club-detail-hero .detail-meta { color: var(--text-muted, #64748b); font-size: .86rem; font-weight: 500; }
+.club-detail-hero .detail-tagline { margin-top: 8px; }
+@media (max-width: 560px) {
+  .club-detail-hero { grid-template-columns: 76px minmax(0, 1fr); align-items: start; gap: 14px; text-align: left; }
+  .club-detail-hero .detail-logo-frame { width: 76px; height: 76px; justify-self: start; border-radius: 18px; }
+  .club-detail-hero { row-gap: 4px; }
+  .club-detail-hero .detail-hero-copy { display: contents; }
+  .club-detail-hero .detail-logo-frame { grid-row: 1 / span 3; }
+  .club-detail-hero .detail-title-row, .club-detail-hero .detail-chip-row, .club-detail-hero .detail-tagline { grid-column: 2; }
+  .club-detail-hero .detail-tagline { margin-top: 4px; }
+  .club-detail-hero .detail-title { font-size: 1.45rem; }
+  .club-detail-hero .detail-title-row { gap: 6px 10px; margin-bottom: 6px; }
+  .club-detail-hero .club-social-link { width: 28px; height: 28px; }
+  .club-detail-hero .club-social-link svg { width: 14px; height: 14px; }
+  .club-detail-hero .detail-meta { font-size: .8rem; }
+  .club-detail-hero .detail-tagline { font-size: .9rem; }
+  .club-detail-hero .club-detail-actions { grid-column: 1 / -1; width: 100%; margin-top: 14px; }
+}
+
+/* Staff dashboards on phones: title and the Home button share one row (the bottom bar already has Back). */
+@media (max-width: 640px) {
+  .committee-card > .committee-top:not(:has(#openContentStudioBtn)) { flex-wrap: nowrap; align-items: center; }
+  .committee-card > .committee-top:not(:has(#openContentStudioBtn)) .top-actions { display: flex; width: auto; flex: 0 0 auto; margin-left: auto; }
+  .committee-card > .committee-top:not(:has(#openContentStudioBtn)) .top-actions > * { flex: 0 0 auto; min-height: 40px; padding: 8px 14px; }
+}
+/* Small phones: one overview card per row (title and hint on the left, number on the right), so words never break. */
+@media (max-width: 420px) {
+  .committee-overview-stats, .committee-overview-stats:is(.overview-grid-2, .overview-grid-3, .overview-grid-4) { grid-template-columns: minmax(0, 1fr) !important; }
+  .committee-overview-stats .overview-stat-card { min-height: 64px; }
+}
+
+/* Club view: status as a small coloured dot with text (home cards keep their pill). */
+.detail-status-dot { display: inline-flex; align-items: center; gap: 6px; color: var(--text-main, #172033); font-size: .82rem; font-weight: 700; text-transform: capitalize; }
+.detail-status-dot > span { width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; box-shadow: 0 0 0 3px rgba(148, 163, 184, .2); }
+.detail-status-dot.status-open > span { background: #16a34a; box-shadow: 0 0 0 3px rgba(22, 163, 74, .18); }
+.detail-status-dot.status-closed > span { background: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, .16); }
+.detail-status-dot:is(.status-full, .status-opening-soon, .status-paused) > span { background: #d97706; box-shadow: 0 0 0 3px rgba(217, 119, 6, .18); }
+.club-detail-hero .detail-chip-row { align-items: center; }
+.club-detail-hero .detail-meta::before { content: "·"; margin-right: 8px; color: var(--text-muted, #94a3b8); }
+.club-profile-back { display: inline-flex !important; }
+.club-detail-hero .detail-status-dot { padding: 0 !important; border: 0 !important; background: none !important; box-shadow: none !important; min-height: 0; }
+@media (max-width: 560px) { .club-detail-hero .detail-meta { flex-basis: 100%; } .club-detail-hero .detail-meta::before { content: none; } }

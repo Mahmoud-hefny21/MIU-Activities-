@@ -30,6 +30,7 @@ function createContentRequestNotifier({ ClubAccount, NotificationDispatch, env =
         assigned: 'has an updated task assignment'
       };
       const action = actions[event.action] || 'has a workflow update';
+      const reviewerLabels = { pr: 'PR', english: 'the English Department', security: 'Security', dean: 'the Dean', supervisor: 'the club supervisor', sso: 'SSO' };
       // Separate groups have different destinations; never put private review comments in push content.
       await Promise.all([...new Set(accounts.map(account => account.role))].map(async role => {
         const key = `content-workflow:${record._id}:${event._id || record.workflowHistory.length}:${role}`;
@@ -40,7 +41,7 @@ function createContentRequestNotifier({ ClubAccount, NotificationDispatch, env =
           const result = await send({ appId: env.ONESIGNAL_APP_ID, apiKey: env.ONESIGNAL_REST_API_KEY,
             externalIds: accounts.filter(account => account.role === role).map(clubExternalId),
             title: 'MIU Activities · Request update',
-            message: `Your ${record.type.replace(/_/g, ' ')} request #${record.id} ${action}. Open your dashboard for details.`,
+            message: `${record.title ? `${String(record.title).slice(0, 80)}: ` : ''}Your ${record.type.replace(/_/g, ' ')} request #${record.id} ${action}${reviewerLabels[event.role] ? ` by ${reviewerLabels[event.role]}` : ''}. Open your dashboard for details.`,
             url: new URL(path, base).toString() });
           await NotificationDispatch.updateOne({ eventKey: key }, { $set: {
             status: result.messageId ? 'sent' : 'no_recipient', providerMessageId: result.messageId
