@@ -29,19 +29,22 @@ function changedTools(previous, current) { return toolIds.filter(tool => previou
 function createRevisionReader({ database, models = require('../database/catalog').catalog(), runtime = require('../database/runtime'), localRevisions = async () => ({}) }) {
   let cached, savedAt = 0, pending;
   return async function readRevisions() {
-    if (cached && Date.now() - savedAt < 1000) return cached;
+    if (cached && Date.now() - savedAt < 3000) return cached;
     if (pending) return pending;
     pending = (async () => {
       const versions = {};
       if (database.isSqlProvider) {
         // Hash only IDs and optimistic versions, never download saved payloads.
-        const query = models.map(spec => `SELECT N'${spec.name}' AS model, CONVERT(VARCHAR(64), HASHBYTES('SHA2_256', COALESCE(STRING_AGG(CONVERT(NVARCHAR(MAX), [_id]) + N':' + CONVERT(NVARCHAR(30), [_version]), N'|') WITHIN GROUP (ORDER BY [_id]), N'')), 2) AS revision FROM ${spec.table}`).join(' UNION ALL ');
+        // Fast per-table fingerprint: row count, sum of row versions and a checksum of ids+versions.
+        // Any insert, update or delete changes it, without reading every id.
+        const query = models.map(spec => `SELECT N'${spec.name}' AS model, CONCAT(COUNT_BIG(*), N':', COALESCE(SUM(CAST([_version] AS BIGINT)), 0), N':', COALESCE(CHECKSUM_AGG(BINARY_CHECKSUM([_id], [_version])), 0)) AS revision FROM ${spec.table}`).join(' UNION ALL ');
         const result = await runtime.request().query(query);
         for (const row of result.recordset) versions[row.model] = row.revision;
       } else {
+        // MongoDB: count + newest change per collection (cheap index reads instead of every document).
         await Promise.all(models.map(async spec => {
-          const rows = await spec.model.find().select('_id updatedAt').lean();
-          versions[spec.name] = digest(rows.map(row => `${row._id}:${row.updatedAt || ''}`).sort().join('|'));
+          const [count, latest] = await Promise.all([spec.model.estimatedDocumentCount(), spec.model.findOne().sort({ updatedAt: -1, _id: -1 }).select('_id updatedAt').lean()]);
+          versions[spec.name] = `${count}:${latest?._id || ''}:${latest?.updatedAt ? new Date(latest.updatedAt).getTime() : ''}`;
         }));
       }
       Object.assign(versions, await localRevisions());

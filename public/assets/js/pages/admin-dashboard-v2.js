@@ -265,7 +265,7 @@
         const number = value => Number(value || 0).toLocaleString();
         const maximum = Math.max(1, ...data.clubs.map(club => club.points));
         $('toolContent').innerHTML = record('Accounts counted', number(data.totalSubmissions))
-          + '<p class="v2-panel-note">Each signed-in account contributes once per club. Retaking the quiz or reviewing answers updates that account’s points. Anonymous results are excluded.</p>'
+          + '<p class="v2-panel-note">Each signed-in account counts once.</p>'
           + (data.totalSubmissions ? '' : '<p class="v2-panel-note" role="status">No signed-in quiz results recorded yet. Club totals will update as signed-in accounts finish the quiz.</p>')
           + '<div class="v2-quiz-points">' + data.clubs.map((club, index) => `<article class="v2-quiz-points-row"><span class="v2-quiz-rank">${index + 1}</span><div><strong>${escape(club.name)}</strong><progress max="${maximum}" value="${club.points}" aria-label="${escape(club.name)} quiz points"></progress></div><strong>${number(club.points)} <small>pts</small></strong></article>`).join('') + '</div>';
       } else if (id === 'analytics') {

@@ -10,7 +10,7 @@
       let ordered = [...data].sort((a, b) => rank(a) - rank(b) || Number(pinned(b)) - Number(pinned(a)) || (a.sortOrder ?? a.id) - (b.sortOrder ?? b.id));
       let busy = false;
       const render = () => {
-        root().innerHTML = '<a class="v2-action" href="/admin/clubs?club=new">Add club</a><p class="v2-panel-note">Use the arrows to change the home page order. Changes save automatically within each registration and pin group.</p><div id="clubManagementList">' + list(ordered.map((club, index) => record(club.name,
+        root().innerHTML = '<a class="v2-action" href="/admin/clubs?club=new">Add club</a><p class="v2-panel-note">Use the arrows to reorder. Changes save automatically.</p><div id="clubManagementList">' + list(ordered.map((club, index) => record(club.name,
           `${club.category || 'Club'} · ${club.status || 'closed'}${pinned(club) ? ' · Pinned' : ''}`,
           [-1, 1].map(direction => `<button type="button" class="v2-club-order-button" data-move-club="${escape(club.id)}" data-direction="${direction}" aria-label="Move ${escape(club.name)} ${direction < 0 ? 'up' : 'down'}" title="Move ${direction < 0 ? 'up' : 'down'}" ${busy || !sameGroup(club, ordered[index + direction]) ? 'disabled' : ''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${direction < 0 ? 'M12 20V4m-7 7 7-7 7 7' : 'M12 4v16m-7-7 7 7 7-7'}"/></svg></button>`).join('') +
           `<a href="/admin/clubs?club=${encodeURIComponent(club.id)}">Edit club</a><button type="button" data-archive-club="${escape(club.id)}" ${busy ? 'disabled' : ''}>Archive</button>`))) + '</div>';
@@ -64,7 +64,7 @@
       <label>Registration status<select name="status">${['open', 'opening-soon', 'full', 'closed'].map(status => `<option value="${status}" ${status === club.status ? 'selected' : ''}>${escape(status)}</option>`).join('')}</select></label>
       <label>Image display<select name="imageFit"><option value="contain">Fit full image</option><option value="cover" ${club.imageFit === 'cover' ? 'selected' : ''}>Fill image area</option></select></label>
       <label class="v2-checkbox"><input type="checkbox" name="pinned" ${club.pinned ? 'checked' : ''}>Pin club when registration is open</label>
-      <p class="v2-panel-note">No application limit while registration is open. Applicant and member totals update automatically from saved records.</p>
+      <p class="v2-panel-note">No application limit while registration is open.</p>
       <label class="v2-wide">Description<textarea name="description" required maxlength="1200">${escape(club.description)}</textarea></label>
       <label class="v2-wide">Requirements<textarea name="requirements" required maxlength="600">${escape(club.requirements)}</textarea></label>
       <label class="v2-club-intro-field">Application introduction<textarea name="applicationIntro" maxlength="240" rows="3" placeholder="Optional text shown to students before they apply">${escape(club.applicationIntro)}</textarea><small>Optional. Shown before the application questions.</small></label>

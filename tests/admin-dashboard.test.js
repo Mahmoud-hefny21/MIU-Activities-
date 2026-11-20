@@ -91,7 +91,7 @@ test('SQL revision reads use only ID/version metadata and coalesce concurrent vi
   let queries = 0;
   const runtime = { request: () => ({ query: async query => {
     queries++; assert.doesNotMatch(query, /_payload|INSERT|UPDATE|DELETE|CREATE/);
-    assert.match(query, /HASHBYTES/); assert.match(query, /_version/);
+    assert.match(query, /CHECKSUM_AGG/); assert.match(query, /COUNT_BIG/); assert.match(query, /_version/);
     return { recordset: [{ model: 'Club', revision: 'abc' }] };
   } }) };
   const read = createRevisionReader({ database: { isSqlProvider: true }, models: [{ name: 'Club', table: '[dbo].[Club]' }], runtime });
@@ -99,10 +99,11 @@ test('SQL revision reads use only ID/version metadata and coalesce concurrent vi
   assert.equal(queries, 1); assert.equal(Object.keys(result[0]).length, toolIds.length);
   assert.deepEqual(result[0], result[1]); await read(); assert.equal(queries, 1);
 });
-test('Mongo revision reads project only identity and update timestamps', async () => {
+test('Mongo revision reads use a count and the newest change only', async () => {
   let reads = 0;
   const read = createRevisionReader({ database: { isSqlProvider: false }, models: [{ name: 'Club', model: {
-    find() { reads++; return { select(fields) { assert.equal(fields, '_id updatedAt'); return { lean: async () => [{ _id: 'abc', updatedAt: new Date('2026-10-15') }] }; } }; }
+    estimatedDocumentCount: async () => 3,
+    findOne() { reads++; return { sort() { return { select(fields) { assert.equal(fields, '_id updatedAt'); return { lean: async () => ({ _id: 'abc', updatedAt: new Date('2026-10-15') }) }; } }; } }; }
   } }] });
   const result = await read(); await read(); assert.equal(reads, 1); assert.equal(Object.keys(result).length, toolIds.length);
 });

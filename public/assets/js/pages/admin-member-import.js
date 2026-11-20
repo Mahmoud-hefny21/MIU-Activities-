@@ -61,6 +61,7 @@
       <p id="memberImportStatus" class="v2-panel-note" role="status" aria-live="polite"></p>
       <div id="memberImportActions" hidden><button id="memberImportConfirm" type="button" class="v2-action">Import members</button></div>
       <div id="memberImportPreview"></div></section>`;
+    $('memberImportFile').closest('label').before(window.MiuImportTemplates?.button('members') || '');
     const input = $('memberImportFile'), status = $('memberImportStatus'), preview = $('memberImportPreview'), actions = $('memberImportActions'), confirm = $('memberImportConfirm');
     let grid = [], cleaned = null;
     const render = (result) => {

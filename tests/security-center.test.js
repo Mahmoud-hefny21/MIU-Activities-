@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const express = require('express');
 const { registerSecurityCenter } = require('../services/security-center');
 
-test('activity log returns all records and can filter every developer-only entry without truncation', async t => {
+test('activity log returns the newest 400 by default and filters developer-only entries', async t => {
   let filter;
   let appliedLimit = null;
   const rows = Array.from({ length: 135 }, (_, index) => ({ actorRole: index % 2 ? 'software_development' : 'president', action: `PATCH /api/admin/clubs/${index}` }));
@@ -34,9 +34,10 @@ test('activity log returns all records and can filter every developer-only entry
   assert.equal(allResponse.status, 200);
   assert.deepEqual(filter, { action: { $ne: 'club_import_undo_state' } });
   assert.equal((await allResponse.json()).logs.length, 135, 'the all-activity endpoint must include every role');
+  assert.equal(appliedLimit, 400, 'the default view is the newest 400 entries');
   const recentResponse = await fetch(`${base}/api/admin/security/audit?limit=50`);
   assert.equal(recentResponse.status, 200);
   assert.equal(appliedLimit, 50, 'summary panels can request a bounded recent window');
   assert.equal((await fetch(`${base}/api/admin/security/audit?actorRole=president`)).status, 400);
-  assert.equal((await fetch(`${base}/api/admin/security/audit?limit=500`)).status, 400);
+  assert.equal((await fetch(`${base}/api/admin/security/audit?limit=5000`)).status, 400);
 });
