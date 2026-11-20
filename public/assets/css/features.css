@@ -1715,7 +1715,9 @@ body :is(button[aria-label*="close" i], button[aria-label*="exit" i], button[tit
 /* Staff dashboards on phones: title and the Home button share one row (the bottom bar already has Back). */
 @media (max-width: 640px) {
   .committee-card > .committee-top:has(> .top-actions):not(:has(#openContentStudioBtn)) { flex-wrap: nowrap; align-items: center; }
-  .committee-card > .committee-top:has(> .top-actions):not(:has(#openContentStudioBtn)) .top-actions { display: flex; width: auto; flex: 0 0 auto; margin-left: auto; }
+  /* !important (with this rule's higher specificity) beats the generic two-column button grid in modal-controls.css,
+     which otherwise left Home alone in the first of two columns. */
+  .committee-card > .committee-top:has(> .top-actions):not(:has(#openContentStudioBtn)) .top-actions { display: flex !important; width: auto !important; flex: 0 0 auto; margin-left: auto; }
   .committee-card > .committee-top:has(> .top-actions):not(:has(#openContentStudioBtn)) > :first-child { flex: 1 1 0; min-width: 0; }
   .committee-card > .committee-top:has(> .top-actions):not(:has(#openContentStudioBtn)) .top-actions { max-width: 50%; flex-wrap: wrap; justify-content: flex-end; }
   .committee-card > .committee-top:has(> .top-actions):not(:has(#openContentStudioBtn)) .top-actions > * { flex: 0 0 auto; width: auto !important; min-height: 40px; padding: 8px 14px; }

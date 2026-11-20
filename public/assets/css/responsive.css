@@ -594,7 +594,8 @@
 .account-photo-prompt-actions [data-photo-add] { background: var(--primary-800); color: #fff; }
 .nav-profile-account-copy { display: grid; flex: 1; min-width: 0; gap: 3px; }
 .nav-profile-account-copy strong { color: var(--text-main); font-size: .9rem; font-weight: 800; }
-.nav-profile-account-copy > span { color: var(--text-muted); font-size: .8rem; line-height: 1.45; white-space: normal; overflow-wrap: anywhere; }
+/* Emails wrap after the "@" (a <wbr> is added there); only a part that still cannot fit is broken. */
+.nav-profile-account-copy > span { color: var(--text-muted); font-size: .8rem; line-height: 1.45; white-space: normal; overflow-wrap: break-word; }
 .nav-profile-account-copy > span:last-child:not(:first-child) { overflow-wrap: anywhere; }
 @media (min-width: 1121px) { .nav-profile-dropdown { width: min(320px, calc(100vw - 24px)); } }
 @media (min-width: 1400px) { .nav-profile-dropdown { width: min(340px, calc(100vw - 24px)); } }

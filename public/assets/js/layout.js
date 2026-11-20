@@ -594,7 +594,11 @@ document.addEventListener('DOMContentLoaded', () => {
           if (isAuthenticated) {
             const accountName = String(session.name || account.label || 'My Account').trim();
             const accountIdentity = String(session.email || accountName);
-            if (studentProfileName) studentProfileName.textContent = accountIdentity;
+            if (studentProfileName) {
+              const at = accountIdentity.indexOf('@');
+              if (at > 0) studentProfileName.replaceChildren(accountIdentity.slice(0, at + 1), document.createElement('wbr'), accountIdentity.slice(at + 1));
+              else studentProfileName.textContent = accountIdentity;
+            }
             if (studentProfileEmail) studentProfileEmail.textContent = '';
             renderAccountPhoto(null);
             if (!fromCache) window.loadAccountPhoto().then(photo => {

@@ -1782,6 +1782,16 @@ button:disabled,
 .member-directory-filter { display: grid; gap: 6px; margin: 14px 0; font-weight: 700; }
 .member-directory-filter select { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-panel); color: var(--text-main); font: inherit; }
 .member-directory-download { display: inline-flex; width: fit-content; margin: 12px 0 4px; text-decoration: none; }
+@media (max-width: 700px) { .member-directory-download { display: flex; width: 100%; min-height: 44px; justify-content: center; } }
+
+/* iPhone/iPad Safari gives date and time fields a fixed built-in width that ignores their column, so they spill
+   out of forms. Let them size like other inputs (iOS only; desktop pickers keep their native look). */
+@supports (-webkit-touch-callout: none) {
+  input:is([type="date"], [type="time"], [type="datetime-local"], [type="month"], [type="week"]) {
+    -webkit-appearance: none; appearance: none; display: block; box-sizing: border-box; min-width: 0; max-width: 100%; min-height: 42px; text-align: left;
+  }
+  input:is([type="date"], [type="time"], [type="datetime-local"], [type="month"], [type="week"])::-webkit-date-and-time-value { min-height: 1.4em; text-align: left; }
+}
 .member-directory-list { display: grid; gap: 12px; max-height: 58vh; overflow: auto; }
 .member-directory-club { padding: 14px; border: 1px solid var(--border-color); border-radius: var(--radius-lg); background: var(--bg-soft); }
 .member-directory-club > header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 9px; }
