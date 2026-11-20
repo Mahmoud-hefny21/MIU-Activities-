@@ -2734,9 +2734,19 @@ html.quiz-scroll-lock {
 
 /* Compact floating launcher with a rotating petal icon. */
 .quiz-launcher {
-  position: fixed;
+  /* Sticky (not fixed): rides the viewport bottom, then rests just above the footer.
+     The browser does this on the compositor, so it stays smooth while scrolling. */
+  position: -webkit-sticky;
+  position: sticky;
+  bottom: 0;
   z-index: 900;
+  height: 0;
+  flex: none;
+  align-self: stretch;
 }
+
+body > .quiz-launcher { margin-top: auto; }
+body > .quiz-launcher + #site-footer { margin-top: 0; }
 
 :root {
   --quiz-launcher-right: 24px;
@@ -2744,11 +2754,9 @@ html.quiz-scroll-lock {
 }
 
 .quiz-launcher-circle {
-  position: fixed;
+  position: absolute;
   z-index: 2;
   bottom: var(--quiz-launcher-bottom);
-  translate: 0 calc(0px - var(--quiz-footer-offset, 0px));
-  will-change: translate;
   right: var(--quiz-launcher-right);
   width: 48px;
   height: 48px;
@@ -2870,11 +2878,9 @@ html.quiz-scroll-lock .quiz-launcher-circle,
 
 /* Compact translucent message bubble beside the circle. */
 .quiz-launcher-bubble {
-  position: fixed;
+  position: absolute;
   z-index: 1;
   bottom: calc(var(--quiz-launcher-bottom) + 3px);
-  translate: 0 calc(0px - var(--quiz-footer-offset, 0px));
-  will-change: translate;
   right: calc(var(--quiz-launcher-right) + 58px);
   display: flex;
   align-items: center;

@@ -719,10 +719,9 @@ document.addEventListener('DOMContentLoaded', () => {
       try { localStorage.setItem('miu:quiz:message-dismissed-v1', '1'); } catch (_) {}
       event.stopPropagation();
     });
-    document.body.append(wrap);
-    // Stay above the footer.
-    const updateQuizOffset = () => { const rect = document.querySelector('#site-footer, .site-footer')?.getBoundingClientRect(); wrap.style.setProperty('--quiz-footer-offset', (rect && rect.height ? Math.max(0, innerHeight - rect.top) : 0) + 'px'); };
-    addEventListener('scroll', updateQuizOffset, { passive: true }); addEventListener('resize', updateQuizOffset); updateQuizOffset();
+    // Sits in the page right before the footer; CSS sticky keeps it above the footer without scroll handlers.
+    const footerSlot = document.querySelector('body > #site-footer');
+    if (footerSlot) footerSlot.before(wrap); else document.body.append(wrap);
     // Warm the quiz up once the page is idle so the first tap opens instantly.
     const warmQuiz = () => (window.requestIdleCallback ? requestIdleCallback(() => loadQuiz().catch(() => {}), { timeout: 4000 }) : setTimeout(() => loadQuiz().catch(() => {}), 1500));
     if (document.readyState === 'complete') warmQuiz(); else addEventListener('load', warmQuiz, { once: true });
