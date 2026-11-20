@@ -1709,6 +1709,7 @@ button:disabled,
 .member-dialog-header h2 { margin: 4px 0; }
 .member-dialog-header p { margin: 0; color: var(--text-muted); }
 .member-dialog-toolbar { margin: 16px 0; color: var(--text-muted); font-weight: 700; }
+.member-dialog-toolbar #downloadMembersExcelBtn { margin-left: auto; }
 .member-add-form { margin-bottom: 18px; padding: 16px; border: 1px solid var(--border-color); border-radius: var(--radius-lg); background: var(--bg-soft); }
 .member-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .member-form-grid label { display: grid; gap: 6px; font-weight: 700; }
@@ -1722,6 +1723,30 @@ button:disabled,
 .member-form-actions { align-items: flex-end; margin-top: 14px; }
 .member-form-actions p { margin: 0; }
 .member-form-actions > div { display: flex; gap: 8px; }
+.member-search { position: relative; display: flex; align-items: center; margin: 4px 0 12px; }
+.member-search[hidden], .member-search-clear[hidden], .member-search-status[hidden], .member-roster-card[hidden] { display: none; }
+.member-search-icon { position: absolute; left: 15px; width: 18px; height: 18px; color: var(--slate-400); pointer-events: none; transition: color var(--transition-fast); }
+.member-search input {
+  width: 100%; min-height: 46px; box-sizing: border-box; padding: 0 46px;
+  border: 1.5px solid var(--border-color); border-radius: 999px; background: var(--bg-panel); color: var(--text-main);
+  font: inherit; font-weight: 500; box-shadow: var(--shadow-sm);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.member-search input::placeholder { color: var(--text-muted); font-weight: 400; }
+.member-search input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+.member-search input:hover { border-color: var(--slate-400); }
+.member-search input:focus { outline: none; border-color: var(--primary-700); box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary-700) 16%, transparent); }
+.member-search:focus-within .member-search-icon { color: var(--primary-700); }
+.member-search-clear {
+  position: absolute; right: 8px; display: grid; place-items: center; width: 30px; height: 30px; padding: 0;
+  border: 0; border-radius: 50%; background: var(--slate-100); color: var(--text-muted); cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+.member-search-clear svg { width: 14px; height: 14px; }
+.member-search-clear:hover { background: var(--slate-200); color: var(--text-main); }
+.member-search-clear:focus-visible { outline: 2px solid var(--primary-700); outline-offset: 2px; }
+.member-search-status { margin: -4px 0 10px 8px; color: var(--text-muted); font-size: .85rem; font-weight: 600; }
+.member-search-status.is-empty { margin: 0 0 10px; padding: 18px 16px; border: 1px dashed var(--border-color); border-radius: var(--radius-lg); background: var(--bg-soft); text-align: center; }
 .member-roster-list { display: grid; gap: 10px; max-height: 42vh; overflow: auto; }
 .member-roster-card { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border: 1px solid var(--border-color); border-radius: var(--radius-lg); background: var(--bg-panel); }
 .member-roster-card strong { display: block; }
@@ -1753,6 +1778,7 @@ button:disabled,
 .member-directory-header p { margin: 0; color: var(--text-muted); }
 .member-directory-filter { display: grid; gap: 6px; margin: 14px 0; font-weight: 700; }
 .member-directory-filter select { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-panel); color: var(--text-main); font: inherit; }
+.member-directory-download { display: inline-flex; width: fit-content; margin: 12px 0 4px; text-decoration: none; }
 .member-directory-list { display: grid; gap: 12px; max-height: 58vh; overflow: auto; }
 .member-directory-club { padding: 14px; border: 1px solid var(--border-color); border-radius: var(--radius-lg); background: var(--bg-soft); }
 .member-directory-club > header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 9px; }

@@ -4671,7 +4671,10 @@ function acceptedApplicationsAsMembers(applicationsForClub) {
     position: application.memberPosition || 'Member',
     memberType: application.memberType || 'new',
     source: 'accepted-application',
-    createdAt: application.updatedAt
+    createdAt: application.updatedAt,
+    // Only filled values, so an empty application field never blanks a roster value when merged.
+    ...Object.fromEntries(['universityId', 'major', 'phone', 'age']
+      .filter((key) => String(application[key] || '').trim()).map((key) => [key, String(application[key]).trim()]))
   }));
 }
 
@@ -4708,9 +4711,9 @@ app.get('/api/club/members', requireClubAuth, async (req, res) => {
     if (!requireLiveDatabase(res)) return;
     const [club, acceptedApplications] = await Promise.all([
       Club.findOne({ id: req.clubAccount.clubId })
-        .select('members memberRoster').read('primary').readConcern('majority').lean(),
+        .select('id name members memberRoster').read('primary').readConcern('majority').lean(),
       Application.find({ clubId: req.clubAccount.clubId, status: 'accepted' })
-        .select('id studentName email universityId committee updatedAt')
+        .select('id studentName email universityId committee memberPosition memberType updatedAt')
         .read('primary').readConcern('majority').sort({ updatedAt: -1 }).lean()
     ]);
     if (!club) return res.status(404).json({ message: 'Club not found.' });
@@ -4735,6 +4738,13 @@ app.get('/api/club/members', requireClubAuth, async (req, res) => {
     console.error('Database operation failed:', error.name);
     res.status(503).json({ message: 'Could not load club members right now.' });
   }
+});
+
+require('./services/club-members-workbook').registerClubMembersExport(app, {
+  requireClubAuth, requireClubPresident, requireLiveDatabase, Club, Application, buildClubMemberListing
+});
+const sendAllClubMembersWorkbook = require('./services/club-members-workbook').allClubMembersHandler({
+  requireLiveDatabase, Club, Application, buildClubMemberListing
 });
 
 app.patch('/api/club/members/:memberId', requireClubAuth, async (req, res) => {
@@ -5101,6 +5111,9 @@ app.post('/api/committee/attendance-reviews/:clubId/:itemType/:eventRequestId/ap
     res.status(503).json({ message: 'Approval was not saved. Please try again.' });
   }
 });
+
+app.get('/api/committee/club-members.xlsx', requireClubAuth, (req, res, next) => (req.clubAccount?.role === 'pr'
+  ? next() : res.status(403).json({ message: 'Only PR can download member rosters across clubs.' })), sendAllClubMembersWorkbook);
 
 app.get('/api/committee/club-members', requireClubAuth, async (req, res) => {
   if (req.clubAccount?.role !== 'pr') {
@@ -7222,6 +7235,9 @@ app.get('/api/admin/event-analytics', async (req, res) => {
     res.status(503).json({ message: 'Could not load event analytics right now.' });
   }
 });
+
+// Protected by app.use('/api/admin', requireAdmin) registered above.
+app.get('/api/admin/club-members.xlsx', sendAllClubMembersWorkbook);
 
 app.get('/api/admin/club-members', async (req, res) => {
   try {

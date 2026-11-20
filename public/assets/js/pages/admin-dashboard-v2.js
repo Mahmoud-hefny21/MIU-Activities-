@@ -257,6 +257,7 @@
         const total = withMembers.reduce((sum, club) => sum + count(club), 0);
         const people = club => (club.members || []).filter(member => !q || [member.name, member.studentName, member.email, member.committee].join(' ').toLowerCase().includes(q));
         $('toolContent').innerHTML = `<form method="get" class="v2-filter-form"><label>Search members<input name="q" type="search" value="${escape(q)}" placeholder="Name, email or committee"></label><button type="submit" class="v2-action secondary">Search</button></form>`
+          + `<a class="v2-action" href="/api/admin/club-members.xlsx" download title="One sheet per club, plus a summary and an all-members sheet">Download all clubs' members (Excel)</a>`
           + `<p class="v2-panel-note">${total.toLocaleString()} members in ${withMembers.length} club${withMembers.length === 1 ? '' : 's'}${empty.length ? ` · ${empty.length} clubs have no members yet` : ''}.</p>`
           + withMembers.map(club => { const shown = people(club); return shown.length || !q ? `<details class="v2-member-club" ${q ? 'open' : ''}><summary><strong>${escape(club.name)}</strong> <span>${count(club)} members</span></summary>${list(shown.map(member => record(member.name || member.studentName || member.email, [member.email, member.committee, member.position, member.memberType].filter(Boolean).join(' · '))))}</details>` : ''; }).join('')
           + (empty.length && !q ? `<p class="v2-panel-note"><strong>No members yet:</strong> ${empty.map(club => escape(club.name)).join(', ')}</p>` : '')

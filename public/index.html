@@ -14,7 +14,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" /></noscript>
-    <link rel="stylesheet" href="/assets/css/base.css?v=20261120sticky1" />
+    <link rel="stylesheet" href="/assets/css/base.css?v=20261120export1" />
     <link rel="stylesheet" href="/assets/css/responsive.css?v=20261120dead1" />
     <link rel="stylesheet" href="/assets/css/dark.css?v=20261120dead1" />
     <link rel="stylesheet" href="/assets/css/features.css?v=20261120done1" />
@@ -640,6 +640,7 @@
           </header>
           <div class="member-dialog-toolbar">
             <span id="memberRosterCount">Loading members…</span>
+            <button id="downloadMembersExcelBtn" class="secondary-btn" type="button" hidden title="Excel file with every member of your club">Download Excel</button>
             <button id="showMemberFormBtn" class="primary-btn" type="button">Add member</button>
           </div>
           <form id="clubMemberForm" class="member-add-form hidden">
@@ -669,6 +670,12 @@
             </div>
           </form>
           <p id="clubMemberFeedback" class="admin-feedback" aria-live="polite"></p>
+          <div id="memberSearch" class="member-search" role="search" hidden>
+            <svg class="member-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
+            <input id="memberSearchInput" type="search" placeholder="Search name, email, ID, committee or role" aria-label="Search club members" aria-controls="clubMemberList" autocomplete="off" spellcheck="false" enterkeyhint="search">
+            <button id="memberSearchClear" class="member-search-clear" type="button" aria-label="Clear search" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+          </div>
+          <p id="memberSearchStatus" class="member-search-status" role="status" aria-live="polite" hidden></p>
           <div id="clubMemberList" class="member-roster-list" aria-live="polite"></div>
         </div>
       </dialog>
@@ -908,7 +915,7 @@
     <script src="/assets/js/president-interview-slots.js?v=20261120slots1" defer></script>
     <script src="/assets/js/club-qr.js?v=20261120clubqr1" defer></script>
     <script src="/assets/js/app-forms.js?v=20261120slots1" defer></script>
-    <script src="/assets/js/app-dashboard.js?v=20261120sec1" defer></script>
+    <script src="/assets/js/app-dashboard.js?v=20261120search1" defer></script>
     <script src="/assets/js/student-checkin-auto.js?v=20261119checkin1" defer></script>
     <script src="/assets/js/president-overview.js?v=20261119todo1" defer></script>
     <script src="/assets/js/attendance-qr-style.js?v=20261120qr2" defer></script>

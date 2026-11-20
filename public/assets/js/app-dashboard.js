@@ -397,6 +397,44 @@ async function loadDirectMemberInterviewQuestions() {
   }
 }
 
+const normalizeMemberSearch = (text) => String(text || '').toLowerCase().replace(/\s+/g, ' ').trim();
+// Every typed word must appear somewhere in the member's name, email, ID, committee, position, major or phone.
+function applyMemberSearch() {
+  const input = document.getElementById('memberSearchInput');
+  const status = document.getElementById('memberSearchStatus');
+  const clear = document.getElementById('memberSearchClear');
+  const cards = [...document.querySelectorAll('#clubMemberList .member-roster-card')];
+  if (!input || !status) return;
+  const terms = normalizeMemberSearch(input.value).split(' ').filter(Boolean);
+  let shown = 0;
+  cards.forEach((card) => {
+    const match = terms.every((term) => (card.dataset.memberSearch || '').includes(term));
+    card.hidden = !match;
+    if (match) shown++;
+  });
+  if (clear) clear.hidden = !input.value;
+  status.hidden = !terms.length;
+  status.classList.toggle('is-empty', Boolean(terms.length) && shown === 0);
+  status.textContent = !terms.length ? ''
+    : shown ? `${shown} of ${cards.length} member${cards.length === 1 ? '' : 's'} match`
+      : `No members match “${input.value.trim()}”. Try a name, email or committee.`;
+}
+const memberSearchInput = document.getElementById('memberSearchInput');
+memberSearchInput?.addEventListener('input', applyMemberSearch);
+memberSearchInput?.addEventListener('keydown', (event) => {
+  // Esc clears the search first; a second Esc closes the window as usual.
+  if (event.key !== 'Escape' || !memberSearchInput.value) return;
+  event.preventDefault();
+  event.stopPropagation();
+  memberSearchInput.value = '';
+  applyMemberSearch();
+});
+document.getElementById('memberSearchClear')?.addEventListener('click', () => {
+  memberSearchInput.value = '';
+  applyMemberSearch();
+  memberSearchInput.focus();
+});
+
 async function loadClubMembers(force = false) {
   if (clubMembersRequestPending) return;
   if (!force && clubMembersLoadedAt && Date.now() - clubMembersLoadedAt < 25_000) return;
@@ -422,6 +460,8 @@ async function loadClubMembers(force = false) {
     committees.forEach((committee) => committeeSelect.add(new Option(committee, committee)));
     if (committees.includes(selectedCommittee)) committeeSelect.value = selectedCommittee;
     document.getElementById('showMemberFormBtn').disabled = committees.length === 0;
+    const excelButton = document.getElementById('downloadMembersExcelBtn');
+    if (excelButton) excelButton.hidden = state.clubAccount?.role !== 'president';
     if (!committees.length && state.clubAccount?.role !== 'head') {
       const noCommittees = document.createElement('p');
       noCommittees.className = 'member-roster-empty';
@@ -435,9 +475,13 @@ async function loadClubMembers(force = false) {
         : `The club profile tracks ${Number(data.totalCount) || 0} members, but does not have individual names yet. Add a member to start the named roster.`;
       list.append(empty);
     }
+    const memberSearch = document.getElementById('memberSearch');
+    if (memberSearch) memberSearch.hidden = members.length === 0;
     members.forEach((member) => {
       const card = document.createElement('article');
       card.className = 'member-roster-card';
+      card.dataset.memberSearch = normalizeMemberSearch([member.name, member.email, member.universityId, member.committee,
+        member.position, member.major, member.phone].filter(Boolean).join(' '));
       const details = document.createElement('div');
       const name = document.createElement('strong');
       name.textContent = member.name;
@@ -502,6 +546,7 @@ async function loadClubMembers(force = false) {
       card.append(details, actions);
       list.append(card);
     });
+    applyMemberSearch();
     clubMembersLoadedAt = Date.now();
     const note = document.getElementById('clubMemberCountNote');
       if (note) note.textContent = state.clubAccount?.role === 'head'
@@ -646,6 +691,26 @@ document.getElementById('openMemberManagerBtn')?.addEventListener('click', () =>
   loadClubMembers();
 });
 document.getElementById('closeMemberManagerBtn')?.addEventListener('click', () => memberManagerDialog?.close());
+const membersExcelButton = document.getElementById('downloadMembersExcelBtn');
+membersExcelButton?.addEventListener('click', async () => {
+  const label = membersExcelButton.textContent;
+  membersExcelButton.disabled = true;
+  membersExcelButton.textContent = 'Preparing Excel…';
+  try {
+    const response = await fetch('/api/club/members.xlsx', { credentials: 'same-origin', cache: 'no-store' });
+    if (!response.ok) throw new Error((await response.json().catch(() => ({}))).message || 'Could not create the members Excel file.');
+    const name = /filename="([^"]+)"/.exec(response.headers.get('Content-Disposition') || '')?.[1] || 'club-members.xlsx';
+    const url = URL.createObjectURL(await response.blob());
+    const link = Object.assign(document.createElement('a'), { href: url, download: name });
+    document.body.append(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  } catch (error) {
+    window.alert(error.message);
+  } finally {
+    membersExcelButton.disabled = false;
+    membersExcelButton.textContent = label;
+  }
+});
 document.getElementById('showMemberFormBtn')?.addEventListener('click', () => {
   const form = document.getElementById('clubMemberForm');
   form.classList.toggle('hidden');
