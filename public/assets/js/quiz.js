@@ -76,31 +76,10 @@
   if (typeof document === 'undefined' || typeof window === 'undefined' || root !== window) return;
 
   // ---------------- Browser UI ----------------
-  const LAUNCHER_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + ['#BE000B', '#AC010A', '#9C0108', '#060505', '#000000', '#7F1D1D', '#BE000B'].map((fill, i) =>
-    `<g transform="rotate(${(i * 51.43).toFixed(2)} 12 12)"><ellipse cx="12" cy="4.8" rx="2.2" ry="3.4" fill="${fill}" transform="rotate(-20 12 4.8)"/></g>`).join('') + '</svg>';
   const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   let dialog, answers = {}, step = 0, clubsPromise;
 
   const loadClubs = () => clubsPromise ||= fetch('/api/clubs', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : []).catch(() => []);
-
-  function launcher() {
-    if (document.querySelector('.quiz-launcher')) return;
-    const wrap = document.createElement('div'); wrap.className = 'quiz-launcher';
-    const isHome = location.pathname === '/' || location.pathname === '/index.html';
-    // The greeting shows only on the first home visit of a session, and never again once dismissed.
-    let seen = false, dismissed = false;
-    try { seen = sessionStorage.getItem('miu:quiz:greeted') === '1'; dismissed = localStorage.getItem('miu:quiz:message-dismissed-v1') === '1'; if (isHome) sessionStorage.setItem('miu:quiz:greeted', '1'); } catch { /* optional */ }
-    if (!isHome || seen || dismissed) wrap.classList.add('quiz-launcher-quiet');
-    wrap.innerHTML = `<button type="button" class="quiz-launcher-circle" aria-label="Find your club" title="Find your club">${LAUNCHER_SVG}</button>`
-      + `<div class="quiz-launcher-bubble" role="region" aria-label="Can't Find your Club yet?"><span class="quiz-launcher-bubble-text">Can't Find your Club yet?</span><button class="quiz-launcher-dismiss" type="button" aria-label="Dismiss">&times;</button></div>`;
-    wrap.querySelector('.quiz-launcher-circle').addEventListener('click', open);
-    wrap.querySelector('.quiz-launcher-bubble').addEventListener('click', event => { if (event.target.closest('.quiz-launcher-dismiss')) { wrap.classList.add('quiz-launcher-quiet'); try { localStorage.setItem('miu:quiz:message-dismissed-v1', '1'); } catch { /* optional */ } event.stopPropagation(); } else open(); });
-    document.body.append(wrap);
-    // Stay above the footer.
-    const footer = () => document.querySelector('#site-footer, .site-footer');
-    const update = () => { const rect = footer()?.getBoundingClientRect(); wrap.style.setProperty('--quiz-footer-offset', (rect && rect.height ? Math.max(0, innerHeight - rect.top) : 0) + 'px'); };
-    addEventListener('scroll', update, { passive: true }); addEventListener('resize', update); update();
-  }
 
   function open() {
     void loadClubs();
@@ -157,5 +136,4 @@
   }
 
   window.MiuQuiz = { open };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', launcher); else launcher();
 })(typeof window !== 'undefined' ? window : globalThis);

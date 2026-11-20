@@ -669,23 +669,47 @@ document.addEventListener('DOMContentLoaded', () => {
   workflowShortcuts.src = '/assets/js/workflow-shortcuts.js?v=20261018workflowNavigation1';
   document.head.appendChild(workflowShortcuts);
 
-  // "Find Your Club" quiz launcher and modal. Kept dependency-free and lazy:
-  // the module creates the launcher itself; nothing opens automatically.
-  const quizScripts = ['/assets/js/quiz.js?v=20261120fin1'];
+  // "Find Your Club" quiz: the launcher icon is drawn here immediately; the quiz itself
+  // (questions, matching, dialog) loads in the background and only runs when opened.
+  const quizSrc = '/assets/js/quiz.js?v=20261120quiz2';
   // Sign-in, password and error pages are single-purpose screens: no quiz launcher there (same rule as the bottom bar).
   const singlePurposePage = /(?:forgot-password|reset-password|applicant-login|admin-login|club-login|\/login|404|500|offline)(?:\.html)?$/.test(location.pathname)
     || document.querySelector('.home-action, .retry-action, .error-reference');
-  // Loaded after the page has finished and the browser is idle, so the quiz never slows the first view.
-  const whenIdle = fn => { const go = () => (window.requestIdleCallback ? requestIdleCallback(fn, { timeout: 3000 }) : setTimeout(fn, 1200)); if (document.readyState === 'complete') go(); else addEventListener('load', go, { once: true }); };
-  if (!singlePurposePage) whenIdle(function loadNext() {
-    const src = quizScripts.shift();
-    if (!src) return;
+  let quizPromise = null;
+  const loadQuiz = () => quizPromise ||= new Promise((resolve, reject) => {
     const script = document.createElement('script');
-    script.src = src;
-    script.onload = loadNext;
-    script.onerror = function () {
-      console.error('Quiz script failed to load: ' + src);
-    };
+    script.src = quizSrc;
+    script.onload = () => window.MiuQuiz ? resolve(window.MiuQuiz) : reject(new Error('Quiz unavailable'));
+    script.onerror = () => { quizPromise = null; reject(new Error('Quiz script failed to load: ' + quizSrc)); };
     document.head.appendChild(script);
   });
+  const openQuiz = () => loadQuiz().then(quiz => quiz.open()).catch(error => console.error(error.message));
+  if (!singlePurposePage && !document.querySelector('.quiz-launcher')) {
+    // Match the bottom bar's final layout now so the icon never slides when the bar arrives.
+    document.body.classList.toggle('has-bottom-bar', window.matchMedia('(max-width: 1024px)').matches);
+    const wrap = document.createElement('div'); wrap.className = 'quiz-launcher';
+    const isHome = location.pathname === '/' || location.pathname === '/index.html';
+    // The greeting shows only on the first home visit of a session, and never again once dismissed.
+    let seen = false, dismissed = false;
+    try { seen = sessionStorage.getItem('miu:quiz:greeted') === '1'; dismissed = localStorage.getItem('miu:quiz:message-dismissed-v1') === '1'; if (isHome) sessionStorage.setItem('miu:quiz:greeted', '1'); } catch (_) {}
+    if (!isHome || seen || dismissed) wrap.classList.add('quiz-launcher-quiet');
+    const petals = ['#BE000B', '#AC010A', '#9C0108', '#060505', '#000000', '#7F1D1D', '#BE000B'].map((fill, i) =>
+      `<g transform="rotate(${(i * 51.43).toFixed(2)} 12 12)"><ellipse cx="12" cy="4.8" rx="2.2" ry="3.4" fill="${fill}" transform="rotate(-20 12 4.8)"/></g>`).join('');
+    wrap.innerHTML = `<button type="button" class="quiz-launcher-circle" aria-label="Find your club" title="Find your club"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">${petals}</svg></button>`
+      + `<div class="quiz-launcher-bubble" role="region" aria-label="Can't Find your Club yet?"><span class="quiz-launcher-bubble-text">Can't Find your Club yet?</span><button class="quiz-launcher-dismiss" type="button" aria-label="Dismiss">&times;</button></div>`;
+    wrap.querySelector('.quiz-launcher-circle').addEventListener('click', openQuiz);
+    wrap.querySelector('.quiz-launcher-bubble').addEventListener('click', event => {
+      if (!event.target.closest('.quiz-launcher-dismiss')) return void openQuiz();
+      wrap.classList.add('quiz-launcher-quiet');
+      try { localStorage.setItem('miu:quiz:message-dismissed-v1', '1'); } catch (_) {}
+      event.stopPropagation();
+    });
+    document.body.append(wrap);
+    // Stay above the footer.
+    const updateQuizOffset = () => { const rect = document.querySelector('#site-footer, .site-footer')?.getBoundingClientRect(); wrap.style.setProperty('--quiz-footer-offset', (rect && rect.height ? Math.max(0, innerHeight - rect.top) : 0) + 'px'); };
+    addEventListener('scroll', updateQuizOffset, { passive: true }); addEventListener('resize', updateQuizOffset); updateQuizOffset();
+    // Warm the quiz up once the page is idle so the first tap opens instantly.
+    const warmQuiz = () => (window.requestIdleCallback ? requestIdleCallback(() => loadQuiz().catch(() => {}), { timeout: 4000 }) : setTimeout(() => loadQuiz().catch(() => {}), 1500));
+    if (document.readyState === 'complete') warmQuiz(); else addEventListener('load', warmQuiz, { once: true });
+  }
 });
