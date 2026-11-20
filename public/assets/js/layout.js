@@ -672,8 +672,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // "Find Your Club" quiz: the launcher icon is drawn here immediately; the quiz itself
   // (questions, matching, dialog) loads in the background and only runs when opened.
   const quizSrc = '/assets/js/quiz.js?v=20261120quiz2';
-  // Sign-in, password and error pages are single-purpose screens: no quiz launcher there (same rule as the bottom bar).
-  const singlePurposePage = /(?:forgot-password|reset-password|applicant-login|admin-login|club-login|\/login|404|500|offline)(?:\.html)?$/.test(location.pathname)
+  // Only on pages students and visitors use (home + student dashboard, hub, feed, events, ...),
+  // never on staff dashboards, studios, scanners or sign-in/error screens.
+  const studentQuizPages = new Set(['/', '/index.html', '/pages/miu-hub.html', '/pages/feed.html', '/pages/events.html',
+    '/pages/event.html', '/pages/sponsors.html', '/pages/booths.html', '/pages/help.html', '/pages/privacy-policy.html',
+    '/pages/ask-ai.html', '/pages/attendance-qr.html', '/pages/my-attendance-task.html', '/attendance', '/attendance.html']);
+  const singlePurposePage = !studentQuizPages.has(location.pathname)
     || document.querySelector('.home-action, .retry-action, .error-reference');
   let quizPromise = null;
   const loadQuiz = () => quizPromise ||= new Promise((resolve, reject) => {
