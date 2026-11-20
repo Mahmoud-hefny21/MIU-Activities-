@@ -7425,10 +7425,12 @@ app.post('/api/admin/clubs/import', async (req, res) => {
       const key = importKey(name);
       if (!key || rawName.length > 80 || names.has(key)) throw Object.assign(new Error(`Club name is empty, longer than 80 characters, or duplicated at data row ${rowNumber}.`), { status: 400 });
       names.add(key);
-      const presidentEmail = String(row.presidentEmail || '').trim().toLowerCase();
-      const vicePresidentEmail = String(row.vicePresidentEmail || '').trim().toLowerCase();
-      const presidentName = cleanText(row.presidentName, 120);
-      const vicePresidentName = cleanText(row.vicePresidentName, 120);
+      // Same smart clean-up as the members import: email typos (e.g. @miuegpyt.edu) and name capital letters.
+      const { fixEmail, nameCase } = require('./services/excel-autofix');
+      const presidentEmail = fixEmail(row.presidentEmail);
+      const vicePresidentEmail = fixEmail(row.vicePresidentEmail);
+      const presidentName = nameCase(cleanText(row.presidentName, 120));
+      const vicePresidentName = nameCase(cleanText(row.vicePresidentName, 120));
       if (!name || presidentEmail && (!validEmail(presidentEmail) || String(row.presidentName || '').trim().length > 120)
         || vicePresidentEmail && (!validEmail(vicePresidentEmail) || String(row.vicePresidentName || '').trim().length > 120)
         || presidentEmail && vicePresidentEmail && presidentEmail === vicePresidentEmail) {

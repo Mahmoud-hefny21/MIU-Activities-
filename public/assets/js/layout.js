@@ -207,8 +207,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const el = document.getElementById(id);
     if (!el) return;
     try {
-      const res = await fetch(url, { siteStartupNonBlocking: true });
-      if (res.ok) {
+      // A busy server can fail once: retry the header/footer a few times instead of leaving the page without them.
+      let res;
+      for (let attempt = 0; attempt < 4; attempt++) {
+        try { res = await fetch(url, { siteStartupNonBlocking: true }); if (res.ok) break; } catch { res = null; }
+        await new Promise(resolve => setTimeout(resolve, 700 * (attempt + 1)));
+      }
+      if (res?.ok) {
         el.innerHTML = await res.text();
         if (id === 'site-header') {
           initHeader();

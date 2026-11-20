@@ -140,6 +140,8 @@
       const attrs = `href="${href}" data-tool="${tool.id}"${grouped ? ` data-tool-group="${tool.key}"` : ''}`;
       const tag = 'a';
       const hasBlockedBadge = tool.id === 'blocked-requests' || grouped && tool.toolIds.includes('blocked-requests');
+      // Group cards list their tools as direct links, so one click reaches any tool.
+      if (grouped) return `<article class="v2-widget v2-group-card ${tool.color}" data-tool="${tool.id}" data-tool-group="${tool.key}"><a class="v2-widget-cover" href="${href}" aria-label="Open ${escape(tool.title)}"></a><span class="v2-widget-top"><span class="v2-widget-icon">${icon(tool.symbol)}</span><span class="v2-widget-arrow">${icon('arrow')}</span></span><h3>${tool.title}${hasBlockedBadge ? '<span class="v2-request-badge" data-blocked-badge hidden></span>' : ''}</h3><ul class="v2-group-links">${tool.matchingTools.map(item => `<li><a href="${route(item.id)}">${escape(item.title)}</a></li>`).join('')}</ul><span class="v2-widget-label">${tool.matchingTools.length} tools · ${categories[category !== 'all' ? category : tool.category]}</span></article>`;
       return `<${tag} class="v2-widget ${tool.color}" ${attrs}><span class="v2-widget-top"><span class="v2-widget-icon">${icon(tool.symbol)}</span><span class="v2-widget-arrow">${icon('arrow')}</span></span><h3>${tool.title}${hasBlockedBadge ? '<span class="v2-request-badge" data-blocked-badge hidden></span>' : ''}</h3><p>${tool.description}</p><span class="v2-widget-label">${grouped ? tool.matchingTools.length + ' tools · ' : ''}${categories[category !== 'all' ? category : tool.category]}</span></${tag}>`;
     }).join('');
     $('emptyTools').hidden = visible.length > 0;
@@ -155,6 +157,18 @@
     // Phones show the sections as a sideways row: keep the highlighted one in view.
     const current = $('dashboardNavigation').querySelector('.is-active');
     if (current && current.parentElement.scrollWidth > current.parentElement.clientWidth) current.parentElement.scrollLeft = current.offsetLeft - 16;
+  }
+  // Quick actions (the jobs admins do most) and the tools this admin opened recently.
+  const QUICK = [['applications', 'Review applications'], ['blocked-requests', 'Blocked approvals'], ['publishing', 'Publish an MIU event'], ['student-attendance', 'Student attendance'], ['excel-review', 'Import clubs from Excel'], ['reports', 'Download reports']];
+  const recentKey = 'miu:admin-recent-tools';
+  const readRecent = () => { try { const saved = JSON.parse(localStorage.getItem(recentKey) || '[]'); return Array.isArray(saved) ? saved.filter(id => tools.some(tool => tool.id === id)) : []; } catch { return []; } };
+  if (activeTool) { try { localStorage.setItem(recentKey, JSON.stringify([activeTool, ...readRecent().filter(id => id !== activeTool)].slice(0, 6))); } catch { /* optional */ } }
+  function renderShortcuts() {
+    const host = $('adminShortcuts'); if (!host) return;
+    const chip = (id, label) => { const tool = tools.find(item => item.id === id); return tool ? `<a class="v2-shortcut ${tool.color}" href="${route(id)}"><span class="v2-widget-icon">${icon(tool.symbol)}</span>${escape(label || tool.title)}</a>` : ''; };
+    const recent = readRecent();
+    host.innerHTML = `<div><h2>Quick actions</h2><div class="v2-shortcut-row">${QUICK.map(([id, label]) => chip(id, label)).join('')}</div></div>`
+      + (recent.length ? `<div><h2>Recently used</h2><div class="v2-shortcut-row">${recent.map(id => chip(id)).join('')}</div></div>` : '');
   }
   const urls = { clubs: '/api/clubs?media=links', applications: '/api/admin/applications', heads: '/api/admin/club-heads',
     homepage: '/api/admin/homepage', archives: '/api/admin/clubs/archived', members: '/api/admin/club-members',
@@ -430,6 +444,7 @@
   });
   window.addEventListener('online', () => { if (!activeTool || !specialized.has(activeTool)) void refreshData(); });
   renderTools();
+  renderShortcuts();
   void refreshBlockedBadge();
   window.addEventListener('online', refreshBlockedBadge);
   window.addEventListener('focus', () => void refreshBlockedBadge());

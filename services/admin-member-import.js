@@ -45,12 +45,22 @@ function registerAdminMemberImport(app, { Club, requireLiveDatabase, isSameOrigi
     res.setHeader('Cache-Control', 'no-store');
     if (!isSameOriginRequest(req)) return res.status(403).json({ message: 'Reload the page and try again.' });
     if (!requireLiveDatabase(res)) return;
-    const rows = req.body?.rows;
-    const dryRun = req.body?.dryRun === true;
-    if (!Array.isArray(rows) || !rows.length || rows.length > 3000) return res.status(400).json({ message: 'Send between 1 and 3,000 member rows.' });
+    let rows = req.body?.rows;
+    const dryRun = req.body?.dryRun === true, grid = req.body?.grid;
+    if (Array.isArray(grid) ? !grid.length || grid.length > 3100 : !Array.isArray(rows) || !rows.length || rows.length > 3000) return res.status(400).json({ message: 'Send between 1 and 3,000 member rows.' });
     try {
-      const checked = rows.map((row, index) => validateRow(row || {}, Number.isSafeInteger(row?.rowNumber) ? row.rowNumber : index + 2));
       const clubs = await Club.find({ archivedAt: null }).select('id name memberRoster members').read('primary').lean();
+      // A raw sheet is cleaned first: header found, columns recognised, mistakes and formatting fixed (see excel-autofix).
+      let fixes = null;
+      if (Array.isArray(grid)) {
+        const aliases = new Map(clubs.flatMap(club => [...KNOWN_ALIASES].filter(([, key]) => key === aliasKey(club.name)).map(([alias]) => [alias, club.name])));
+        const fixed = require('./excel-autofix').autofixMembers(grid, { clubNames: clubs.map(club => club.name), aliases });
+        if (fixed.error) return res.status(400).json({ message: fixed.error });
+        if (fixed.missing.length) return res.status(400).json({ message: `The sheet is missing these columns: ${fixed.missing.join(', ')}.` });
+        if (!fixed.rows.length) return res.status(400).json({ message: 'The sheet has no member rows under the header.' });
+        rows = fixed.rows; fixes = { headerRow: fixed.headerRow, changes: fixed.changes };
+      }
+      const checked = rows.map((row, index) => validateRow(row || {}, Number.isSafeInteger(row?.rowNumber) ? row.rowNumber : index + 2));
       const byName = new Map();
       for (const club of clubs) { byName.set(normalizeName(club.name), club); byName.set(aliasKey(club.name), club); }
       const seen = new Set();
@@ -89,7 +99,7 @@ function registerAdminMemberImport(app, { Club, requireLiveDatabase, isSameOrigi
         }
       }
       const count = status => report.filter(item => item.status === status).length;
-      res.json({ dryRun, savedClubs: saved, added: count('added'), updated: count('updated'), errors: count('error'), rows: report });
+      res.json({ dryRun, fixes, cleanedRows: fixes ? rows : undefined, savedClubs: saved, added: count('added'), updated: count('updated'), errors: count('error'), rows: report });
     } catch (error) {
       console.error('Member import failed:', error.name, error.message);
       res.status(error.status || 503).json({ message: error.status ? error.message : 'Members could not be imported right now. Nothing was changed for clubs not yet saved.' });

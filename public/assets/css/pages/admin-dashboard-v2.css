@@ -350,3 +350,21 @@ html.admin-v2-shell::-webkit-scrollbar, .admin-v2::-webkit-scrollbar,
 .v2-member-club .v2-record-list { padding: 8px 12px 12px; }
 .v2-summary > a { color: inherit; text-decoration: none; transition: border-color .15s, box-shadow .15s, transform .15s; }
 .v2-summary > a:hover, .v2-summary > a:focus-visible { border-color: var(--border-focus, #a8202b); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+/* Quick actions + recently used */
+.v2-shortcuts { display: grid; gap: 16px; margin: 26px 0 6px; }
+.v2-shortcuts h2 { margin: 0 0 10px; font-size: 14px; font-weight: 700; }
+.v2-shortcut-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.v2-shortcut { display: inline-flex; align-items: center; gap: 9px; padding: 7px 14px 7px 7px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--bg-panel); color: var(--text-main); font-size: 13px; font-weight: 600; text-decoration: none; transition: border-color .15s, box-shadow .15s; }
+.v2-shortcut .v2-widget-icon { width: 32px; height: 32px; border-radius: 9px; }
+.v2-shortcut .v2-widget-icon svg { width: 17px; height: 17px; }
+.v2-shortcut:hover, .v2-shortcut:focus-visible { border-color: color-mix(in srgb, var(--tool-color) 55%, var(--border-color)); box-shadow: var(--shadow-sm); }
+/* Group cards: whole card opens the group; each tool name opens that tool directly. */
+.v2-group-card { position: relative; }
+.v2-widget-cover { position: absolute; inset: 0; border-radius: inherit; z-index: 0; }
+.v2-group-card > :not(.v2-widget-cover) { position: relative; z-index: 1; pointer-events: none; }
+.v2-group-links { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; pointer-events: auto !important; }
+.v2-group-links a { display: inline-block; padding: 4px 9px; border-radius: 8px; background: var(--bg-soft); color: var(--text-main); font-size: 11px; font-weight: 600; text-decoration: none; }
+.v2-group-links a:hover, .v2-group-links a:focus-visible { background: var(--tool-bg); color: var(--tool-color); }
+.v2-widget-grid.is-arranging .v2-group-links { pointer-events: none !important; }
+@media (max-width: 759px) { .v2-shortcut-row { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; } .v2-shortcut { flex: 0 0 auto; } }
+.v2-autofix { border: 1px solid var(--warning-border, #f5d48a); background: var(--warning-bg, #fff8e1); border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; } .v2-autofix summary { cursor: pointer; } .v2-autofix .v2-action { margin-top: 10px; }

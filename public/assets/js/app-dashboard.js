@@ -1204,7 +1204,14 @@ async function init() {
   }
 }
 
-const pageStartup = init().catch(() => {
+// A busy server or database can fail for a moment: retry quietly before showing an error.
+async function initWithRetry() {
+  for (let attempt = 0; ; attempt++) {
+    try { return await init(); }
+    catch (error) { if (attempt >= 2 || navigator.onLine === false) throw error; await new Promise(resolve => setTimeout(resolve, 1200 * (attempt + 1))); }
+  }
+}
+const pageStartup = initWithRetry().catch(() => {
   // A failed initial API must show an error, not an empty directory or an
   // indefinite loading screen. Reload retries the real data requests.
   const panel = document.createElement('section');
@@ -1234,6 +1241,10 @@ const pageStartup = init().catch(() => {
     window.location.reload();
   });
   panel.append(icon, eyebrow, title, message, retry);
+  // Keep trying by itself: reload as soon as the server answers again.
+  const waitForServer = setInterval(async () => {
+    try { const r = await fetch('/api/clubs', { cache: 'no-store' }); if (r.ok) { clearInterval(waitForServer); window.location.reload(); } } catch { /* still offline */ }
+  }, 8000);
   const wrapper = document.createElement('div');
   wrapper.className = 'page-load-error-wrap';
   wrapper.append(panel);
