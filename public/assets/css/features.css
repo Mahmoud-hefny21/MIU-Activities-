@@ -1790,3 +1790,18 @@ body :is(button[aria-label*="close" i], button[aria-label*="exit" i], button[tit
   .club-detail-hero .detail-chip-row, .club-detail-hero .detail-title-row { margin-top: 0 !important; margin-bottom: 0 !important; }
   .club-detail-hero .detail-meta { margin: 0; line-height: 1.35; }
 }
+
+/* President "Club QR code" preview. */
+.club-qr-dialog { width: min(440px, calc(100% - 24px)); padding: 18px; border: 1px solid var(--border-color, #e2e8f0); border-radius: 18px; background: var(--bg-panel, #fff); color: var(--text-main, #172033); }
+.club-qr-dialog::backdrop { background: rgba(15, 23, 42, .5); }
+.club-qr-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.club-qr-head h2 { margin: 0; font-size: 1.15rem; }
+.club-qr-help { margin: 8px 0 12px; color: var(--text-muted, #64748b); font-size: .88rem; line-height: 1.45; }
+.club-qr-preview { display: grid; place-items: center; min-height: 200px; border: 1px solid var(--border-color, #e2e8f0); border-radius: 14px; background: #fff; }
+.club-qr-preview img { display: block; width: 100%; height: auto; border-radius: 14px; }
+.club-qr-note { margin: 8px 0 0; color: var(--text-muted, #64748b); font-size: .78rem; overflow-wrap: anywhere; }
+.club-qr-actions { display: flex; gap: 8px; margin-top: 12px; }
+.club-qr-actions > * { flex: 1 1 0; }
+
+/* Standard square QR inside dashboards (booth and organizer codes): no circle crop. */
+.attendance-qr-art.is-standard-qr { border-radius: 14px !important; width: min(240px, 100%); height: auto; aspect-ratio: 1; background: #fff; }

@@ -5,10 +5,10 @@
   <title>MIU event attendance · MIU Activities</title>
   <link rel="stylesheet" href="/assets/css/base.css?v=20261119ui1"><link rel="stylesheet" href="/assets/css/responsive.css">
   <link rel="stylesheet" href="/assets/css/dark.css"><link rel="stylesheet" href="/assets/css/features.css">
-  <link rel="stylesheet" href="/assets/css/pages/event-reports.css?v=20261119dash1">
+  <link rel="stylesheet" href="/assets/css/pages/event-reports.css?v=20261120team2">
   <script src="/assets/js/shared.js?v=20261119plain1"></script>
   <script src="/assets/js/theme.js" defer></script><script src="/assets/js/install-welcome.js?v=20261014promptqueue1" defer></script>
-  <script src="/assets/js/pages/miu-attendance.js?v=20261014mobileoptions1" defer></script>
+  <script src="/assets/js/pages/miu-attendance.js?v=20261120team1" defer></script>
   <link rel="stylesheet" href="/assets/css/site-polish.css?v=20261117calendar1">
   <!-- Same 5-button bottom bar as the rest of the site on phones and tablets. -->
   <link rel="stylesheet" href="/assets/css/mobile-sidebars.css?v=20261120back1">
@@ -19,22 +19,27 @@
     <a class="secondary-btn" href="/admin" data-history-back>← Back</a>
     <h1>MIU event attendance</h1>
     <a class="secondary-btn" href="/pages/attendance-scanner.html">Open attendance scanner &amp; capacity</a>
-    <p>Create attendance teams for a published MIU event. Each team has one Supervisor reviewer and one student or staff usher who scans students? personal QR codes. Attendance requires event registration and remains separate from club attendance.</p>
+    <p class="miu-attendance-lead">Set up the people who run attendance for a published MIU event. Students must be registered for the event; this list stays separate from club attendance.</p>
+    <ol class="miu-attendance-steps" aria-label="How MIU event attendance works">
+      <li><b>Choose the event</b><span>Only today's published MIU events with attendance are listed.</span></li>
+      <li><b>Add one team per entrance</b><span><em>Supervisor</em> (staff) reviews and approves the list. <em>Usher</em> (student or staff) scans students at the door.</span></li>
+      <li><b>Ushers start their task</b><span>Each usher accepts the task, taps <em>Take my attendance</em> for themselves, then opens the scanner.</span></li>
+    </ol>
     <form id="miuAttendanceForm" class="miu-attendance-form">
       <label>MIU event<select id="miuAttendanceEvent" required><option value="">Loading events</option></select><small id="miuAttendanceEventDetails" class="miu-attendance-event-details" hidden></small></label>
-      <div class="miu-assignment-heading"><h2>Attendance teams</h2><p>Add a Supervisor reviewer and a student or staff usher for each check-in lane, up to 20 teams.</p></div>
+      <div class="miu-assignment-heading"><h2>Attendance teams</h2><p>One team for each check-in entrance, up to 20 teams.</p></div>
       <div id="miuAttendanceAssignments" class="miu-assignment-list">
         <fieldset class="miu-assignment-row">
           <legend>Team 1</legend>
-          <label>Assigned Supervisor email<input data-supervisor-email type="email" required maxlength="254" autocomplete="email" placeholder="supervisor@miuegypt.edu.eg"></label>
-          <label>Student or staff usher MIU email<input data-usher-email type="email" required maxlength="254" autocomplete="email" placeholder="student@miuegypt.edu.eg"></label>
+          <label><span class="miu-role-badge is-supervisor">Supervisor</span> Reviews and approves · MIU staff email<input data-supervisor-email type="email" required maxlength="254" autocomplete="email" placeholder="supervisor@miuegypt.edu.eg"></label>
+          <label><span class="miu-role-badge is-usher">Usher</span> Scans students at the door · student or staff MIU email<input data-usher-email type="email" required maxlength="254" autocomplete="email" placeholder="student@miuegypt.edu.eg"></label>
           <button class="miu-remove-assignment secondary-btn" type="button" aria-label="Remove team 1" hidden>Remove</button>
         </fieldset>
       </div>
       <div class="miu-attendance-actions"><button id="miuAttendanceAdd" class="secondary-btn" type="button">+ Add another attendance team</button><button id="miuAttendanceStart" class="primary-btn" type="submit" disabled>Assign teams</button></div>
     </form>
     <p id="miuAttendanceFeedback" role="status" aria-live="polite">Loading eligible events</p>
-    <p>Each assigned usher signs in, accepts their task, then opens their own QR from the account menu’s “Attendance usher task” link. All teams share one event attendance list.</p>
+    <p class="miu-attendance-note">Ushers find their task under <b>Attendance usher task</b> in their account menu. All teams fill one shared attendance list for the event.</p>
     <section id="miuAttendanceQr" class="attendance-qr-result hidden" aria-live="polite">
       <h2 id="miuAttendanceTitle"></h2><p id="miuAttendanceAssignmentsResult"></p><ul id="miuAttendanceAssignedList"></ul>
       <button id="miuAttendanceEnd" class="secondary-btn" type="button">End attendance</button>

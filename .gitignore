@@ -41,3 +41,4 @@ ses_*.json
 /miu project new.xlsx
 # Office lock files.
 ~$*
+attendance-samples/

@@ -70,11 +70,14 @@
         actions.append(button('Accept request', 'primary-btn', () => acceptAssignment(assignment.id)));
       } else if (!isPast && isToday) {
         if (assignment.itemType === 'event') {
-          actions.append(button('Open attendance scanner', 'primary-btn', () => { location.href = '/pages/attendance-scanner.html'; }));
-          actions.append(button('My attendance QR', 'secondary-btn', () => { location.href = '/pages/attendance-qr.html'; }));
+          // The assigned organizer records only their own attendance, then scans everyone else.
+          if (!assignment.attendanceRecorded || assignment.attendanceRole !== 'organizer') {
+            actions.append(button('Take my attendance', 'primary-btn', () => checkInAssignment(assignment, card)));
+          }
+          actions.append(button('Open attendance scanner', assignment.attendanceRecorded ? 'primary-btn' : 'secondary-btn', () => { location.href = '/pages/attendance-scanner.html'; }));
         } else {
         if (!assignment.attendanceRecorded || assignment.attendanceRole !== 'organizer') {
-          actions.append(button('Record my organizer attendance', 'primary-btn', () => checkInAssignment(assignment, card)));
+          actions.append(button('Take my attendance', 'primary-btn', () => checkInAssignment(assignment, card)));
         }
         actions.append(button('Open attendance QR', 'secondary-btn', () => openQr(assignment, card)));
         }

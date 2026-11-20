@@ -157,7 +157,7 @@ test('legacy event self-check-in stays denied even when a duplicate write was at
   assert.equal((await response.json()).code, 'SUPERVISOR_SCAN_REQUIRED');
 });
 
-test('usher page accepts task and opens authorized scanner instead of self recording', async () => {
+test('usher page accepts the task, then offers Take my attendance (self only) and the scanner', async () => {
   const ids = ['usherTaskMessage', 'usherTask', 'usherTaskTitle', 'usherTaskDate', 'acceptUsherTask', 'openUsherQr', 'usherSelfCheckinForm', 'usherAttendanceStatus', 'usherName', 'usherUniversityId', 'usherMajor', 'recordUsherAttendance', 'usherSelfCheckinFeedback'];
   const elements = Object.fromEntries(ids.map(id => [id, { hidden: true, value: '', textContent: '', dataset: {}, handlers: {}, addEventListener(type, handler) { this.handlers[type] = handler; } }]));
   const task = { eventTitle: 'MIU Event', eventDate: 'today', accepted: false, attendanceAsUsher: false, profile: { name: 'Verified Student', universityId: '00012', major: 'Engineering' } };
@@ -165,17 +165,24 @@ test('usher page accepts task and opens authorized scanner instead of self recor
   const api = async (url, options = {}) => {
     calls.push({ url, ...options });
     if (url.endsWith('/accept')) { task.accepted = true; return { accepted: true }; }
-    if (url.endsWith('/check-in')) { assert.equal(elements.usherSelfCheckinForm.dataset.miuDirty, 'true'); task.attendanceAsUsher = true; return { savedToDatabase: true, message: 'Recorded as an usher.' }; }
+    if (url.endsWith('/check-in')) { task.attendanceAsUsher = true; return { savedToDatabase: true, message: 'Recorded as an usher.' }; }
     return { task };
   };
   vm.runInNewContext(fs.readFileSync(require.resolve('../public/assets/js/pages/my-attendance-task.js'), 'utf8'), {
     document: { getElementById: id => elements[id] }, window: { MiuUI: { createJsonClient: () => api }, addEventListener() {} }
   });
   await Promise.resolve(); assert.equal(elements.usherSelfCheckinForm.hidden, true);
-  await elements.acceptUsherTask.handlers.click(); assert.equal(elements.usherSelfCheckinForm.hidden, true);
+  await elements.acceptUsherTask.handlers.click(); assert.equal(elements.usherSelfCheckinForm.hidden, false);
   assert.equal(elements.usherUniversityId.value, '00012');
   assert.equal(elements.openUsherQr.textContent, 'Open attendance scanner');
-  assert.equal(calls.some(call => call.url.endsWith('/check-in')), false);
+  assert.equal(elements.recordUsherAttendance.textContent, 'Take my attendance');
+  // A complete verified profile needs no typing: the detail fields stay hidden.
+  assert.equal(elements.usherName.hidden, true);
+  assert.equal(calls.some(call => call.url.endsWith('/check-in')), false, 'nothing is recorded until the usher taps the button');
+  await elements.usherSelfCheckinForm.handlers.submit({ preventDefault() {} });
+  assert.equal(calls.filter(call => call.url.endsWith('/check-in')).length, 1);
+  assert.equal(elements.recordUsherAttendance.textContent, 'Attendance recorded ✓');
+  assert.equal(elements.recordUsherAttendance.disabled, true);
 });
 
 test('MIU supervisor reviews both audience lanes, preserves event roles and approves only the selected assigned list', async t => {
@@ -205,4 +212,15 @@ test('MIU supervisor reviews both audience lanes, preserves event roles and appr
   assert.equal(response.status, 200); assert.equal(records[0].approvalStatus, 'pending_pr'); assert.equal(records[1].approvalStatus, 'pending_supervisor');
   const unauthorized = await fetch(origin + '/api/supervisor/miu-attendance/9/decision', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-email': 'other-supervisor@example.test' }, body: JSON.stringify({ action: 'approve', attendanceAudience: 'all_students' }) });
   assert.equal(unauthorized.status, 409); assert.equal(records[1].approvalStatus, 'pending_supervisor');
+});
+
+test('assigned staff self check-in is not blocked by an earlier catch-all route', () => {
+  const source = fs.readFileSync(require.resolve('../server'), 'utf8');
+  // Only services/attendance-participation.js may answer this route (accepted task, bound device, event day, once).
+  assert.equal(source.includes("app.post('/api/miu-attendance-task/check-in'"), false);
+  const start = source.indexOf("app.post('/api/member/attendance-assignments/:id/check-in'");
+  const handler = source.slice(start, source.indexOf("\napp.", start + 10));
+  assert.doesNotMatch(handler, /SUPERVISOR_SCAN_REQUIRED/);
+  assert.match(handler, /assignment\.status !== 'accepted'/);
+  assert.match(handler, /bindMemberAttendanceDevice/);
 });

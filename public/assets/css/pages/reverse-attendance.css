@@ -33,3 +33,6 @@
 .ra-legend { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; padding: 0; list-style: none; font-size: .85rem; }
 .ra-legend li { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 999px; background: var(--bg-panel); }
 .ra-legend i { width: 12px; height: 12px; border-radius: 50%; }
+
+/* Standard square QR: keep the corner markers (no circle crop) and scale to the space. */
+.attendance-qr-art.is-standard-qr { border-radius: 14px !important; width: min(260px, calc(100vw - 64px)); height: auto; aspect-ratio: 1; background: #fff; box-shadow: 0 0 0 1px var(--border-color, #e2e8f0); }

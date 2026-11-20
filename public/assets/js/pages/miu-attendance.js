@@ -81,7 +81,7 @@
       const results = $('miuAttendanceAssignedList'); results.replaceChildren();
       result.sessions.forEach((session, index) => {
         const item = document.createElement('li');
-        item.textContent = `Team ${index + 1}: usher ${session.assignedMemberEmail} · Supervisor ${session.assignedSupervisorEmail} · usher must accept the task from their account before opening their attendance scanner.`;
+        item.textContent = `Team ${index + 1} · Usher ${session.assignedMemberEmail} · Supervisor ${session.assignedSupervisorEmail} · The usher accepts the task, takes their own attendance, then opens the scanner.`;
         results.append(item);
       });
       $('miuAttendanceAssignmentsResult').textContent = `${result.assignmentsCreated} attendance team${result.assignmentsCreated === 1 ? '' : 's'} assigned. Each usher scans student QR codes in their assigned lane; duplicate attendance is prevented.`;

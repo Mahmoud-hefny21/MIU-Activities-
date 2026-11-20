@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="/assets/css/base.css?v=20261119ui1" />
     <link rel="stylesheet" href="/assets/css/responsive.css?v=20261120dead1" />
     <link rel="stylesheet" href="/assets/css/dark.css?v=20261120dead1" />
-    <link rel="stylesheet" href="/assets/css/features.css?v=20261120dead1" />
+    <link rel="stylesheet" href="/assets/css/features.css?v=20261120qr1" />
     <link rel="stylesheet" href="/assets/css/event-modal.css?v=20261017mobilepopup1" />
     <link rel="icon" type="image/png" sizes="192x192" href="/assets/img/pics/pwa-icon-192.png?v=20261013favicon1">
     <link rel="apple-touch-icon" href="/assets/img/pics/pwa-icon-192.png?v=20261013favicon1">
@@ -27,7 +27,7 @@
     <link rel="stylesheet" href="/assets/css/pages/speaker-requests.css?v=20261120dead1" />
       <script defer src="/assets/js/pwa-register.js?v=20261119ui1"></script>
     <link rel="stylesheet" href="/assets/css/modal-controls.css?v=20261116closeunify2">
-  <link rel="stylesheet" href="/assets/css/pages/event-reports.css?v=20261119dash1">
+  <link rel="stylesheet" href="/assets/css/pages/event-reports.css?v=20261120team2">
   <script src="/assets/js/feed-media.js?v=20261015videopopup1" defer></script>
   <link rel="stylesheet" href="/assets/css/site-polish.css?v=20261117calendar1">
 </head>
@@ -570,6 +570,7 @@
                   <a class="president-quick-card" href="/pages/club-content.html"><svg class="president-quick-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span class="president-quick-text"><strong>Content Studio</strong><span>Posts, sponsors, booths and the year plan</span></span></a>
                   <button class="president-quick-card" type="button" data-quick-section="presidentApplicantsPanel"><svg class="president-quick-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1"/><circle cx="9" cy="8" r="4"/><path d="m17 11 2 2 4-4"/></svg><span class="president-quick-text"><strong>Review applicants</strong><span>Accept or reject new applications</span></span></button>
                   <a class="president-quick-card" href="/pages/post-event-reports.html" data-president-only><svg class="president-quick-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="m21 17-5-5-8 7"/></svg><span class="president-quick-text"><strong>Post-event reports</strong><span>Report on events that have ended</span></span></a>
+                  <button class="president-quick-card" type="button" data-president-only data-club-qr-open><svg class="president-quick-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/></svg><span class="president-quick-text"><strong>Club QR code</strong><span>Download a QR with your logo; students scan it to apply</span></span></button>
                 </div>
               </section>
               <section id="presidentRecentApplicants" class="president-recent-applicants" aria-labelledby="presidentRecentApplicantsTitle">
@@ -888,16 +889,17 @@
 
     <script src="/assets/js/event-modal.js?v=20261019miusync1" defer></script>
     <script src="/assets/js/committee-sidebar.js?v=20261013lighter1" defer></script>
-    <script src="/assets/js/member-dashboard.js?v=20261014eventroles1" defer></script>
+    <script src="/assets/js/member-dashboard.js?v=20261120self1" defer></script>
     <script src="/assets/js/app-home.js?v=20261119social3" defer></script>
     <script src="/assets/js/cloudinary-upload.js?v=20261018signedresponse1" defer></script>
     <script src="/assets/js/student-feedback.js?v=20261119checkin1" defer></script>
     <script src="/assets/js/event-info-popup.js?v=20261119pub1" defer></script>
+    <script src="/assets/js/club-qr.js?v=20261120clubqr1" defer></script>
     <script src="/assets/js/app-forms.js?v=20261120short2" defer></script>
     <script src="/assets/js/app-dashboard.js?v=20261119checkin1" defer></script>
     <script src="/assets/js/student-checkin-auto.js?v=20261119checkin1" defer></script>
     <script src="/assets/js/president-overview.js?v=20261119todo1" defer></script>
-    <script src="/assets/js/attendance-qr-style.js?v=20261019circlecode3" defer></script>
+    <script src="/assets/js/attendance-qr-style.js?v=20261120qr2" defer></script>
     <script src="/assets/js/attendance-dashboard.js?v=20261019radialqr1" defer></script>
     <script src="/assets/js/entry-permit-dashboard.js?v=20261014permitmobilecards1" defer></script>
     <script src="/assets/js/member-directory.js?v=20261013stagedload3" defer></script>
@@ -905,5 +907,13 @@
     <script src="/assets/js/theme.js?v=20261009c" defer></script>
     <script src="/assets/js/pages/report-downloads.js?v=20261014progressive1" defer></script>
   <script src="/assets/js/report-dashboard-panels.js?v=20261119icons1" defer></script>
+
+    <dialog id="clubQrDialog" class="club-qr-dialog" aria-labelledby="clubQrTitle">
+      <div class="club-qr-head"><h2 id="clubQrTitle">Club application QR</h2><button class="modal-close-btn" type="button" data-club-qr-close aria-label="Close">&times;</button></div>
+      <p class="club-qr-help">Print it or share it. Scanning opens your club page; students must sign in with their MIU account before applying.</p>
+      <div class="club-qr-preview" data-club-qr-preview></div>
+      <p class="club-qr-note" data-club-qr-note role="status" aria-live="polite"></p>
+      <div class="club-qr-actions"><button class="primary-btn" type="button" data-club-qr-download disabled>Download PNG</button><button class="secondary-btn" type="button" data-club-qr-close>Close</button></div>
+    </dialog>
 </body>
 </html>

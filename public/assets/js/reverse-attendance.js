@@ -1,3 +1,11 @@
+// Official event label: "Event title — Club · Wed, 22 Oct 2026 · 6:00 PM".
+window.MiuAttendanceLabel = (event) => {
+  const organizer = event.source === 'miu' ? 'Misr International University' : (event.logoLabel || 'Club event');
+  let day = 'Date not set';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(event.date || '')) day = new Date(event.date + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  const time = event.time ? (window.formatSiteTime?.(event.time) || event.time) : 'Time not set';
+  return `${event.title} — ${organizer} · ${day} · ${time}`;
+};
 (() => {
   'use strict';
   const host = document.querySelector('[data-reverse-attendance]'); if (!host) return;
@@ -37,16 +45,27 @@
     $('[data-ra-verify]').reset(); $('[data-ra-next]').hidden = false;
     if (value.result === 'verification_required' && !value.canVerify) { const note = document.createElement('p'); note.textContent = 'Ask the authorized event supervisor to verify the student and scan their refreshed QR.'; box.append(note); }
   }
+  // Fast queue: the camera keeps going by itself after a clear green or red verdict.
+  // Yellow (account switched) waits for the supervisor, and the same code is not sent twice within 4 seconds.
+  let lastCode = '', lastCodeAt = 0, resumeTimer;
+  function autoResume(result) {
+    clearTimeout(resumeTimer);
+    if (result.result === 'verification_required' || !stream) return;
+    resumeTimer = setTimeout(() => { if (!stream || scanning || verificationToken) return; paused = false; $('[data-ra-next]').hidden = true; status.textContent = 'Ready for the next student.'; }, result.color === 'green' ? 1200 : 2200);
+  }
   async function submitToken(token, verified = false) {
+    if (!verified && token === lastCode && Date.now() - lastCodeAt < 4000) return;
+    if (!verified) { lastCode = token; lastCodeAt = Date.now(); }
     if (scanning || !ref()) return; scanning = true; paused = true; $('[data-ra-next]').disabled = true;
     const ticket = generation; status.textContent = 'Validating with the server…';
     try {
       const result = await write(endpoint('/scan'), verified ? { verificationToken, verifiedIdentity: $('[data-ra-verify] [name=verified]').checked, verificationNote: $('[data-ra-verify] [name=note]').value } : { token });
       if (ticket !== generation) return;
       if (result.result === 'recorded' && result.savedToDatabase !== true) throw new Error('Attendance was not confirmed by the database.');
-      if (result.result === 'recorded') await loadOverview();
-      if (ticket !== generation) return;
+      // Show the verdict at once; the event totals refresh in the background.
       showResult(result); status.textContent = result.message;
+      if (result.result === 'recorded') void loadOverview();
+      autoResume(result);
     } catch (error) { if (ticket === generation) { showResult({ color: 'red', message: error.message }); status.textContent = error.message; } if ([401,403].includes(error.status)) stopCamera(); }
     finally { scanning = false; $('[data-ra-next]').disabled = false; }
   }
@@ -75,7 +94,7 @@
     if (!ref()) return; const ticket = generation;
     try { const value = await api(endpoint()); if (ticket !== generation) return;
       currentWindow = value; serverOffset = value.serverNow - Date.now(); status.textContent = value.message || `Attendance: ${value.state}`;
-      $('[data-ra-details]').textContent = `${value.title} · ${value.eventType === 'miu' ? 'University event' : 'Club event'} · ${value.date} · ${value.time || 'Start time not set'} · ${value.registrationCount} registered / ${value.registrationCapacity ?? 'unlimited'} places · ${value.attendanceCount} attended`;
+      $('[data-ra-details]').textContent = `${window.MiuAttendanceLabel({ title: value.title, source: value.eventType === 'miu' ? 'miu' : 'club', logoLabel: value.clubName || value.logoLabel, date: value.date, time: value.time })} · ${value.registrationCount} registered / ${value.registrationCapacity ?? 'unlimited'} places · ${value.attendanceCount} attended`;
       $('[data-ra-camera]').disabled = value.state !== 'open';
       const form = $('[data-ra-settings]'); form.hidden = !value.canManageCapacity; form.elements.capacity.value = value.registrationCapacity ?? ''; form.elements.timeZone.value = value.settings.timeZone || 'Africa/Cairo'; form.elements.endTime.value = value.settings.endTime || ''; form.elements.cancellationEnabled.checked = value.settings.cancellationEnabled === true;
     } catch (error) { if (ticket !== generation) return; status.textContent = attendanceError(error); stopCamera(); if (error.status === 401) signInLink(); }
@@ -86,16 +105,19 @@
   async function decode(source, width, height, options = {}) {
     const scale = Math.min(1, 1400 / Math.max(width,height)); canvas.width = Math.max(1, Math.round(width*scale)); canvas.height = Math.max(1, Math.round(height*scale)); context.drawImage(source,0,0,canvas.width,canvas.height);
     const image = context.getImageData(0,0,canvas.width,canvas.height);
-    const circular = window.decodeCircularAttendanceCode?.(image, options); if (circular) return circular;
-    if (detector) { const values = await detector.detect(source); return values[0]?.rawValue || ''; }
-    await decoder(); return window.jsQR(image.data,image.width,image.height,{inversionAttempts:'dontInvert'})?.data || '';
+    // Standard QR (built-in reader or jsQR, about 0.1 s). The older circular code takes seconds to search for,
+    // so only uploaded images try it; the live camera never stalls on it.
+    if (detector) { const values = await detector.detect(source); if (values[0]?.rawValue) return values[0].rawValue; }
+    else { await decoder(); const found = window.jsQR(image.data,image.width,image.height,{inversionAttempts:'dontInvert'})?.data; if (found) return found; }
+    if (options.search || options.circular) return window.decodeCircularAttendanceCode?.(image, options) || '';
+    return '';
   }
   async function openCamera() {
     stopCamera(); const ticket = cameraGeneration; status.textContent = 'Requesting camera access…';
     try {
       if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) throw new Error('Camera scanning requires HTTPS and a supported browser. You can upload an attendance code image instead.');
       if (window.BarcodeDetector && (await window.BarcodeDetector.getSupportedFormats()).includes('qr_code')) detector = new window.BarcodeDetector({ formats:['qr_code'] }); else { detector = null; await decoder(); }
-      const opened = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:'environment' } }, audio:false });
+      const opened = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:'environment' }, width:{ ideal:1280 }, height:{ ideal:720 } }, audio:false });
       if (ticket !== cameraGeneration) { opened.getTracks().forEach(track=>track.stop()); return; }
       stream = opened; const video = $('[data-ra-video]'); video.srcObject = stream; video.hidden = false; await video.play(); paused = false; status.textContent = 'Scan the current QR displayed on the student’s device.';
       let last = 0;
@@ -116,5 +138,5 @@
   window.addEventListener('pagehide',()=>{generation++;clearQr();stopCamera();eventController?.abort();});
   window.addEventListener('offline',()=>{generation++;clearQr();stopCamera();status.textContent='You are offline. Attendance cannot be confirmed until the connection returns.';});
   window.addEventListener('online',()=>{if(ref())void changeEvent();});
-  (async()=>{try{const data=await api('/api/reverse-attendance/'+(student?'my-events':'managed-events'));select.replaceChildren();const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo'}).format(new Date());const rank=e=>!e.date?3:e.date===today?0:e.date>today?1:2;/* Today first, then upcoming (soonest first), then past (latest first). */const items=[...data.items].sort((a,b)=>rank(a)-rank(b)||(rank(a)===2?String(b.date).localeCompare(String(a.date)):String(a.date||'').localeCompare(String(b.date||'')))||String(a.time||'').localeCompare(String(b.time||'')));for(const event of items){const option=document.createElement('option');option.value=JSON.stringify({source:event.source,clubId:event.clubId,eventIndex:event.eventIndex,eventRequestId:event.eventRequestId});const schedule=[event.date||'Date not set',event.time||'Start time not set'].join(' · ');option.textContent=`${event.title} · ${event.source==='miu'?'University':(event.logoLabel||'Club')} · ${schedule}`;select.append(option);}const params=new URLSearchParams(location.search);if(params.has('eventIndex')){const match=[...select.options].find(option=>{const item=JSON.parse(option.value);return item.source===params.get('source')&&item.clubId===Number(params.get('clubId'))&&(params.has('eventRequestId')?item.eventRequestId===Number(params.get('eventRequestId')):item.eventIndex===Number(params.get('eventIndex')));});if(match)select.value=match.value;}if(!select.options.length){status.textContent=student?'No registered events yet. Register from an event page first.':'No events are assigned to your account.';return;}await changeEvent();}catch(error){status.textContent=attendanceError(error);if(error.status===401)signInLink();}})();
+  (async()=>{try{const data=await api('/api/reverse-attendance/'+(student?'my-events':'managed-events'));select.replaceChildren();const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo'}).format(new Date());const rank=e=>!e.date?3:e.date===today?0:e.date>today?1:2;/* Today first, then upcoming (soonest first), then past (latest first); each group is labelled. */const items=[...data.items].sort((a,b)=>rank(a)-rank(b)||(rank(a)===2?String(b.date).localeCompare(String(a.date)):String(a.date||'').localeCompare(String(b.date||'')))||String(a.time||'').localeCompare(String(b.time||'')));const groupNames=['Today','Upcoming','Past events','Date not set'],groups=new Map();for(const event of items){const option=document.createElement('option');option.value=JSON.stringify({source:event.source,clubId:event.clubId,eventIndex:event.eventIndex,eventRequestId:event.eventRequestId});option.textContent=window.MiuAttendanceLabel(event);const name=groupNames[rank(event)];if(!groups.has(name)){const group=document.createElement('optgroup');group.label=name;groups.set(name,group);select.append(group);}groups.get(name).append(option);}const params=new URLSearchParams(location.search);if(params.has('eventIndex')){const match=[...select.options].find(option=>{const item=JSON.parse(option.value);return item.source===params.get('source')&&item.clubId===Number(params.get('clubId'))&&(params.has('eventRequestId')?item.eventRequestId===Number(params.get('eventRequestId')):item.eventIndex===Number(params.get('eventIndex')));});if(match)select.value=match.value;}if(!select.options.length){status.textContent=student?'No registered events yet. Register from an event page first.':'No events are assigned to your account.';return;}await changeEvent();}catch(error){status.textContent=attendanceError(error);if(error.status===401)signInLink();}})();
 })();

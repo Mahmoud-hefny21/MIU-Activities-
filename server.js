@@ -3526,7 +3526,8 @@ app.post('/api/miu-attendance-task/qr-challenge', requireAttendanceTaskAuth, asy
   } catch { res.status(503).json({ message: 'A fresh attendance QR could not be created.' }); }
 });
 
-app.post('/api/miu-attendance-task/check-in', requireAttendanceTaskAuth, (req, res) => res.status(403).json({ code: 'SUPERVISOR_SCAN_REQUIRED', message: 'Event presence requires another authorized supervisor to scan your personal student QR.', qrUrl: '/pages/attendance-qr.html' }));
+// Assigned MIU ushers record their own attendance with the handler in services/attendance-participation.js
+// (accepted task, bound device, event day, once).
 require('./services/attendance-participation').registerUsherSelfCheckin(app, {
   requireAttendanceTaskAuth, requireLiveDatabase, sameOrigin: isSameOriginRequest,
   AttendanceSession, AttendanceRecord, StudentAccount, UniversityContent, Club, Application,
@@ -3729,7 +3730,7 @@ app.post('/api/member/attendance-assignments/:id/check-in', requireStudentAuth, 
     if (!assignment || String(assignment._id) !== req.params.id || assignment.status !== 'accepted') {
       return res.status(403).json({ message: 'Only the member who accepted this attendance task can check in.' });
     }
-    if (assignment.itemType === 'event') return res.status(403).json({ code: 'SUPERVISOR_SCAN_REQUIRED', message: 'Display your personal event QR for a supervisor to scan.' });
+    // The accepted organizer records only their own attendance, from the device bound to this task.
     if (!isActivityScheduledToday(assignment.eventDate)) return res.status(409).json({ message: 'You can check in only on the event or booth date.' });
     if (await isAttendanceActivityManuallyEnded(assignment.clubId, assignment.itemType, assignment.eventRequestId)) {
       return res.status(410).json({ message: 'Attendance has ended for this event or booth.' });

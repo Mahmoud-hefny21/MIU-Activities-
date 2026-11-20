@@ -137,7 +137,7 @@ function createReverseAttendance(deps) {
   async function overview(ref, actor, req, res) {
     const ctx = await context.resolve(ref), access = await permission(ctx, actor, req, res);
     let window; try { window = await openWindow(ctx); } catch (error) { if (!error.status) throw error; window = { state: 'closed', message: error.message, serverNow: clock() }; }
-    return { ...access, ...window, title: ctx.event.title, date: ctx.event.date, time: ctx.event.time, eventType: ctx.source, registrationCapacity: ctx.event.capacity, settings: ctx.event.attendanceSettings || {}, registrationCount: await EventRegistration.countDocuments(ctx.filter), attendanceCount: await AttendanceRecord.countDocuments({ clubId: ctx.clubId, itemType: 'event', eventRequestId: ctx.eventRequestId }) };
+    return { ...access, ...window, title: ctx.event.title, date: ctx.event.date, time: ctx.event.time, eventType: ctx.source, clubName: ctx.source === 'miu' ? 'Misr International University' : (ctx.club?.name || ''), registrationCapacity: ctx.event.capacity, settings: ctx.event.attendanceSettings || {}, registrationCount: await EventRegistration.countDocuments(ctx.filter), attendanceCount: await AttendanceRecord.countDocuments({ clubId: ctx.clubId, itemType: 'event', eventRequestId: ctx.eventRequestId }) };
   }
   async function configure(ref, actor, body) {
     return transaction(async session => {

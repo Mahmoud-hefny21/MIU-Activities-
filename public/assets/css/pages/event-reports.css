@@ -102,3 +102,16 @@ body.miu-attendance-page .footer-container { width: min(100%, 1240px); }
 
 /* The floating Back button sits above the card instead of over its top edge. */
 body:has(.floating-back-control:not([hidden])) main { padding-top: 58px; }
+
+/* MIU event attendance: three-step guide and role labels for each team. */
+.miu-attendance-lead { margin: 10px 0 12px; }
+.miu-attendance-steps { display: grid; gap: 8px; margin: 0 0 18px; padding: 0; list-style: none; counter-reset: miu-step; }
+.miu-attendance-steps li { display: grid; grid-template-columns: 28px minmax(0, 1fr); column-gap: 10px; padding: 10px 12px; border: 1px solid var(--border-color, #e2e8f0); border-radius: 12px; background: var(--bg-soft, #f8fafc); counter-increment: miu-step; }
+.miu-attendance-steps li::before { content: counter(miu-step); grid-row: span 2; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--primary-700, #9f1d24); color: #fff; font-weight: 800; font-size: .85rem; }
+.miu-attendance-steps b { font-size: .92rem; }
+.miu-attendance-steps span { color: var(--text-muted, #64748b); font-size: .84rem; line-height: 1.45; }
+.miu-attendance-steps em { font-style: normal; font-weight: 700; color: var(--text-main, #172033); }
+.miu-role-badge { display: inline-block; justify-self: start; width: max-content; margin-right: 6px; padding: 2px 9px; border-radius: 999px; font-size: .72rem; font-weight: 800; letter-spacing: .02em; vertical-align: 1px; }
+.miu-role-badge.is-supervisor { background: #eef2ff; color: #3730a3; }
+.miu-role-badge.is-usher { background: #ecfdf5; color: #047857; }
+.miu-attendance-note { color: var(--text-muted, #64748b); font-size: .88rem; }
