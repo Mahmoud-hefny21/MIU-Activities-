@@ -299,7 +299,7 @@ test('organizer and usher event roles export separately from membership and memb
   assert.equal(perEvent.status, 200); assert.match(perEvent.text, /"Event role"/);
   assert.match(perEvent.text, /"Attendance category"/);
   // Attendance category is followed by the check-in verification and scanned-by columns.
-  assert.match(perEvent.text, /"Organizer","Self check-in with the event QR",""\r?\n/); assert.match(perEvent.text, /"Usher","Self check-in with the event QR",""(\r?\n|$)/);
+  assert.match(perEvent.text, /"Organizer","Self check-in with the event QR","",""\r?\n/); assert.match(perEvent.text, /"Usher","Self check-in with the event QR","",""(\r?\n|$)/);
   assert.match(perEvent.text, /"Check-in verification","Scanned by"/);
   assert.match(perEvent.text, /"Member","Engineering","Organizer"/); assert.match(perEvent.text, /"Non-member","","Usher"/);
   const annual = await request('/attendance.csv?clubId=1&year=2026', 'president');

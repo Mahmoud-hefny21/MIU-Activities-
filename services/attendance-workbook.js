@@ -13,6 +13,23 @@ function readableStatus(value) {
   if (!key) return '';
   return STATUS[key] || (key.charAt(0).toUpperCase() + key.slice(1)).replace(/_/g, ' ');
 }
+const FLAG = 'FFFFE0B2', GOOD = 'FFC8E6C9', WAIT = 'FFFFF3C4', BAD = 'FFFFCDD2';
+const fill = argb => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
+// Orange row when the phone check needs a look; coloured status cell (green / yellow / red).
+function colourAttendance(sheet, headings) {
+  const phone = headings.indexOf('Phone check') + 1, status = headings.indexOf('Approval status') + 1;
+  sheet.eachRow((row, n) => {
+    if (n === 1) return;
+    const check = phone ? String(row.getCell(phone).value || '') : '';
+    if (check && check !== 'OK') row.eachCell({ includeEmpty: true }, cell => { cell.fill = fill(FLAG); });
+    if (phone && check) row.getCell(phone).font = { name: 'Calibri', size: 11, bold: check !== 'OK', color: { argb: check === 'OK' ? 'FF2E7D32' : 'FFB45309' } };
+    if (status) {
+      const text = String(row.getCell(status).value || '');
+      const colour = text === 'Approved' ? GOOD : text === 'Rejected' ? BAD : /^Waiting/.test(text) ? WAIT : '';
+      if (colour) row.getCell(status).fill = fill(colour);
+    }
+  });
+}
 async function attendanceWorkbook(rows, details = {}) {
   const removed = new Set(['From time', 'To time', 'Type']);
   const keep = (rows[0] || []).map((heading, index) => removed.has(heading) ? -1 : index).filter(index => index >= 0);
@@ -43,6 +60,11 @@ async function attendanceWorkbook(rows, details = {}) {
   }
   for (const row of records) { const status = value(row, 'Approval status'); if (status) statuses.set(status, (statuses.get(status) || 0) + 1); }
   for (const [status, count] of statuses) summary.push(['Approval: ' + status.replace(/_/g, ' '), count, 'Administrative review status, not a separate attendance count.']);
+  const phoneFlagged = index('Phone check') < 0 ? [] : records.filter(row => value(row, 'Phone check') && value(row, 'Phone check') !== 'OK');
+  if (index('Phone check') >= 0 && !registered) {
+    summary.push(['Phone check: needs a look', phoneFlagged.length, 'Orange rows in the Attendance sheet: the same phone was used by more than one account, or one account used more than one phone. Check these people in person.']);
+    summary.push(['Colours in the Attendance sheet', 'Guide', 'Orange row = phone check needs a look. Status cell: green = Approved, yellow = Waiting, red = Rejected. Use the filter arrows in the top row to show one group.']);
+  }
   formatSheet(workbook, summary, 'Summary');
   const activities = new Map();
   for (const row of records) {
@@ -63,7 +85,13 @@ async function attendanceWorkbook(rows, details = {}) {
     if (heading === 'Approval status') return readableStatus(cell);
     return cell;
   }));
-  formatSheet(workbook, shownRows, 'Attendance');
+  const attendanceSheet = formatSheet(workbook, shownRows, 'Attendance');
+  colourAttendance(attendanceSheet, headings);
+  if (phoneFlagged.length) {
+    const columns = ['Full name', 'MIU ID', 'MIU email', 'Event', 'Event date', 'Checked in at', 'Phone check'].filter(name => index(name) >= 0);
+    const alerts = formatSheet(workbook, [columns, ...phoneFlagged.map(row => columns.map(name => name === 'Checked in at' ? readableTime(value(row, name)) : value(row, name)))], 'Phone alerts');
+    alerts.eachRow((row, n) => { if (n > 1) row.eachCell({ includeEmpty: true }, cell => { cell.fill = fill(FLAG); }); });
+  }
   const history = [['Participant', 'MIU email', 'Reviewer role', 'Action', 'Review time (Cairo)', 'Review note']];
   for (const person of details.people || []) for (const review of person.approvalHistory || []) history.push([
     person.name || '', person.email || '', review.role || '', readableStatus(review.action || ''), review.createdAt ? readableTime(review.createdAt) : '', review.note || '']);
