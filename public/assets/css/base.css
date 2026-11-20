@@ -2764,13 +2764,13 @@ html.quiz-scroll-lock {
   place-items: center;
   font-size: 20px;
   transform-origin: right bottom;
-  animation: quiz-launcher-compact 5.1s ease-in-out both;
+  animation: quiz-launcher-compact 3.8s ease-in-out both;
   transition: background-color var(--transition-fast), transform var(--transition-fast),
     box-shadow var(--transition-fast), scale var(--transition-base);
 }
 
 @keyframes quiz-launcher-compact {
-  0%, 94% { scale: 1; }
+  0%, 92% { scale: 1; }
   100% { scale: 0.83; }
 }
 
@@ -2820,7 +2820,7 @@ html.quiz-scroll-lock .quiz-launcher-circle,
   fill: none;
   stroke: none;
   transform-origin: center;
-  animation: quiz-launcher-reel 5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: quiz-launcher-reel 3.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 :root[data-theme="dark"] .quiz-launcher-circle {
@@ -2854,8 +2854,8 @@ html.quiz-scroll-lock .quiz-launcher-circle,
 
 @keyframes quiz-launcher-reel {
   0% { transform: rotate(-360deg); }
-  14%, 78% { transform: rotate(0deg); }
-  96%, 100% { transform: rotate(-360deg); }
+  20%, 74.3% { transform: rotate(0deg); }
+  98%, 100% { transform: rotate(-360deg); }
 }
 
 /* Compact translucent message bubble beside the circle. */
@@ -2887,7 +2887,7 @@ html.quiz-scroll-lock .quiz-launcher-circle,
   cursor: pointer;
   user-select: none;
   transform-origin: right center;
-  animation: quiz-launcher-greeting 5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: quiz-launcher-greeting 3.5s cubic-bezier(0.22, 1, 0.36, 1) both;
   transition: border-color var(--transition-fast), background-color var(--transition-fast);
 }
 
@@ -2900,14 +2900,14 @@ html.quiz-scroll-lock .quiz-launcher-circle,
     clip-path: inset(0 0 0 100% round 24px);
     animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   }
-  18% {
+  25.7% {
     opacity: 1;
     transform: translateX(0);
     clip-path: inset(0 0 0 0 round 24px);
     visibility: visible;
     pointer-events: auto;
   }
-  76% {
+  74.3% {
     opacity: 1;
     transform: translateX(0);
     clip-path: inset(0 0 0 0 round 24px);
@@ -2915,14 +2915,14 @@ html.quiz-scroll-lock .quiz-launcher-circle,
     pointer-events: auto;
     animation-timing-function: cubic-bezier(0.7, 0, 0.84, 0);
   }
-  93% {
+  98.3% {
     opacity: 1;
     transform: translateX(46px);
     clip-path: inset(0 0 0 100% round 24px);
     visibility: visible;
     pointer-events: none;
   }
-  94%, 100% {
+  98.8%, 100% {
     opacity: 0;
     transform: translateX(46px);
     clip-path: inset(0 0 0 100% round 24px);
@@ -3006,7 +3006,7 @@ html.quiz-scroll-lock .quiz-launcher-circle,
     transform: none;
   }
   .quiz-launcher-bubble {
-    animation: quiz-launcher-greeting-reduced 0.15s 4s linear both;
+    animation: quiz-launcher-greeting-reduced 0.15s 2.6s linear both;
   }
   .quiz-launcher-circle svg {
     animation: none;
