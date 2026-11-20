@@ -115,3 +115,8 @@ body:not(.has-bottom-bar):has(.floating-back-control:not([hidden])) main { paddi
 .miu-role-badge.is-supervisor { background: #eef2ff; color: #3730a3; }
 .miu-role-badge.is-usher { background: #ecfdf5; color: #047857; }
 .miu-attendance-note { color: var(--text-muted, #64748b); font-size: .88rem; }
+
+/* Usher task: "Take my attendance" and "Open attendance scanner" are the same full width, stacked. */
+#usherTask #usherSelfCheckinForm, #usherTask #usherTaskActions { max-width: 36rem; }
+#usherTask #usherTaskActions { display: grid; gap: .75rem; }
+#usherTask #usherTaskActions > button, #usherTask #recordUsherAttendance { width: 100%; min-height: 48px; }
