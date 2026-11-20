@@ -16,6 +16,8 @@
     if (previous.sidebar.contains(document.activeElement)) previous.button.focus();
   }
   overlay.addEventListener('click', close);
+  // Only one menu open at a time (see layout.js): another menu opening closes the drawer.
+  window.addEventListener('miu:menu-open', event => { if (event.detail !== 'drawer') close(); });
   document.addEventListener('keydown', event => {
     if (!active) return;
     if (event.key === 'Escape') { close(); return; }
@@ -63,6 +65,7 @@
         close(); active = entry; sidebar.inert = false;
         sidebar.classList.add('drawer-open'); overlay.hidden = false;
         document.body.classList.add('dashboard-drawer-open'); button.setAttribute('aria-expanded', 'true');
+        window.dispatchEvent(new CustomEvent('miu:menu-open', { detail: 'drawer' }));
         // Tap outside, Escape or choosing an item closes the drawer.
         sidebar.querySelector('a[href], button:not(:disabled)')?.focus();
       });

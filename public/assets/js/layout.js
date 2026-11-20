@@ -176,14 +176,18 @@ const initFloatingBack = () => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Only one menu open at a time: an opening menu announces itself and every other menu closes.
+  // bottom-bar.js and mobile-sidebars.js listen for the same 'miu:menu-open' event.
+  const announceMenuOpen = (name) => window.dispatchEvent(new CustomEvent('miu:menu-open', { detail: name }));
+  const onOtherMenuOpen = (name, close) => window.addEventListener('miu:menu-open', (event) => { if (event.detail !== name) close(); });
   window.MiuUI.initModalControls();
   initFloatingBack();
 
   const navigationScript = document.createElement('script'); navigationScript.src = '/assets/js/dashboard-navigation.js?v=20261119swipe1'; document.head.append(navigationScript);
   const drawerStyles = document.createElement('link'); drawerStyles.rel = 'stylesheet'; drawerStyles.href = '/assets/css/mobile-sidebars.css?v=20261120nav1';
-  const drawerScript = document.createElement('script'); drawerScript.src = '/assets/js/mobile-sidebars.js?v=20261119bar5';
+  const drawerScript = document.createElement('script'); drawerScript.src = '/assets/js/mobile-sidebars.js?v=20261120menus1';
   let drawerStarted = false;
-  const bottomBarScript = document.createElement('script'); bottomBarScript.src = '/assets/js/bottom-bar.js?v=20261120five6';
+  const bottomBarScript = document.createElement('script'); bottomBarScript.src = '/assets/js/bottom-bar.js?v=20261120menus1';
   // The bottom bar starts after the drawer script so dashboards can open their menu from it.
   const swipeBackScript = document.createElement('script'); swipeBackScript.src = '/assets/js/swipe-back.js?v=20261119bar3';
   drawerScript.addEventListener('load', () => { document.head.append(bottomBarScript); document.head.append(swipeBackScript); }, { once: true });
@@ -266,24 +270,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const mobileToggle = document.getElementById('mobileMenuToggle');
     const navMenu = document.getElementById('navLinks');
     if (mobileToggle && navMenu) {
-      mobileToggle.addEventListener('click', () => {
-        const isOpen = navMenu.classList.toggle('open');
+      const setNavOpen = (isOpen) => {
+        navMenu.classList.toggle('open', isOpen);
         mobileToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-        const iconMenu = mobileToggle.querySelector('.icon-menu');
-        const iconClose = mobileToggle.querySelector('.icon-close');
-        if (iconMenu && iconClose) {
-          iconMenu.classList.toggle('hidden', isOpen);
-          iconClose.classList.toggle('hidden', !isOpen);
-        }
-      });
-      navMenu.querySelectorAll('.nav-link').forEach((link) => {
-        link.addEventListener('click', () => {
-          navMenu.classList.remove('open');
-          mobileToggle.setAttribute('aria-expanded', 'false');
-          mobileToggle.querySelector('.icon-menu')?.classList.remove('hidden');
-          mobileToggle.querySelector('.icon-close')?.classList.add('hidden');
-        });
-      });
+        mobileToggle.querySelector('.icon-menu')?.classList.toggle('hidden', isOpen);
+        mobileToggle.querySelector('.icon-close')?.classList.toggle('hidden', !isOpen);
+        if (isOpen) announceMenuOpen('nav');
+      };
+      mobileToggle.addEventListener('click', () => setNavOpen(!navMenu.classList.contains('open')));
+      navMenu.querySelectorAll('.nav-link').forEach((link) => link.addEventListener('click', () => setNavOpen(false)));
+      onOtherMenuOpen('nav', () => { if (navMenu.classList.contains('open')) setNavOpen(false); });
     }
 
     // 3. Replace Sign In with the right account destination for an active session.
@@ -460,7 +456,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!studentProfileDropdown) return;
       studentProfileDropdown.hidden = !open;
       studentProfileTrigger.setAttribute('aria-expanded', String(Boolean(open)));
+      if (open) announceMenuOpen('account');
     });
+    onOtherMenuOpen('account', closeStudentProfileMenu);
     document.addEventListener('click', (event) => {
       if (studentProfileMenu && !studentProfileMenu.contains(event.target)) closeStudentProfileMenu();
     });

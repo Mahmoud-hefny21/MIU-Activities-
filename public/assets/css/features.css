@@ -1145,6 +1145,14 @@ body :is(button[aria-label*="close" i], button[aria-label*="exit" i], button[tit
 .member-directory-header h2 { font-size: clamp(1.25rem, 3vw, 1.6rem); line-height: 1.3; margin: 6px 0 8px; }
 .member-directory-header p { font-size: .92rem; line-height: 1.5; }
 .member-directory-header .calendar-close-btn { position: static; flex: 0 0 auto; margin: 0; }
+/* When the close button sits inside the header (inline panel on phones): label and title beside it,
+   the description across the full width underneath, instead of a narrow text column. */
+.member-directory-header:has(> [data-close-member-directory]) { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; align-items: start; }
+.member-directory-header:has(> [data-close-member-directory]) > div { display: contents; }
+.member-directory-header:has(> [data-close-member-directory]) > div > :first-child { grid-column: 1; grid-row: 1; }
+.member-directory-header:has(> [data-close-member-directory]) > div > h2 { grid-column: 1; grid-row: 2; }
+.member-directory-header:has(> [data-close-member-directory]) > div > p { grid-column: 1 / -1; grid-row: 3; }
+.member-directory-header:has(> [data-close-member-directory]) > [data-close-member-directory] { grid-column: 2; grid-row: 1 / 3; align-self: center; }
 .member-directory-dialog .member-directory-filter { flex: 0 0 auto; gap: 10px; margin: 0; font-size: .9rem; }
 .member-directory-dialog .member-directory-filter select {
   box-sizing: border-box;

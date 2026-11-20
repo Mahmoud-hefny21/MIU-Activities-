@@ -128,7 +128,7 @@ hub: '<path d="M3 10 12 4l9 6"/><path d="M5 10v9M9.5 10v9M14.5 10v9M19 10v9M3 21
           return el;
         }));
         if (!siteMenu.isConnected) document.body.append(siteMenu);
-        siteMenu.hidden = false; event.currentTarget.setAttribute('aria-expanded', 'true'); event.currentTarget.dataset.siteMenu = '';
+        siteMenu.hidden = false; event.currentTarget.setAttribute('aria-expanded', 'true'); event.currentTarget.dataset.siteMenu = ''; announceMenuOpen();
         siteMenu.querySelector('button')?.focus({ preventScroll: true });
         return;
       }
@@ -158,6 +158,9 @@ hub: '<path d="M3 10 12 4l9 6"/><path d="M5 10v9M9.5 10v9M14.5 10v9M19 10v9M3 21
   siteMenu.className = 'bottom-bar-menu'; siteMenu.hidden = true; siteMenu.id = 'bottomBarMenu';
   siteMenu.setAttribute('role', 'menu'); siteMenu.setAttribute('aria-label', 'More pages');
   const closeSiteMenu = () => { siteMenu.hidden = true; bar.querySelector('[data-site-menu]')?.setAttribute('aria-expanded', 'false'); bar.querySelector('[data-site-menu]')?.classList.remove('is-active'); };
+  // Only one menu open at a time (see layout.js): close this one when another opens, and announce when it opens.
+  const announceMenuOpen = () => window.dispatchEvent(new CustomEvent('miu:menu-open', { detail: 'bottom-bar' }));
+  window.addEventListener('miu:menu-open', (event) => { if (event.detail !== 'bottom-bar' && !siteMenu.hidden) closeSiteMenu(); });
   document.addEventListener('click', (event) => { if (!siteMenu.hidden && !siteMenu.contains(event.target) && !event.target.closest('[data-site-menu]')) closeSiteMenu(); });
   document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !siteMenu.hidden) closeSiteMenu(); });
   function siteMenuEntries(onHome) {
@@ -187,7 +190,7 @@ hub: '<path d="M3 10 12 4l9 6"/><path d="M5 10v9M9.5 10v9M14.5 10v9M19 10v9M3 21
     const menuButton = makeItem({ label: 'Menu', icon: 'menu', onClick: () => {
       if (!siteMenu.hidden) { closeSiteMenu(); return; }
       siteMenu.replaceChildren(...siteMenuEntries(onHome));
-      siteMenu.hidden = false; menuButton.setAttribute('aria-expanded', 'true'); menuButton.classList.add('is-active');
+      siteMenu.hidden = false; menuButton.setAttribute('aria-expanded', 'true'); menuButton.classList.add('is-active'); announceMenuOpen();
       siteMenu.querySelector('a, button')?.focus({ preventScroll: true });
     } });
     menuButton.dataset.siteMenu = ''; menuButton.setAttribute('aria-haspopup', 'menu'); menuButton.setAttribute('aria-controls', siteMenu.id); menuButton.setAttribute('aria-expanded', 'false');
