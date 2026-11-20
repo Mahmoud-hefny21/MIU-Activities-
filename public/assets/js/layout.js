@@ -180,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initFloatingBack();
 
   const navigationScript = document.createElement('script'); navigationScript.src = '/assets/js/dashboard-navigation.js?v=20261119swipe1'; document.head.append(navigationScript);
-  const drawerStyles = document.createElement('link'); drawerStyles.rel = 'stylesheet'; drawerStyles.href = '/assets/css/mobile-sidebars.css?v=20261120back1';
+  const drawerStyles = document.createElement('link'); drawerStyles.rel = 'stylesheet'; drawerStyles.href = '/assets/css/mobile-sidebars.css?v=20261120nav1';
   const drawerScript = document.createElement('script'); drawerScript.src = '/assets/js/mobile-sidebars.js?v=20261119bar5';
   let drawerStarted = false;
   const bottomBarScript = document.createElement('script'); bottomBarScript.src = '/assets/js/bottom-bar.js?v=20261120five6';

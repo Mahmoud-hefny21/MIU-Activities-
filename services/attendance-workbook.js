@@ -1,5 +1,18 @@
 const ExcelJS = require('exceljs');
 const { formatSheet } = require('../public/assets/js/spreadsheet-export');
+// "2026-10-10T03:09:05.616Z" -> "10 Oct 2026, 5:09 AM" (Cairo time); anything else is kept as it is.
+function readableTime(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (!/^\d{4}-\d{2}-\d{2}T/.test(String(value)) && !(value instanceof Date) || Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Cairo', day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }).format(date);
+}
+const STATUS = { approved: 'Approved', rejected: 'Rejected', pending_supervisor: 'Waiting for supervisor', pending_pr: 'Waiting for PR', pending_sso: 'Waiting for SSO', pending_dean: 'Waiting for Dean', pending: 'Waiting for review' };
+function readableStatus(value) {
+  const key = String(value || '').trim();
+  if (!key) return '';
+  return STATUS[key] || (key.charAt(0).toUpperCase() + key.slice(1)).replace(/_/g, ' ');
+}
 async function attendanceWorkbook(rows, details = {}) {
   const removed = new Set(['From time', 'To time', 'Type']);
   const keep = (rows[0] || []).map((heading, index) => removed.has(heading) ? -1 : index).filter(index => index >= 0);
@@ -43,10 +56,17 @@ async function attendanceWorkbook(rows, details = {}) {
     details.event?.location || 'Not recorded', details.event?.description || 'Not recorded', count,
     details.event?.source === 'attendance' ? 'Existing attendance activity' : details.event ? 'Existing published event' : 'Existing attendance records']);
   formatSheet(workbook, events, 'Event details');
-  formatSheet(workbook, rows, 'Attendance');
-  const history = [['Participant', 'MIU email', 'Reviewer role', 'Action', 'Review time (UTC)', 'Review note']];
+  // Readable for people: Cairo time instead of computer time, and plain-English approval statuses.
+  const shownRows = rows.map((row, rowIndex) => rowIndex === 0 ? row : row.map((cell, column) => {
+    const heading = headings[column];
+    if (heading === 'Checked in at') return readableTime(cell);
+    if (heading === 'Approval status') return readableStatus(cell);
+    return cell;
+  }));
+  formatSheet(workbook, shownRows, 'Attendance');
+  const history = [['Participant', 'MIU email', 'Reviewer role', 'Action', 'Review time (Cairo)', 'Review note']];
   for (const person of details.people || []) for (const review of person.approvalHistory || []) history.push([
-    person.name || '', person.email || '', review.role || '', review.action || '', review.createdAt ? new Date(review.createdAt).toISOString() : '', review.note || '']);
+    person.name || '', person.email || '', review.role || '', readableStatus(review.action || ''), review.createdAt ? readableTime(review.createdAt) : '', review.note || '']);
   formatSheet(workbook, history, 'Review history');
   workbook.views = [{ activeTab: 2 }];
   return workbook.xlsx.writeBuffer();

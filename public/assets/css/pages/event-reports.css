@@ -101,7 +101,7 @@ body.miu-attendance-page .footer-container { width: min(100%, 1240px); }
 .report-filter input:focus-visible, main input[type="date"]:focus-visible, main select:focus-visible { outline: 3px solid var(--primary-500, #b91c1c); outline-offset: 2px; }
 
 /* The floating Back button sits above the card instead of over its top edge. */
-body:has(.floating-back-control:not([hidden])) main { padding-top: 58px; }
+body:not(.has-bottom-bar):has(.floating-back-control:not([hidden])) main { padding-top: 58px; }
 
 /* MIU event attendance: three-step guide and role labels for each team. */
 .miu-attendance-lead { margin: 10px 0 12px; }

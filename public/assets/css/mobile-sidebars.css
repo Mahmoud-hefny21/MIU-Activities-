@@ -518,3 +518,6 @@ html.swipe-back-active body { overflow-x: hidden; box-shadow: -12px 0 28px rgba(
 /* Tablets: the row of buttons at the top of short pages keeps phone-like proportions instead of stretching. */
 @media (min-width: 600px) and (max-width: 1024px) { .bottom-bar.is-inline { max-width: 560px; } }
 @media (max-width: 340px) { .bottom-bar.is-inline { gap: 2px; } .bottom-bar:not(.is-inline) { width: calc(100vw - 16px); padding: 3px; gap: 0; } }
+
+/* The bottom bar already has Back on every page except Home, so the floating Back copy is not shown with it. */
+body.has-bottom-bar .floating-back-control { display: none !important; }
