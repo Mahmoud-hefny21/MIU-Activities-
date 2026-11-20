@@ -464,13 +464,14 @@ function openClubDetail(clubId) {
         <div class="club-detail-actions">
           <button class="primary-btn club-detail-apply" data-action="apply-club" data-id="${club.id}" ${canApply ? '' : 'disabled'}>${canApply ? 'Apply Now' : escapeHtml(getClubActionLabel(club.status))}</button>
           <button class="secondary-btn club-rate-button club-calendar-button" data-action="show-year-plan" type="button"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Calendar</button>
-          <button class="secondary-btn club-rate-button" data-action="rate-club" type="button" aria-haspopup="dialog"><span aria-hidden="true">&#9734;</span> Rate this club</button>
+          <button class="secondary-btn club-rate-button" data-action="rate-club" type="button" aria-haspopup="dialog" aria-label="Rate this club"><span aria-hidden="true">&#9734;</span> Rate<span class="detail-label-extra" aria-hidden="true"> this club</span></button>
         </div>
       </div>
     </div>
     <section class="detail-section">
       <h3>About the club</h3>
       <p class="detail-description">${escapeHtml(club.description)}</p>
+      <button class="detail-read-more" type="button" data-action="read-more" hidden>Read more</button>
     </section>
 
     <div class="detail-info detail-stats" role="list" aria-label="${escapeHtml(club.name)} in numbers">
@@ -494,6 +495,17 @@ function openClubDetail(clubId) {
 
   clubDetail.querySelector('[data-action="apply-club"]').addEventListener('click', () => openApplicationForm(normalizedClubId));
   clubDetail.querySelectorAll('[data-action="go-home"]').forEach(button => button.addEventListener('click', () => showView('home')));
+  // Long descriptions show three lines first; "Read more" opens the rest.
+  const description = clubDetail.querySelector('.detail-description');
+  const readMore = clubDetail.querySelector('[data-action="read-more"]');
+  if (description && readMore) {
+    description.classList.add('is-clamped');
+    requestAnimationFrame(() => { readMore.hidden = description.scrollHeight <= description.clientHeight + 2; });
+    readMore.addEventListener('click', () => {
+      const open = description.classList.toggle('is-clamped') === false;
+      readMore.textContent = open ? 'Show less' : 'Read more';
+    });
+  }
   clubDetail.querySelectorAll('[data-action="more-requirements"]').forEach(button => button.addEventListener('click', () => {
     button.closest('ul').querySelectorAll('li[hidden]').forEach((li) => { li.hidden = false; });
     button.parentElement.remove();
