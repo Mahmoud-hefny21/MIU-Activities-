@@ -494,6 +494,10 @@ function openClubDetail(clubId) {
 
   clubDetail.querySelector('[data-action="apply-club"]').addEventListener('click', () => openApplicationForm(normalizedClubId));
   clubDetail.querySelectorAll('[data-action="go-home"]').forEach(button => button.addEventListener('click', () => showView('home')));
+  clubDetail.querySelectorAll('[data-action="more-requirements"]').forEach(button => button.addEventListener('click', () => {
+    button.closest('ul').querySelectorAll('li[hidden]').forEach((li) => { li.hidden = false; });
+    button.parentElement.remove();
+  }));
   const ratingDialog = clubDetail.querySelector('.club-rating-dialog');
   // Rating needs a signed-in student: guests go to sign in, then come straight back to this rating.
   clubDetail.querySelector('[data-action="rate-club"]').addEventListener('click', async () => {
@@ -959,7 +963,9 @@ function clubRequirementsMarkup(text) {
   const value = String(text || '').trim();
   const items = value.replace(/\.\s*$/, '').split(/\s*(?:,|\n|;|•)\s*/).map((item) => item.trim()).filter(Boolean);
   if (items.length >= 3 && items.every((item) => item.length <= 32)) {
-    return `<ul class="detail-requirement-tags">${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`;
+    // Show the first six; the rest open with "+N more" so the section stays short.
+    const extra = items.length - 6;
+    return `<ul class="detail-requirement-tags">${items.map((item, index) => `<li${index >= 6 ? ' hidden' : ''}>${escapeHtml(item)}</li>`).join('')}${extra > 0 ? `<li class="detail-requirement-more"><button type="button" data-action="more-requirements">+${extra} more</button></li>` : ''}</ul>`;
   }
   return `<p>${escapeHtml(value)}</p>`;
 }
