@@ -1876,3 +1876,35 @@ body :is(button[aria-label*="close" i], button[aria-label*="exit" i], button[tit
 @media (max-width: 900px) { .sa-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sa-filters { grid-template-columns: 1fr 1fr; } .sa-filters label:first-child, .sa-download { grid-column: 1 / -1; } }
 @media (max-width: 480px) { .sa-row summary { grid-template-columns: 30px 1fr 74px; gap: 8px; padding: 10px; } .sa-count strong { font-size: 19px; } .sa-stat strong { font-size: 22px; } }
 .sa-more[hidden], .sa-levels:empty { display: none !important; }
+
+/* Find-your-club quiz */
+.fq-dialog { width: min(520px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 0; border: 0; border-radius: 22px; background: var(--bg-panel); color: var(--text-main); box-shadow: 0 24px 60px #0f172a40; }
+.fq-dialog::backdrop { background: #0f172a8c; backdrop-filter: blur(3px); }
+.fq-card { padding: 22px 22px 18px; display: grid; gap: 16px; }
+.fq-head { display: flex; justify-content: space-between; align-items: center; }
+.fq-step { font-size: 12px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--text-muted); margin: 0; }
+.fq-close { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border-color); background: var(--bg-soft); color: var(--text-main); font-size: 22px; line-height: 1; cursor: pointer; }
+.fq-progress { height: 6px; border-radius: 99px; background: var(--bg-soft); overflow: hidden; }
+.fq-progress i { display: block; height: 100%; background: linear-gradient(90deg, #be000b, #7f1d1d); border-radius: inherit; transition: width .25s; }
+.fq-question { margin: 0; font-size: 22px; line-height: 1.25; }
+.fq-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.fq-option { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 10px 12px; border: 1.5px solid var(--border-color); border-radius: 14px; background: var(--bg-panel); color: var(--text-main); font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; transition: border-color .15s, background .15s, transform .1s; }
+.fq-option:hover, .fq-option:focus-visible { border-color: #be000b; background: color-mix(in srgb, #be000b 6%, var(--bg-panel)); }
+.fq-option.is-picked { border-color: #be000b; background: color-mix(in srgb, #be000b 12%, var(--bg-panel)); transform: scale(.98); }
+.fq-icon { font-size: 22px; }
+.fq-foot { display: flex; justify-content: space-between; align-items: center; }
+.fq-link { border: 0; background: none; color: var(--primary-800, #a8202b); font-weight: 700; font-size: 14px; cursor: pointer; text-decoration: none; padding: 6px 0; }
+.fq-hint { font-size: 12px; color: var(--text-muted); }
+.fq-results { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.fq-result { display: grid; grid-template-columns: auto 52px 1fr; grid-template-areas: "medal img text" "btn btn btn"; align-items: center; gap: 8px 12px; padding: 12px; border: 1px solid var(--border-color); border-radius: 16px; }
+.fq-result:first-child { border-color: #f2c94c; background: color-mix(in srgb, #f2c94c 10%, var(--bg-panel)); }
+.fq-medal { grid-area: medal; font-size: 26px; }
+.fq-result img { grid-area: img; width: 52px; height: 52px; border-radius: 12px; object-fit: contain; background: #fff; border: 1px solid var(--border-color); }
+.fq-result-text { grid-area: text; display: grid; gap: 2px; min-width: 0; }
+.fq-result-text strong { font-size: 16px; }
+.fq-match { font-size: 13px; font-weight: 800; color: #1b7a3a; }
+.fq-result-text small { font-size: 12px; color: var(--text-muted); }
+.fq-view { grid-area: btn; justify-content: center; text-align: center; text-decoration: none; min-height: 40px; display: inline-flex; align-items: center; }
+.fq-empty { margin: 0; color: var(--text-muted); }
+@media (max-width: 420px) { .fq-options { grid-template-columns: 1fr; } .fq-question { font-size: 20px; } .fq-option { min-height: 50px; } }
+.fq-dialog a.fq-view, .fq-dialog a.fq-view:visited, .fq-dialog a.fq-view:hover { color: #fff; }
