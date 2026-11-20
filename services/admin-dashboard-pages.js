@@ -24,6 +24,7 @@ function renderDashboardPage(root, tool = '') {
   if (tool === 'excel-review') scripts.push('cloudinary-upload', 'pages/admin-excel-import');
   if (tool === 'profile') scripts.push('cloudinary-upload');
   if (tool === 'member-import') scripts.push('pages/admin-member-import');
+  if (tool === 'student-attendance') scripts.push('student-attendance');
   if (['workflows', 'blocked-requests'].includes(tool)) { scripts.push('workflow-ui'); assets.push('workflow'); }
   if (tool === 'custom-roles') { scripts.push('custom-role-admin'); assets.push('workflow'); }
   const main = relative => source(relative).match(/<main\b[^>]*>([\s\S]*?)<\/main>/i)[1];

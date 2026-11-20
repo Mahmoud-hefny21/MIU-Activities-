@@ -157,6 +157,29 @@ function registerReportDownloads(app, deps) {
       res.type('text/csv; charset=utf-8').send(csv(rows));
     } catch { res.status(503).json({ message: 'Could not prepare the event sheet. Please retry.' }); }
   });
+  // How many events each student actually attended (admin and PR only). Optional ?start=&end= or ?year=.
+  router.get(['/student-attendance', '/student-attendance.xlsx'], async (req, res) => {
+    if (!['admin', 'pr'].includes(req.downloadAccount.role)) return res.status(403).json({ message: 'Only the admin and PR can view student attendance.' });
+    const filtered = req.query.year !== undefined || req.query.start !== undefined || req.query.end !== undefined;
+    const range = filtered ? boundaries(req.query) : null;
+    if (filtered && !range) return res.status(400).json({ message: 'Choose a valid year or start and end dates.' });
+    try {
+      const { buildStudentAttendance, studentAttendanceWorkbook } = require('./student-attendance');
+      const records = await AttendanceRecord.find(range ? { eventDate: { $gte: range.start, $lte: range.end } } : {})
+        .select('clubId itemType eventRequestId eventTitle eventDate name email universityId major attendedAt approvalStatus eventParticipation').lean();
+      const [clubs, students] = await Promise.all([
+        Club.find({}).select('id name').lean(),
+        StudentAccount.find({ email: { $in: [...new Set(records.map(r => String(r.email || '').trim().toLowerCase()).filter(Boolean))] } }).select('email name universityId major').lean()
+      ]);
+      const report = buildStudentAttendance(records, new Map(clubs.map(c => [c.id, c.name])), new Map(students.map(s => [String(s.email).toLowerCase(), s])));
+      if (req.path.endsWith('.xlsx')) {
+        const buffer = await studentAttendanceWorkbook(report, range || {});
+        res.setHeader('Content-Disposition', `attachment; filename="student-event-attendance${range ? `-${range.start}-to-${range.end}` : ''}.xlsx"`);
+        return res.type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet').send(Buffer.from(buffer));
+      }
+      res.json(report);
+    } catch { res.status(503).json({ message: 'Student attendance is temporarily unavailable. Please retry.' }); }
+  });
   router.get('/:kind.:format', async (req, res) => {
     const kind = req.params.kind, account = req.downloadAccount;
     if (!['csv', 'xlsx'].includes(req.params.format)) return res.status(400).json({ message: 'Unsupported download format.' });

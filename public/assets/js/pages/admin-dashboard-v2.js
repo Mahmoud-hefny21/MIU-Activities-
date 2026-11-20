@@ -62,6 +62,8 @@
   };
   let category = new URLSearchParams(location.search).get('category') || 'all';
   if (category !== 'all' && !categories[category]) category = 'all';
+  // On a tool page, highlight the tool's own section in the sidebar (not "Overview").
+  if (activeTool) category = tools.find(tool => tool.id === activeTool)?.category || category;
   async function request(url, options = {}) {
     const send = () => fetch(url, { credentials: 'same-origin', cache: 'no-store', ...options,
       headers: { 'Content-Type': 'application/json', ...options.headers } });
@@ -103,6 +105,7 @@
       const data = await request('/api/admin/workflows/blocked?summary=1', { siteStartupNonBlocking: true });
       if (generation !== blockedGeneration || !Array.isArray(data.keys) || !Number.isSafeInteger(data.total) || data.total < 0) return;
       blockedSnapshot = { total: data.total, keys: data.keys }; paintBlockedBadge();
+      if ($('blockedCount')) $('blockedCount').textContent = data.total.toLocaleString();
     } catch { /* Retain the last confirmed count during a connection failure. */ }
   }
   document.addEventListener('miu:blocked-inbox-loaded', async event => {
@@ -149,6 +152,9 @@
       const active = button.dataset.category === category;
       button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active));
     });
+    // Phones show the sections as a sideways row: keep the highlighted one in view.
+    const current = $('dashboardNavigation').querySelector('.is-active');
+    if (current && current.parentElement.scrollWidth > current.parentElement.clientWidth) current.parentElement.scrollLeft = current.offsetLeft - 16;
   }
   const urls = { clubs: '/api/clubs?media=links', applications: '/api/admin/applications', heads: '/api/admin/club-heads',
     homepage: '/api/admin/homepage', archives: '/api/admin/clubs/archived', members: '/api/admin/club-members',
@@ -163,6 +169,13 @@
     const number = (index, id, select = data => data.length) => { $(id).textContent = results[index].status === 'fulfilled' ? select(results[index].value).toLocaleString() : '—'; };
     number(0, 'totalClubs'); number(1, 'totalApplications'); number(2, 'totalHeads');
     number(0, 'openClubs', clubs => clubs.filter(club => club.status === 'open').length);
+    number(1, 'pendingApplications', apps => apps.filter(app => app.status === 'pending').length);
+    $('blockedCount').textContent = blockedSnapshot.total.toLocaleString();
+    // Attendance numbers load after the main counts so the overview never waits on them.
+    request('/api/report-downloads/student-attendance', { siteStartupNonBlocking: true }).then(report => {
+      if (version !== overviewVersion) return;
+      $('attendedStudents').textContent = report.totals.students.toLocaleString(); $('attendedEvents').textContent = report.totals.checkIns.toLocaleString();
+    }).catch(() => { $('attendedStudents').textContent = '—'; $('attendedEvents').textContent = '—'; });
     const failed = results.find(result => result.status === 'rejected');
     feedback('overviewFeedback', failed ? failed.reason.message : force ? 'Overview updated.' : '', Boolean(failed));
     $('refreshDashboard').disabled = false; $('dashboardSummary').setAttribute('aria-busy', 'false');
@@ -189,7 +202,9 @@
     try {
       const data = urls[id] ? await read(urls[id]) : null;
       if (version !== panelVersion) return;
-      if (id === 'custom-roles') {
+      if (id === 'student-attendance') {
+        window.MiuStudentAttendance.mount($('toolContent'));
+      } else if (id === 'custom-roles') {
         await window.MiuCustomRoles.mount($('toolContent'));
       } else if (id === 'workflows') {
         await window.MiuWorkflow.mountAdmin($('toolContent'));
@@ -220,7 +235,18 @@
       } else if (id === 'archives') {
         $('toolContent').innerHTML = list(data.map(club => record(club.name, club.category || 'Archived club', `<button type="button" data-restore="${escape(club.id)}">Restore club</button>`)));
       } else if (id === 'members') {
-        $('toolContent').innerHTML = data.map(club => `<section><h3>${escape(club.name)} <small>(${escape(club.totalCount ?? 0)} members)</small></h3>${list((club.members || []).map(member => record(member.name || member.studentName || member.email, [member.email, member.committee, member.position, member.memberType].filter(Boolean).join(' · '))))}</section>`).join('') || '<p class="v2-panel-note">No clubs to display.</p>';
+        // Clubs with members first (largest first); empty clubs are listed once at the end instead of one empty box each.
+        const q = (new URLSearchParams(location.search).get('q') || '').toLowerCase();
+        const count = club => Number(club.totalCount ?? club.members?.length ?? 0);
+        const withMembers = data.filter(club => count(club) > 0).sort((a, b) => count(b) - count(a));
+        const empty = data.filter(club => count(club) === 0);
+        const total = withMembers.reduce((sum, club) => sum + count(club), 0);
+        const people = club => (club.members || []).filter(member => !q || [member.name, member.studentName, member.email, member.committee].join(' ').toLowerCase().includes(q));
+        $('toolContent').innerHTML = `<form method="get" class="v2-filter-form"><label>Search members<input name="q" type="search" value="${escape(q)}" placeholder="Name, email or committee"></label><button type="submit" class="v2-action secondary">Search</button></form>`
+          + `<p class="v2-panel-note">${total.toLocaleString()} members in ${withMembers.length} club${withMembers.length === 1 ? '' : 's'}${empty.length ? ` · ${empty.length} clubs have no members yet` : ''}.</p>`
+          + withMembers.map(club => { const shown = people(club); return shown.length || !q ? `<details class="v2-member-club" ${q ? 'open' : ''}><summary><strong>${escape(club.name)}</strong> <span>${count(club)} members</span></summary>${list(shown.map(member => record(member.name || member.studentName || member.email, [member.email, member.committee, member.position, member.memberType].filter(Boolean).join(' · '))))}</details>` : ''; }).join('')
+          + (empty.length && !q ? `<p class="v2-panel-note"><strong>No members yet:</strong> ${empty.map(club => escape(club.name)).join(', ')}</p>` : '')
+          || '<p class="v2-panel-note">No clubs to display.</p>';
       } else if (id === 'quiz-points') {
         const number = value => Number(value || 0).toLocaleString();
         const maximum = Math.max(1, ...data.clubs.map(club => club.points));
@@ -361,6 +387,11 @@
   document.addEventListener('miu:admin-layout-ready', renderTools);
   $('toolSearch').value = new URLSearchParams(location.search).get('q') || '';
   $('adminNavSearch').value = $('toolSearch').value;
+  // One search box: on the Overview the header search filters the tool cards as you type.
+  if (!activeTool) {
+    $('adminNavSearch').addEventListener('input', () => { $('toolSearch').value = $('adminNavSearch').value; renderTools(); });
+    $('adminNavSearch').form.addEventListener('submit', event => { event.preventDefault(); $('managementTools').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+  }
   $('refreshDashboard').addEventListener('click', () => overview(true));
   $('dashboardDate').textContent = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
   const dirty = () => $('toolContent').dataset.v2Saving === 'true'

@@ -19,6 +19,7 @@
     ['publishing', 'University publishing', 'Publish MIU events, announcements, polls and evaluations.', 'website', 'megaphone', 'blue'],
     ['miu-attendance', 'University attendance', 'Manage attendance teams for university events.', 'attendance', 'calendarCheck', 'green'],
     ['secure-attendance', 'Event attendance & capacity', 'Scan personal student QR codes and manage event registration capacity.', 'attendance', 'badgeCheck', 'green'],
+    ['student-attendance', 'Student event attendance', 'See how many events each student actually attended, by MIU account, and download it as Excel.', 'attendance', 'userCheck', 'green'],
     ['attendance', 'Club attendance', 'Download member attendance sheets and event roles.', 'attendance', 'badgeCheck', 'amber'],
     ['open-attendance', 'Open-event attendance', 'Export attendance for events open to all students.', 'attendance', 'ticket', 'green'],
     ['reports', 'Event reports', 'Download event reports for a year or custom date range.', 'attendance', 'file', 'violet'],
@@ -45,7 +46,7 @@
     ['approvals', 'Workflows & approvals', 'Approval stages, reviewer permissions and requests waiting for reviewers.', 'website', 'clipboard', 'amber', ['workflows', 'blocked-requests']],
     ['applications-members', 'Applications & members', 'Applications, interview decisions, application questions and member records.', 'people', 'addressBook', 'green', ['applications', 'application-forms', 'members', 'member-import']],
     ['website-publishing', 'Publishing & website', 'University publishing, published club content, homepage text and club card order.', 'website', 'globe', 'blue', ['publishing', 'website-content', 'homepage', 'club-order']],
-    ['attendance-reports', 'Attendance & reports', 'Personal QR scanner, event capacity, attendance teams and reports.', 'attendance', 'calendarCheck', 'green', ['secure-attendance', 'miu-attendance', 'attendance', 'open-attendance', 'reports']],
+    ['attendance-reports', 'Attendance & reports', 'Student attendance counts, QR scanner, event capacity, attendance teams and reports.', 'attendance', 'calendarCheck', 'green', ['student-attendance', 'secure-attendance', 'miu-attendance', 'attendance', 'open-attendance', 'reports']],
     ['feedback', 'Feedback & evaluations', 'Student club feedback, university poll votes and evaluation responses.', 'insights', 'messageStar', 'amber', ['club-feedback', 'university-feedback']],
     ['performance', 'Analytics & points', 'Club and event performance, club quiz points and website visitor analytics.', 'insights', 'chart', 'violet', ['club-analytics', 'event-analytics', 'quiz-points', 'analytics']],
     ['activity-system', 'Activity & system', 'All activity, developer activity and database status.', 'insights', 'history', 'violet', ['all-activity-log', 'developer-activity-log', 'data']]

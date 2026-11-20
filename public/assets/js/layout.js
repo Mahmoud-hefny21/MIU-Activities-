@@ -158,7 +158,7 @@ const initFloatingBack = () => {
   document.addEventListener('click', () => setTimeout(queue, 50));
   // Pages without their own Back control get one at the top of the content (Home excepted).
   setTimeout(() => {
-    if (findBack() || isHome() || location.pathname === '/') return;
+    if (findBack() || isHome() || location.pathname === '/' || /^\/admin\/?$/.test(location.pathname)) return;
     // Sign-in, password and error pages have no Back button.
     if (/(?:forgot-password|reset-password|applicant-login|admin-login|club-login|\/login|404|500|offline)(?:\.html)?$/.test(location.pathname)
       || document.querySelector('.home-action, .retry-action, .error-reference')) return;

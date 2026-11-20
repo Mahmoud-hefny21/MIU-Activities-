@@ -10,20 +10,20 @@
   <link rel="stylesheet" href="/assets/css/base.css">
   <link rel="stylesheet" href="/assets/css/responsive.css">
   <link rel="stylesheet" href="/assets/css/dark.css">
-  <link rel="stylesheet" href="/assets/css/features.css?v=20261120slots2">
+  <link rel="stylesheet" href="/assets/css/features.css?v=20261120sa1">
   <!-- TOOL_STYLES -->
-  <link rel="stylesheet" href="/assets/css/pages/admin-dashboard-v2.css?v=20261120dead1">
+  <link rel="stylesheet" href="/assets/css/pages/admin-dashboard-v2.css?v=20261120sa1">
   <script src="/assets/js/feed-media.js?v=20261015videopopup1"></script>
-  <script src="/assets/js/admin-dashboard-tools.js?v=20261119members1"></script>
+  <script src="/assets/js/admin-dashboard-tools.js?v=20261120sa1"></script>
   <script src="/assets/js/admin-dashboard-data.js?v=20261018quizpoints1"></script>
   <script src="/assets/js/theme.js" defer></script>
   <script src="/assets/js/pwa-register.js?v=20261014localfresh1" defer></script>
-  <script src="/assets/js/layout.js?v=20261119google2" defer></script>
+  <script src="/assets/js/layout.js?v=20261120sa1" defer></script>
   <script src="/assets/js/admin-dashboard-editors.js?v=20261017clubformautofill1" defer></script>
   <script src="/assets/js/admin-dashboard-features.js?v=20261119plain1" defer></script>
   <script src="/assets/js/admin-dashboard-layout.js?v=20261119google2" defer></script>
   <!-- TOOL_SCRIPTS -->
-  <script src="/assets/js/pages/admin-dashboard-v2.js?v=20261119members1" defer></script>
+  <script src="/assets/js/pages/admin-dashboard-v2.js?v=20261120sa1" defer></script>
 </head>
 <body class="admin-v2" data-tool="">
   <header id="adminWorkspaceHeader" class="v2-admin-header">
@@ -60,10 +60,14 @@
       <button class="v2-refresh" id="refreshDashboard" type="button"><span data-icon="refresh"></span>Refresh overview</button>
     </section>
     <section class="v2-summary" data-overview-only aria-label="Website overview" aria-busy="true" id="dashboardSummary">
-      <article><span class="v2-summary-icon blue" data-icon="clubs"></span><div><span>Active clubs</span><strong id="totalClubs">—</strong></div></article>
-      <article><span class="v2-summary-icon violet" data-icon="clipboard"></span><div><span>Applications</span><strong id="totalApplications">—</strong></div></article>
-      <article><span class="v2-summary-icon amber" data-icon="users"></span><div><span>Committee heads</span><strong id="totalHeads">—</strong></div></article>
-      <article><span class="v2-summary-icon green" data-icon="door"></span><div><span>Clubs accepting members</span><strong id="openClubs">—</strong></div></article>
+      <a href="/admin/clubs"><span class="v2-summary-icon blue" data-icon="clubs"></span><div><span>Active clubs</span><strong id="totalClubs">—</strong></div></a>
+      <a href="/admin/committees"><span class="v2-summary-icon green" data-icon="door"></span><div><span>Clubs accepting members</span><strong id="openClubs">—</strong></div></a>
+      <a href="/admin/applications"><span class="v2-summary-icon violet" data-icon="clipboard"></span><div><span>Applications</span><strong id="totalApplications">—</strong></div></a>
+      <a href="/admin/applications?status=pending"><span class="v2-summary-icon amber" data-icon="clipboard"></span><div><span>Waiting for a decision</span><strong id="pendingApplications">—</strong></div></a>
+      <a href="/admin/heads"><span class="v2-summary-icon amber" data-icon="users"></span><div><span>Committee heads</span><strong id="totalHeads">—</strong></div></a>
+      <a href="/admin/blocked-requests"><span class="v2-summary-icon violet" data-icon="sort"></span><div><span>Blocked approvals</span><strong id="blockedCount">—</strong></div></a>
+      <a href="/admin/student-attendance"><span class="v2-summary-icon green" data-icon="userCheck"></span><div><span>Students who attended</span><strong id="attendedStudents">—</strong></div></a>
+      <a href="/admin/student-attendance"><span class="v2-summary-icon blue" data-icon="calendarCheck"></span><div><span>Events attended</span><strong id="attendedEvents">—</strong></div></a>
     </section>
     <p id="overviewFeedback" data-overview-only class="v2-feedback" role="status" aria-live="polite"></p>
     <section id="managementTools" aria-labelledby="toolsHeading">
