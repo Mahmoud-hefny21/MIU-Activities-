@@ -2859,10 +2859,13 @@ html.quiz-scroll-lock .quiz-launcher-circle,
   stroke-width: 0.7;
 }
 
+/* Same keyframe times and easing as quiz-launcher-greeting: the icon rolls like a wheel,
+   counter-clockwise while the text goes out left, clockwise while it comes back right. */
 @keyframes quiz-launcher-reel {
-  0% { transform: rotate(-360deg); }
-  20%, 74.3% { transform: rotate(0deg); }
-  98%, 100% { transform: rotate(-360deg); }
+  0% { transform: rotate(360deg); animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+  25.7% { transform: rotate(0deg); }
+  74.3% { transform: rotate(0deg); animation-timing-function: cubic-bezier(0.7, 0, 0.84, 0); }
+  98.3%, 100% { transform: rotate(360deg); }
 }
 
 /* Compact translucent message bubble beside the circle. */
