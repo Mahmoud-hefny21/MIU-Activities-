@@ -2891,24 +2891,41 @@ html.quiz-scroll-lock .quiz-launcher-circle,
   transition: border-color var(--transition-fast), background-color var(--transition-fast);
 }
 
+/* The bubble slides out from behind the icon (revealed from its right edge),
+   holds, then slides back in. The icon sits above it with an opaque fill. */
 @keyframes quiz-launcher-greeting {
   0% {
     opacity: 0;
-    transform: translateX(38px) scale(0.04, 0.65);
+    transform: translateX(46px);
+    clip-path: inset(0 0 0 100% round 24px);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   }
-  14%, 78% {
+  18% {
     opacity: 1;
-    transform: translateX(0) scale(1);
+    transform: translateX(0);
+    clip-path: inset(0 0 0 0 round 24px);
     visibility: visible;
     pointer-events: auto;
   }
-  95% {
+  76% {
+    opacity: 1;
+    transform: translateX(0);
+    clip-path: inset(0 0 0 0 round 24px);
     visibility: visible;
     pointer-events: auto;
+    animation-timing-function: cubic-bezier(0.7, 0, 0.84, 0);
   }
-  96%, 100% {
+  93% {
+    opacity: 1;
+    transform: translateX(46px);
+    clip-path: inset(0 0 0 100% round 24px);
+    visibility: visible;
+    pointer-events: none;
+  }
+  94%, 100% {
     opacity: 0;
-    transform: translateX(38px) scale(0.04, 0.65);
+    transform: translateX(46px);
+    clip-path: inset(0 0 0 100% round 24px);
     visibility: hidden;
     pointer-events: none;
   }
