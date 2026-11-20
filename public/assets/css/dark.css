@@ -406,3 +406,16 @@
 :root[data-theme="dark"] body .home-action, :root[data-theme="dark"] body .home-action:hover { background: #b42a33; color: #fff; }
 :root[data-theme="dark"] body :is(.committee-overview-panel > .committee-label, .committee-top .committee-label, .committee-label) { color: #ff9ca3; }
 :root[data-theme="dark"] body :is(.admin-eyebrow, .help-kicker, .help-eyebrow) { color: #ff8a92; }
+
+/* Menus in dark mode: links and buttons share one neutral colour (links were turning pink);
+   only the current page is highlighted. */
+:root[data-theme="dark"] body .bottom-bar .bottom-bar-item { color: #b2bfd0; }
+:root[data-theme="dark"] body .bottom-bar .bottom-bar-item:is(.is-active, [aria-current="page"]) { background: rgb(201 53 64 / .24); color: #fff; }
+:root[data-theme="dark"] body .bottom-bar .bottom-bar-item:hover { color: #fff; }
+:root[data-theme="dark"] body .bottom-bar-menu :is(a, button) { color: #edf2f8; }
+:root[data-theme="dark"] body .bottom-bar-menu :is(a, button)[aria-current="page"] { color: #ff9ca3; }
+:root[data-theme="dark"] body .nav-profile-dropdown :is(a, button) { color: #edf2f8; }
+:root[data-theme="dark"] body .nav-profile-dropdown .nav-profile-account-copy > span { color: #b2bfd0; }
+:root[data-theme="dark"] body .nav-profile-dropdown [aria-current="page"] { background: rgb(201 53 64 / .2); color: #ff9ca3; }
+:root[data-theme="dark"] body #navLinks .nav-link { color: #c6d2e2; }
+:root[data-theme="dark"] body #navLinks .nav-link.active { color: #fff; }
