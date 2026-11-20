@@ -1458,7 +1458,6 @@ body :is(button[aria-label*="close" i], button[aria-label*="exit" i], button[tit
 /* Overview */
 .president-dashboard-section .stats-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .president-dashboard-section .stat-box { min-height: 0; padding: 14px 16px; }
-.president-quick-actions { margin: 18px 0; }
 .president-quick-title { margin: 0 0 10px; font-size: 1rem; }
 .president-quick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
 .president-quick-card { display: grid; gap: 4px; padding: 14px 16px; border: 1px solid var(--border-color); border-radius: var(--radius-lg); background: var(--bg-panel); color: var(--text-main); font: inherit; text-align: left; text-decoration: none; cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease; }
@@ -1752,9 +1751,11 @@ body :is(button[aria-label*="close" i], button[aria-label*="exit" i], button[tit
 
 /* Staff dashboards on phones: title and the Home button share one row (the bottom bar already has Back). */
 @media (max-width: 640px) {
-  .committee-card > .committee-top:not(:has(#openContentStudioBtn)) { flex-wrap: nowrap; align-items: center; }
-  .committee-card > .committee-top:not(:has(#openContentStudioBtn)) .top-actions { display: flex; width: auto; flex: 0 0 auto; margin-left: auto; }
-  .committee-card > .committee-top:not(:has(#openContentStudioBtn)) .top-actions > * { flex: 0 0 auto; min-height: 40px; padding: 8px 14px; }
+  .committee-card > .committee-top:has(> .top-actions):not(:has(#openContentStudioBtn)) { flex-wrap: nowrap; align-items: center; }
+  .committee-card > .committee-top:has(> .top-actions):not(:has(#openContentStudioBtn)) .top-actions { display: flex; width: auto; flex: 0 0 auto; margin-left: auto; }
+  .committee-card > .committee-top:has(> .top-actions):not(:has(#openContentStudioBtn)) > :first-child { flex: 1 1 0; min-width: 0; }
+  .committee-card > .committee-top:has(> .top-actions):not(:has(#openContentStudioBtn)) .top-actions { max-width: 50%; flex-wrap: wrap; justify-content: flex-end; }
+  .committee-card > .committee-top:has(> .top-actions):not(:has(#openContentStudioBtn)) .top-actions > * { flex: 0 0 auto; width: auto !important; min-height: 40px; padding: 8px 14px; }
 }
 /* Small phones: one overview card per row (title and hint on the left, number on the right), so words never break. */
 @media (max-width: 420px) {
