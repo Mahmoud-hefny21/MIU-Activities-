@@ -3,7 +3,6 @@
 .speaker-shell h1 { margin: 4px 0 8px; }
 .speaker-shell h2 { margin: 0 0 12px; }
 .speaker-shell p { margin-top: 6px; }
-.speaker-columns { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(280px, .9fr); gap: 22px; margin-top: 24px; align-items: start; }
 .speaker-panel { min-width: 0; padding: 20px; border: 1px solid #e4e7ec; border-radius: 16px; background: var(--bg-panel, #fff); color: var(--text-main, #182230); }
 .speaker-panel form { display: grid; gap: 14px; }
 .speaker-panel label { display: grid; gap: 7px; font-weight: 600; }

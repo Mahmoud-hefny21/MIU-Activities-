@@ -15,11 +15,8 @@
 .supervisor-form-heading h2, .supervisor-section-heading h2 { margin: 0 0 6px; font-size: 1.2rem; }
 .supervisor-account-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
 .supervisor-account-fields > label { display: flex; flex-direction: column; gap: 9px; min-width: 0; font-size: .92rem; font-weight: 650; position: relative; }
-.supervisor-field-hint { position: absolute; right: 0; top: 0; font-size: .75rem; font-weight: 400; color: var(--text-muted); }
 .supervisor-management .supervisor-account-fields input { min-height: 48px; font-size: .95rem; }
 .supervisor-management #supervisorAssignments { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 16px; min-width: 0; background: var(--bg-panel); }
-.supervisor-management #staffClubs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 16px; min-width: 0; background: var(--bg-panel); }
-.supervisor-management #staffClubs[hidden], .supervisor-management #staffCommitteeLabel[hidden] { display: none; }
 .staff-account-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 20px; }
 .staff-directory-filters { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(240px, .8fr); align-items: start; gap: 16px; margin-top: 20px; }
 .staff-directory-filters > label { display: grid; gap: 8px; min-width: 0; font-size: .9rem; font-weight: 700; }
@@ -54,7 +51,6 @@
 @media (max-width: 1000px) {
   #supervisorClubAssignments { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .supervisor-management #supervisorAssignments { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .supervisor-management #staffClubs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 640px) {
   .supervisor-management { padding: 20px 12px 36px; }
@@ -63,7 +59,6 @@
   .staff-role-assignment { padding: 15px; gap: 16px; }
   .supervisor-account-fields, #supervisorClubAssignments, #supervisorAccounts { grid-template-columns: minmax(0, 1fr); }
   .staff-account-grid, .staff-directory-filters { grid-template-columns: minmax(0, 1fr); }
-  .supervisor-field-hint { position: static; margin-top: -5px; }
   .supervisor-management #supervisorAssignments { padding: 12px; gap: 8px; }
   .supervisor-management .supervisor-assignment { padding: 10px 8px; }
   .supervisor-form-footer { flex-direction: column; align-items: stretch; }

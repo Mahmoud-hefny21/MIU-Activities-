@@ -39,7 +39,6 @@
       .content-review-update strong { color: #92400e; }
       :root[data-theme="dark"] body .content-review-update { border-color: rgba(255, 210, 121, .24); border-left-color: #f0b648; background: rgba(217, 119, 6, .12); color: #e5edf7; }
       :root[data-theme="dark"] body .content-review-update strong { color: #ffd279; }
-      body.embed .topbar { display: none; }
       body.embed .app-container { max-width: 100%; margin: 0; padding: 0; }
       body.embed #site-header,
       body.embed #site-footer,

@@ -133,14 +133,6 @@
   transform: scaleX(.85);
   transform-origin: center;
 }
-:root[data-theme="dark"] body .site-loading-logo img {
-  box-sizing: border-box;
-  width: 68px;
-  height: 68px;
-  padding: 4px;
-  border-radius: 50%;
-  background: #fff;
-}
 :root[data-theme="dark"] body :is(.committee-sidebar-link, .president-sidebar-action) { color: var(--text-muted); }
 :root[data-theme="dark"] body :is(.committee-sidebar-link:hover, .president-sidebar-action:hover, .secondary-btn:hover) { background-color: var(--bg-soft) !important; color: #ff9299 !important; }
 :root[data-theme="dark"] body :is(.committee-sidebar-link.is-active, .president-sidebar-action.is-active) { color: #ff9299 !important; }
@@ -238,7 +230,6 @@
 :root[data-theme="dark"] body th { color: var(--text-muted) !important; }
 :root[data-theme="dark"] body :is(.dashboard-sync-grid span) { border-color: var(--success-border) !important; background: var(--success-bg) !important; color: #9aefbe !important; }
 :root[data-theme="dark"] body :is(.dashboard-sync-grid span[data-sync-state="error"]) { border-color: var(--danger-border) !important; background: var(--danger-bg) !important; color: #ffabb1 !important; }
-:root[data-theme="dark"] body .dashboard-sync-grid span[data-sync-state="loading"] { border-color: var(--warning-border) !important; background: var(--warning-bg) !important; color: #ffd279 !important; }
 
 /* Review and permit cards are shared by PR, Dean, English, and Security dashboards.
    Page styles load after this file, so keep these selectors specific to preserve contrast. */
@@ -332,8 +323,6 @@
 }
 :root[data-theme="dark"] body :is(dialog, .modal)::backdrop { background: rgba(2, 6, 15, .74) !important; backdrop-filter: blur(5px); }
 :root[data-theme="dark"] .event-page-content { background: var(--bg-panel) !important; color: var(--text-main) !important; }
-:root[data-theme="dark"] .brand-banner { background: var(--bg-panel) !important; }
-:root[data-theme="dark"] .brand-mark { max-width: 100%; object-fit: contain; }
 :root[data-theme="dark"] .detail-logo-frame,
 :root[data-theme="dark"] .application-club-logo-frame,
 :root[data-theme="dark"] .attendance-qr-canvas { background: #fff !important; }
@@ -341,14 +330,11 @@
 
 /* Mobile layout adjustments previously colocated here are retained. */
 @media (max-width: 480px) {
-  :root[data-theme="dark"] .brand-mark { width: 150px !important; height: 58px !important; }
 }
 @media (max-width: 760px) {
   .page-shell { padding: 0 0 24px; }
   #site-header { width: 100%; max-width: none; margin: 0; }
   .topbar-nav { width: 100%; }
-  .brand-banner { min-height: 76px; justify-content: center; padding: 8px 10px; }
-  .brand-mark { width: 120px; height: 58px; }
   .app-container { width: 100%; }
   .welcome-box, .committee-card, .app-form-card, .club-detail-card, .admin-panel { padding: 18px 14px; }
   .club-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 14px; }
@@ -366,7 +352,6 @@
   #site-header { width: 100%; margin-right: 0; margin-left: 0; }
   .stats-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .summary-card { padding: 14px 12px; }
-  .detail-actions { grid-template-columns: 1fr; }
   .application-question-controls { grid-template-columns: 1fr; }
   .application-question-controls input[type="checkbox"] { width: 18px; }
   .modal-actions { grid-template-columns: 1fr; }
