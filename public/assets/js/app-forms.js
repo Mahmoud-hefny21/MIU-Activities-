@@ -624,7 +624,7 @@ async function openApplicationForm(clubId, allowClosedClub = false) {
   renderApplicationFields({ applicationFields: [] });
   showView('application');
   const [profile, , accountPhoto] = await Promise.all([
-    loadStudentProfile(), loadApplicationCommittees(clubId).then(() => loadPublicApplicationQuestions(clubId)),
+    loadStudentProfile(), loadApplicationCommittees(clubId).then(() => loadPublicApplicationQuestions(clubId)), loadInterviewSlots(clubId),
     window.loadAccountPhoto?.().catch(() => null)
   ]);
   if (state.selectedClub?.id !== clubId || state.editingMyForm) return;
@@ -863,7 +863,8 @@ applicationForm.addEventListener('submit', async (event) => {
     major: formData.get('major'),
     email: formData.get('email'),
     phone: formData.get('phone'),
-    slot: formData.get('slot'),
+    // Only the club's own interview times (checked again by the server for seats and date).
+    ...(document.getElementById('applicationSlotGroup')?.hidden ? {} : { interviewSlotId: formData.get('interviewSlotId') || '' }),
     age: formData.get('age') || '20',
     motivation: formData.get('motivation') || 'Interested in joining this committee.',
     notes: formData.get('notes') || '',
@@ -980,4 +981,35 @@ function clubRequirementsMarkup(text) {
     return `<ul class="detail-requirement-tags">${items.map((item, index) => `<li${index >= 6 ? ' hidden' : ''}>${escapeHtml(item)}</li>`).join('')}${extra > 0 ? `<li class="detail-requirement-more"><button type="button" data-action="more-requirements">+${extra} more</button></li>` : ''}</ul>`;
   }
   return `<p>${escapeHtml(value)}</p>`;
+}
+
+// Interview times published by the club president, with seats left. Shown only when the club has times.
+async function loadInterviewSlots(clubId, currentId = '', currentLabel = '') {
+  const group = document.getElementById('applicationSlotGroup'), select = document.getElementById('applicationSlot'), hint = document.getElementById('applicationSlotHint');
+  if (!group || !select) return;
+  group.hidden = true; select.required = false;
+  select.replaceChildren(new Option('Choose an interview time', ''));
+  let slots = [];
+  try {
+    const response = await fetch(`/api/clubs/${encodeURIComponent(clubId)}/interview-slots`, { cache: 'no-store' });
+    if (response.ok) slots = (await response.json()).slots || [];
+  } catch { /* The application still works; the club arranges interviews directly. */ }
+  if (state.selectedClub?.id !== clubId) return;
+  if (currentId && !slots.some((slot) => slot.id === currentId) && currentLabel) {
+    const kept = new Option(`${currentLabel} (your current time)`, currentId); select.append(kept);
+  }
+  for (const slot of slots) {
+    const own = slot.id === currentId;
+    const seats = own ? 'your current time' : slot.seatsLeft > 0 ? `${slot.seatsLeft} seat${slot.seatsLeft === 1 ? '' : 's'} left` : 'full';
+    const option = new Option(`${slot.label}${slot.location ? ` · ${slot.location}` : ''} — ${seats}`, slot.id);
+    option.disabled = !own && slot.seatsLeft <= 0;
+    select.append(option);
+  }
+  if (select.options.length <= 1) return;
+  group.hidden = false;
+  select.required = true;
+  select.value = currentId || '';
+  if (hint) hint.textContent = slots.every((slot) => slot.seatsLeft <= 0) && !currentId
+    ? 'All interview times are full right now. Check back later or contact the club.'
+    : 'Times set by the club president. Full times cannot be chosen.';
 }

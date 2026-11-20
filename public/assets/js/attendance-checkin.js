@@ -32,6 +32,9 @@
       const returnTo = `${window.location.pathname}${window.location.search}`;
       signInLink.href = `/pages/applicant-login.html?redirect=${encodeURIComponent(returnTo)}`;
       signInLink.classList.remove('hidden');
+      // Attendance uses the signed-in account's name, MIU ID and email, so go straight to sign-in and come back here.
+      details.textContent = 'Taking you to sign in with your MIU account…';
+      setTimeout(() => window.location.assign(signInLink.href), 900);
       return;
     }
     title.textContent = 'Attendance unavailable';

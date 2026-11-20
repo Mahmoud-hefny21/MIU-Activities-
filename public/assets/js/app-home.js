@@ -257,11 +257,12 @@ async function startEditingMyForm(item) {
   applicationForm.elements.namedItem('lastName').value = nameParts.join(' ');
   for (const [field, value] of Object.entries({
     universityId: app.universityId, major: app.major, email: app.email, phone: app.phone,
-    committee: app.committee, slot: app.slot, age: app.age, motivation: app.motivation, notes: app.notes
+    committee: app.committee, age: app.age, motivation: app.motivation, notes: app.notes
   })) {
     const input = applicationForm.elements.namedItem(field);
     if (input) input.value = value || '';
   }
+  void loadInterviewSlots(state.selectedClub?.id, app.interviewSlotId || '', app.slot || '');
   renderApplicationFields(state.selectedClub);
   const answers = new Map((Array.isArray(app.answers) ? app.answers : []).map((answer) => [answer.key, answer.value]));
   for (const field of state.selectedClub?.applicationFields || []) {

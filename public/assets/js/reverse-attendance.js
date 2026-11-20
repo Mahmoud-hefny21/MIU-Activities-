@@ -89,7 +89,9 @@ window.MiuAttendanceLabel = (event) => {
       timer = setTimeout(loadQr, Math.min(15000, Math.max(100, deadline - Date.now() - serverOffset + 25)));
     } catch (error) { if (ticket !== generation || error.name === 'AbortError') return; clearQr(); status.textContent = attendanceError(error); if (error.status === 401) signInLink(); else if (!error.status || error.status >= 500) timer = setTimeout(loadQr, 5000); }
   }
-  function signInLink() { const link = document.createElement('a'); link.className = 'secondary-btn'; link.href = '/pages/applicant-login.html?redirect=' + encodeURIComponent(location.pathname + location.search); link.textContent = 'Sign in'; status.append(document.createTextNode(' '), link); }
+  function signInLink() { const link = document.createElement('a'); link.className = 'secondary-btn'; link.href = '/pages/applicant-login.html?redirect=' + encodeURIComponent(location.pathname + location.search); link.textContent = 'Sign in'; status.append(document.createTextNode(' '), link);
+    // Students' attendance comes from their own signed-in account: take them to sign in and straight back.
+    if (student && !signInLink.redirecting) { signInLink.redirecting = true; setTimeout(() => location.assign(link.href), 900); } }
   async function loadOverview() {
     if (!ref()) return; const ticket = generation;
     try { const value = await api(endpoint()); if (ticket !== generation) return;

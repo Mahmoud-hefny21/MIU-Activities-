@@ -57,6 +57,8 @@ const clubSchema = new mongoose.Schema({
   applicationIntro: { type: String, trim: true, default: '' },
   applicationFields: { type: [applicationFieldSchema], default: [] },
   interviewForms: { type: [mongoose.Schema.Types.Mixed], default: [] },
+  // Interview times the president offers: { id, date, start, end, capacity, location } (services/interview-slots.js).
+  interviewSlots: { type: [mongoose.Schema.Types.Mixed], default: [] },
   questionHistory: { type: [mongoose.Schema.Types.Mixed], default: [] },
   events: { type: [mongoose.Schema.Types.Mixed], default: [] },
   posts: { type: [mongoose.Schema.Types.Mixed], default: [] },
@@ -83,6 +85,9 @@ const applicationSchema = new mongoose.Schema({
   major: { type: String, default: '' },
   phone: { type: String, default: '' },
   slot: { type: String, default: '' },
+  // The booked interview slot id from the club's interviewSlots; `slot` keeps its readable label.
+  // Mixed (stored inside the JSON record), so no SQL column or migration is needed; the value is a text id.
+  interviewSlotId: { type: mongoose.Schema.Types.Mixed, default: '' },
   clubId: { type: Number, required: true, index: true },
   committee: { type: String, default: '' },
   memberPosition: { type: String, default: 'Member', trim: true, maxlength: 100 },

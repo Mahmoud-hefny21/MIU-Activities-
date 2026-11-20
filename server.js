@@ -1295,6 +1295,8 @@ const SIGNED_IN_PAGES = new Set([
 app.use((req, res, next) => {
   if (req.method !== 'GET' || !SIGNED_IN_PAGES.has(req.path)) return next();
   if (/(?:^|;\s*)miu_(?:admin|club|student)=[^;]+/.test(req.headers.cookie || '')) return next();
+  // A student's attendance QR comes from their own account: send them to sign in and straight back.
+  if (req.path === '/pages/attendance-qr.html') return res.redirect(302, '/pages/applicant-login.html?redirect=' + encodeURIComponent(req.originalUrl));
   return sendHttpErrorPage(res, 401, 'Sign in required', 'Sign in with your MIU account to open this page.');
 });
 const requireSpeakerManager = require('./services/speaker-manager-access').createSpeakerManagerGuard({
@@ -2993,6 +2995,7 @@ const reverseAttendanceService = require('./services/reverse-attendance').create
   deviceHash: (req, res) => attendanceDeviceHashes(req, res)[0], isItHead: isItCommitteeHead,
   bindAssignedDevice: (assignment, source, email, req, res) => source === 'miu' ? bindUsherDevice(assignment, email, req, res) : bindMemberAttendanceDevice(assignment, email, req, res)
 });
+require('./services/interview-slots').registerInterviewSlotRoutes(app, { Club, Application, requireClubAuth, requireLiveDatabase, sameOrigin: isSameOriginRequest });
 require('./services/reverse-attendance-routes').registerReverseAttendance(app, {
   service: reverseAttendanceService, requireStudentAuth, Club, UniversityContent, EventRegistration, ready: () => mongoReady, sameOrigin: isSameOriginRequest,
   actorFor: async (req, res) => { const staff = await getClubAccountFromRequest(req, res); if (staff) return staff; if (await isAdminSessionValid(req, res)) return { admin: true, role: 'admin', email: adminAuthState?.email || getConfiguredAdminEmail() }; return getStudentAccountFromRequest(req, res); }
@@ -8148,6 +8151,16 @@ app.post('/api/applications', async (req, res) => {
     answers = validateAnswers(applicationQuestions(selectedClub, committee), payload.answers ?? []);
   } catch (error) { return res.status(400).json({ message: error.message }); }
 
+  // Interview time: only one of the club's own slots, checked for seats and date (services/interview-slots.js).
+  const interviewSlots = require('./services/interview-slots');
+  let booking;
+  try {
+    booking = await interviewSlots.resolveBooking({ Application, club: selectedClub, slotId: typeof payload.interviewSlotId === 'string' ? payload.interviewSlotId : '' });
+  } catch (error) {
+    if (!error.status) console.error('Interview slot check failed:', error.name);
+    return res.status(error.status || 503).json({ message: error.status ? error.message : 'Interview times could not be checked. Please try again.' });
+  }
+
   const newApplication = {
     id: Date.now(),
     studentName: payload.studentName,
@@ -8155,7 +8168,8 @@ app.post('/api/applications', async (req, res) => {
     universityId: payload.universityId,
     major: payload.major,
     phone: payload.phone,
-    slot: payload.slot,
+    slot: booking.slot,
+    interviewSlotId: booking.interviewSlotId,
     clubId,
     committee,
     age: payload.age,
@@ -8205,8 +8219,19 @@ app.post('/api/applications', async (req, res) => {
       );
     }
     await Application.create(newApplication);
+    // Two students can take the last seat at the same moment: recount after saving and release the extra booking.
+    let slotNotice = '';
+    if (newApplication.interviewSlotId) {
+      const capacity = Number((selectedClub.interviewSlots || []).find((slot) => slot?.id === newApplication.interviewSlotId)?.capacity) || 0;
+      const booked = await Application.countDocuments({ clubId, interviewSlotId: newApplication.interviewSlotId, status: { $in: ['pending', 'accepted'] } });
+      if (booked > capacity) {
+        await Application.updateOne({ id: newApplication.id }, { $set: { slot: '', interviewSlotId: '' } });
+        newApplication.slot = ''; newApplication.interviewSlotId = '';
+        slotNotice = 'That interview time filled up a moment ago. Your application was saved; choose another interview time from My Forms.';
+      }
+    }
     applications.unshift(newApplication);
-    res.status(201).json({ application: toApiRecord(newApplication), managementToken });
+    res.status(201).json({ application: toApiRecord(newApplication), managementToken, ...(slotNotice ? { slotNotice } : {}) });
   } catch (error) {
     if (error.code === 11000 && (error.keyPattern?.studentClubKey || error.keyValue?.studentClubKey)) {
       return res.status(409).json({ message: 'You have already submitted an application to this club. Check My Forms for its status.' });
@@ -8305,7 +8330,7 @@ app.patch('/api/my-forms/:id', limitMyFormAccessAttempts, async (req, res) => {
   let selectedClub;
   try {
     selectedClub = mongoReady
-      ? await Club.findOne({ id: application.clubId, archivedAt: null }).select('applicationFields committeeAvailability').lean()
+      ? await Club.findOne({ id: application.clubId, archivedAt: null }).select('id applicationFields committeeAvailability interviewSlots').lean()
       : clubs.find((club) => club.id === application.clubId && !club.archivedAt);
   } catch (error) {
     console.error('Database operation failed:', error.name);
@@ -8315,10 +8340,20 @@ app.patch('/api/my-forms/:id', limitMyFormAccessAttempts, async (req, res) => {
   if (account && !application.studentAccountId) updates.studentAccountId = account._id;
   const textFields = [
     ['studentName', 160], ['email', 254], ['universityId', 80], ['major', 120],
-    ['phone', 40], ['slot', 120], ['age', 10], ['motivation', 2000], ['notes', 2000]
+    ['phone', 40], ['age', 10], ['motivation', 2000], ['notes', 2000]
   ];
   for (const [field, maxLength] of textFields) {
     if (req.body[field] !== undefined) updates[field] = cleanText(req.body[field], maxLength);
+  }
+  // The interview time can change only to another of the club's slots with a free seat (never free text).
+  if (req.body.interviewSlotId !== undefined && selectedClub && String(req.body.interviewSlotId || '') !== String(application.interviewSlotId || '')) {
+    try {
+      const booking = await require('./services/interview-slots').resolveBooking({ Application, club: selectedClub, slotId: String(req.body.interviewSlotId || ''), ownSlotId: application.interviewSlotId || '' });
+      updates.slot = booking.slot; updates.interviewSlotId = booking.interviewSlotId;
+    } catch (error) {
+      if (!error.status) console.error('Interview slot check failed:', error.name);
+      return res.status(error.status || 503).json({ message: error.status ? error.message : 'Interview times could not be checked. Please try again.' });
+    }
   }
   if (req.body.email !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(updates.email || '')) {
     return res.status(400).json({ message: 'Enter a valid university email.' });

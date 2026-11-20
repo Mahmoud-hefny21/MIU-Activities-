@@ -52,6 +52,11 @@
   #headDashboardView .committee-top .top-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   #headDashboardView .committee-top .top-actions > #openContentStudioBtn { grid-column: 1 / -1; }
   #headDashboardView .committee-top .top-actions > :is(#backHomeBtn, #workflowDashboardShortcut) { grid-column: auto; width: 100%; justify-content: center; }
+  /* The bottom bar hides Back on phones, so Approval requests takes the whole row instead of leaving a gap. */
+  body.has-bottom-bar #headDashboardView .committee-top .top-actions > #workflowDashboardShortcut { grid-column: 1 / -1; }
+  /* Beats the site-wide compact-pill rule (features.css, flex !important) so this grid actually applies here. */
+  #headDashboardView .committee-top .top-actions { display: grid !important; width: 100% !important; margin-left: 0; }
+  #headDashboardView .committee-top .top-actions > :is(a, button) { width: 100% !important; flex: none !important; justify-content: center; border-radius: 12px; }
   #headDashboardView .committee-top .top-actions > :is(#openContentStudioBtn, #backHomeBtn) {
     width: 100%;
     min-width: 0;

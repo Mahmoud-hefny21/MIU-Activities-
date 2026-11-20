@@ -1805,3 +1805,30 @@ body :is(button[aria-label*="close" i], button[aria-label*="exit" i], button[tit
 
 /* Standard square QR inside dashboards (booth and organizer codes): no circle crop. */
 .attendance-qr-art.is-standard-qr { border-radius: 14px !important; width: min(240px, 100%); height: auto; aspect-ratio: 1; background: #fff; }
+
+
+/* President "Interview times" (inside Club status) and the applicant's time choice. */
+.president-interview-slots { grid-column: 1 / -1; display: grid; gap: 10px; margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--border-color, #e2e8f0); }
+.interview-slot-form { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; align-items: end; }
+.interview-slot-form label { display: grid; gap: 4px; font-size: .82rem; font-weight: 700; color: var(--text-muted, #475569); }
+.interview-slot-form input { box-sizing: border-box; width: 100%; min-width: 0; min-height: 42px; padding: 8px 10px; border: 1px solid var(--border-color, #d5dce5); border-radius: 10px; background: var(--bg-panel, #fff); color: var(--text-main, #172033); font: inherit; }
+.interview-slot-form .interview-slot-place { grid-column: 1 / span 3; }
+.interview-slot-form button { min-height: 42px; }
+.interview-slot-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.interview-slot-item { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border-color, #e2e8f0); border-radius: 12px; background: var(--bg-soft, #f8fafc); }
+.interview-slot-item.is-past { opacity: .6; }
+.interview-slot-item strong { display: block; font-size: .9rem; }
+.interview-slot-item span { color: var(--text-muted, #64748b); font-size: .8rem; }
+.interview-slot-seats { display: flex; align-items: center; gap: 6px; font-size: .8rem; font-weight: 700; color: var(--text-muted, #475569); }
+.interview-slot-seats input { width: 64px; min-height: 36px; padding: 4px 8px; border: 1px solid var(--border-color, #d5dce5); border-radius: 8px; font: inherit; }
+.interview-slot-item .secondary-btn { min-height: 36px; padding: 6px 12px; }
+.interview-slot-empty { padding: 12px; border: 1px dashed var(--border-color, #d5dce5); border-radius: 12px; color: var(--text-muted, #64748b); font-size: .85rem; }
+#interviewSlotFeedback.is-error { color: #b91c1c; }
+.application-slot-hint { display: block; margin-top: 4px; color: var(--text-muted, #64748b); font-size: .78rem; }
+@media (max-width: 640px) {
+  .interview-slot-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .interview-slot-form .interview-slot-place { grid-column: 1 / -1; }
+  .interview-slot-form button { grid-column: 1 / -1; }
+  .interview-slot-item { grid-template-columns: minmax(0, 1fr) auto; }
+  .interview-slot-item .secondary-btn { grid-column: 1 / -1; }
+}

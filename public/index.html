@@ -17,13 +17,13 @@
     <link rel="stylesheet" href="/assets/css/base.css?v=20261119ui1" />
     <link rel="stylesheet" href="/assets/css/responsive.css?v=20261120dead1" />
     <link rel="stylesheet" href="/assets/css/dark.css?v=20261120dead1" />
-    <link rel="stylesheet" href="/assets/css/features.css?v=20261120qr1" />
+    <link rel="stylesheet" href="/assets/css/features.css?v=20261120slots2" />
     <link rel="stylesheet" href="/assets/css/event-modal.css?v=20261017mobilepopup1" />
     <link rel="icon" type="image/png" sizes="192x192" href="/assets/img/pics/pwa-icon-192.png?v=20261013favicon1">
     <link rel="apple-touch-icon" href="/assets/img/pics/pwa-icon-192.png?v=20261013favicon1">
     <meta name="apple-mobile-web-app-title" content="MIU Activities">
     <meta name="application-name" content="MIU Activities">
-    <link rel="stylesheet" href="/assets/css/pages/home.css?v=20261120dead1" />
+    <link rel="stylesheet" href="/assets/css/pages/home.css?v=20261120pres2" />
     <link rel="stylesheet" href="/assets/css/pages/speaker-requests.css?v=20261120dead1" />
       <script defer src="/assets/js/pwa-register.js?v=20261119ui1"></script>
     <link rel="stylesheet" href="/assets/css/modal-controls.css?v=20261116closeunify2">
@@ -290,14 +290,12 @@
                 </select>
               </div>
 
-              <div class="field-group">
-                <label for="applicationSlot">Interview Slot</label>
-                <select id="applicationSlot" name="slot" required>
-                  <option value="">Choose a slot</option>
-                  <option>Saturday 1:00 PM - 1:10 PM</option>
-                  <option>Sunday 2:30 PM - 2:40 PM</option>
-                  <option>Tuesday 11:00 AM - 11:10 AM</option>
+              <div class="field-group" id="applicationSlotGroup" hidden>
+                <label for="applicationSlot">Interview time</label>
+                <select id="applicationSlot" name="interviewSlotId">
+                  <option value="">Choose an interview time</option>
                 </select>
+                <small id="applicationSlotHint" class="application-slot-hint">Times set by the club president. Full times cannot be chosen.</small>
               </div>
 
               <div class="field-group">
@@ -399,6 +397,19 @@
                 <button class="primary-btn" type="submit">Save status</button>
                 <p id="presidentClubStatusFeedback" role="status" aria-live="polite"></p>
               </form>
+              <div id="presidentInterviewSlots" class="president-interview-slots">
+                <div class="president-club-status-copy"><span class="admin-eyebrow">INTERVIEWS</span><h3>Interview times</h3><p>Add the days and times you interview, and how many applicants can book each time. Applicants choose one when they apply.</p></div>
+                <form id="interviewSlotForm" class="interview-slot-form">
+                  <label>Day<input type="date" name="date" required></label>
+                  <label>From<input type="time" name="start" required></label>
+                  <label>To<input type="time" name="end" required></label>
+                  <label>Seats<input type="number" name="capacity" min="1" max="500" value="5" required></label>
+                  <label class="interview-slot-place">Place (optional)<input name="location" maxlength="120" placeholder="e.g. Building B, Room 204"></label>
+                  <button class="primary-btn" type="submit">Add time</button>
+                </form>
+                <p id="interviewSlotFeedback" role="status" aria-live="polite"></p>
+                <ul id="interviewSlotList" class="interview-slot-list" aria-label="Interview times"></ul>
+              </div>
             </section>
             <section id="presidentHeadManager" class="committee-head-manager hidden">
               <div class="admin-section-heading">
@@ -890,12 +901,13 @@
     <script src="/assets/js/event-modal.js?v=20261019miusync1" defer></script>
     <script src="/assets/js/committee-sidebar.js?v=20261013lighter1" defer></script>
     <script src="/assets/js/member-dashboard.js?v=20261120self1" defer></script>
-    <script src="/assets/js/app-home.js?v=20261119social3" defer></script>
+    <script src="/assets/js/app-home.js?v=20261120slots1" defer></script>
     <script src="/assets/js/cloudinary-upload.js?v=20261018signedresponse1" defer></script>
     <script src="/assets/js/student-feedback.js?v=20261119checkin1" defer></script>
     <script src="/assets/js/event-info-popup.js?v=20261119pub1" defer></script>
+    <script src="/assets/js/president-interview-slots.js?v=20261120slots1" defer></script>
     <script src="/assets/js/club-qr.js?v=20261120clubqr1" defer></script>
-    <script src="/assets/js/app-forms.js?v=20261120short2" defer></script>
+    <script src="/assets/js/app-forms.js?v=20261120slots1" defer></script>
     <script src="/assets/js/app-dashboard.js?v=20261119checkin1" defer></script>
     <script src="/assets/js/student-checkin-auto.js?v=20261119checkin1" defer></script>
     <script src="/assets/js/president-overview.js?v=20261119todo1" defer></script>
