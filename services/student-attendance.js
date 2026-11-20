@@ -3,6 +3,7 @@
 // and check-ins a reviewer rejected are excluded. Students are identified by their MIU account:
 // "mahmoud2406700@miuegypt.edu.eg" -> enrollment year 2024, university ID 06700.
 const ExcelJS = require('exceljs');
+const { displayMiuId } = require('../public/assets/js/student-fields');
 const { formatSheet } = require('../public/assets/js/spreadsheet-export');
 const { eventRoleLabel } = require('./attendance-participation');
 
@@ -28,7 +29,7 @@ function buildStudentAttendance(records, clubNames = new Map(), profiles = new M
     if (!s) {
       const profile = profiles.get(email) || {}, parsed = parseMiuAccount(email);
       s = { name: profile.name || r.name || parsed.account, email, account: parsed.account,
-        universityId: r.universityId || profile.universityId || parsed.universityId, enrollmentYear: parsed.enrollmentYear,
+        universityId: displayMiuId(r.universityId || profile.universityId, email), enrollmentYear: parsed.enrollmentYear,
         major: r.major || profile.major || '', attended: 0, approved: 0, waiting: 0, clubs: new Set(), lastDate: '', events: [], keys: new Set() };
       students.set(email, s);
     }

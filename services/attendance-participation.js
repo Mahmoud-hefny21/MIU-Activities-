@@ -1,3 +1,4 @@
+const { normalizeMiuId, miuIdFromEmail, MIU_ID_HINT } = require('../public/assets/js/student-fields');
 const labels = { attendee: 'Attendee', organizer: 'Organizer', usher: 'Usher', president: 'President', head: 'Head' };
 function eventRoleLabel(record) { const role = record?.eventParticipation?.role; return Object.hasOwn(labels, role) ? labels[role] : 'Attendee'; }
 function attendanceCategory(record) {
@@ -37,9 +38,10 @@ function registerUsherSelfCheckin(app, deps) {
       if (!await bindUsherDevice(session, email, req, res)) return res.status(403).json({ message: 'Use the device where you first opened this usher task.' });
       const profile = await StudentAccount.findOne({ email }).select('name universityId major').lean();
       const name = cleanText(profile?.name || account.name || req.body.name, 160);
-      const universityId = cleanText(profile?.universityId || req.body.universityId, 40);
+      // A saved profile ID is used only when it is valid, so a corrected ID typed on the form can still be recorded.
+      const universityId = normalizeMiuId(profile?.universityId) || normalizeMiuId(cleanText(req.body.universityId, 40)) || miuIdFromEmail(email);
       const major = cleanText(profile?.major || req.body.major, 120);
-      if (!name || !universityId || !major) return res.status(400).json({ message: 'Enter your full name, MIU ID and major.' });
+      if (!name || !universityId || !major) return res.status(400).json({ message: universityId ? 'Enter your full name, MIU ID and major.' : MIU_ID_HINT });
       const hashes = attendanceDeviceHashes(req, res), deviceHash = hashes[0];
       const activity = { clubId: 0, itemType: 'event', eventRequestId: session.eventRequestId };
       const existing = await AttendanceRecord.findOne({ ...activity, $or: [{ email }, { deviceHash: { $in: hashes } }] }).select('+deviceHash').lean();

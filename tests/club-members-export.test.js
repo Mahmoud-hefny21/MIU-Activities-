@@ -12,7 +12,7 @@ const CLUBS = [
   { id: 4, name: 'Old Archived Club', archivedAt: '2025-01-01T00:00:00.000Z', memberRoster: [{ id: 'z1', name: 'Archived Member', committee: 'X', position: 'Y', memberType: 'new' }] }
 ];
 const APPLICATIONS = [
-  { id: 7, clubId: 1, studentName: 'Sara Ali', email: 'sara@miuegypt.edu.eg', universityId: '2024001', major: 'Business', phone: '01000000002', age: '19', committee: 'HR', memberPosition: 'Member', memberType: 'new', updatedAt: '2026-10-05T08:00:00.000Z', status: 'accepted' },
+  { id: 7, clubId: 1, studentName: 'Sara Ali', email: 'sara@miuegypt.edu.eg', universityId: '2024/24001', major: 'Business', phone: '01000000002', age: '19', committee: 'HR', memberPosition: 'Member', memberType: 'new', updatedAt: '2026-10-05T08:00:00.000Z', status: 'accepted' },
   { id: 8, clubId: 2, studentName: 'Laila Samir', email: 'laila@miuegypt.edu.eg', committee: 'Delegates', memberType: 'new', updatedAt: '2026-10-06T08:00:00.000Z', status: 'accepted' },
   { id: 9, clubId: 3, studentName: 'Hidden Person', email: 'hidden@miuegypt.edu.eg', committee: 'Stage', status: 'accepted' }
 ];
@@ -78,7 +78,9 @@ test('admin and PR download every active club, one sheet each, without archived 
   assert.match(res.headers['Content-Disposition'], /^attachment; filename="all-clubs-members-\d{4}-\d{2}-\d{2}\.xlsx"$/);
   const book = await readBook(res.body);
   assert.deepEqual(book.names, ['Summary', 'All members', 'Drama Club', 'Model United Nations', 'Robotics Club']);
-  assert.deepEqual(book.rows('Summary').slice(1).map(row => row.slice(0, 2)), [['Drama Club', 2], ['Model United Nations', 1], ['Robotics Club', 2]]);
+  assert.deepEqual(book.rows('Summary').slice(1, 4).map(row => row.slice(0, 2)), [['Drama Club', 2], ['Model United Nations', 1], ['Robotics Club', 2]]);
+  // Omar's stored MIU ID "00123" is not a valid MIU ID: flagged orange and counted in the summary note.
+  assert.match(String(book.rows('Summary').at(-1)[0]), /^1 orange cell$/);
   assert.equal(book.rows('All members').length, 6);
   assert.ok(!JSON.stringify(book.rows('All members')).includes('Archived Member'));
 });
@@ -90,7 +92,7 @@ test('one club: members sheet keeps IDs as text and labels type, source and join
   assert.match(res.headers['Content-Disposition'], /filename="robotics-club-members-/);
   const [header, first, second] = book.rows('Robotics Club');
   assert.deepEqual(header, ['Full name', 'MIU email', 'MIU ID', 'Major', 'Phone', 'Age', 'Committee', 'Position', 'Member type', 'Joined through', 'Joined on']);
-  assert.deepEqual(first, ['Sara Ali', 'sara@miuegypt.edu.eg', '2024001', 'Business', '01000000002', '19', 'HR', 'Member', 'New', 'Application', '5 Oct 2026']);
+  assert.deepEqual(first, ['Sara Ali', 'sara@miuegypt.edu.eg', '2024/24001', 'Business', '01000000002', '19', 'HR', 'Member', 'New', 'Application', '5 Oct 2026']);
   assert.deepEqual(second, ['Omar Adel', 'omar@miuegypt.edu.eg', '00123', 'CS', '+201000000001', '20', 'Media', 'Designer', 'Senior', 'Added by club', '1 Sept 2026']);
 });
 

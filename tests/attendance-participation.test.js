@@ -41,7 +41,7 @@ async function fixture(t, options = {}) {
         const row = { ...value, _id: 'record-' + records.length }; records.push(row); return row;
       }
     },
-    StudentAccount: { findOne: () => query(options.profile || { name: 'Verified Student', universityId: '00012', major: 'Engineering' }) },
+    StudentAccount: { findOne: () => query(options.profile || { name: 'Verified Student', universityId: '2024/00012', major: 'Engineering' }) },
     UniversityContent: { exists: async () => options.published !== false },
     Club: { find: () => query(options.member ? [{ id: 1, name: 'Engineering' }] : []) },
     Application: { find: () => query([]) },
@@ -64,7 +64,7 @@ test('assigned usher uses verified identity, retains membership separately and e
   assert.equal((await f.request('usher', 'device-one', { email: 'victim@example.test', eventRequestId: 99, eventParticipation: { role: 'president' } })).status, 201);
   const record = f.records[0];
   assert.equal(record.email, 'usher@example.test'); assert.equal(record.name, 'Verified Student');
-  assert.equal(record.universityId, '00012'); assert.equal(record.eventRequestId, 9); assert.equal(record.eventParticipation.role, 'usher');
+  assert.equal(record.universityId, '2024/00012'); assert.equal(record.eventRequestId, 9); assert.equal(record.eventParticipation.role, 'usher');
   assert.equal(record.membershipStatus, 'member'); assert.deepEqual(record.memberClubNames, ['Engineering']);
   assert.equal(record.supervisorEmail, 'reviewer@example.test'); assert.equal(record.attendanceAudience, 'members');
 });
@@ -160,7 +160,7 @@ test('legacy event self-check-in stays denied even when a duplicate write was at
 test('usher page accepts the task, then offers Take my attendance (self only) and the scanner', async () => {
   const ids = ['usherTaskMessage', 'usherTask', 'usherTaskTitle', 'usherTaskDate', 'acceptUsherTask', 'openUsherQr', 'usherSelfCheckinForm', 'usherAttendanceStatus', 'usherName', 'usherUniversityId', 'usherMajor', 'recordUsherAttendance', 'usherSelfCheckinFeedback'];
   const elements = Object.fromEntries(ids.map(id => [id, { hidden: true, value: '', textContent: '', dataset: {}, handlers: {}, addEventListener(type, handler) { this.handlers[type] = handler; } }]));
-  const task = { eventTitle: 'MIU Event', eventDate: 'today', accepted: false, attendanceAsUsher: false, profile: { name: 'Verified Student', universityId: '00012', major: 'Engineering' } };
+  const task = { eventTitle: 'MIU Event', eventDate: 'today', accepted: false, attendanceAsUsher: false, profile: { name: 'Verified Student', universityId: '2024/00012', major: 'Engineering' } };
   const calls = [];
   const api = async (url, options = {}) => {
     calls.push({ url, ...options });
@@ -173,7 +173,7 @@ test('usher page accepts the task, then offers Take my attendance (self only) an
   });
   await Promise.resolve(); assert.equal(elements.usherSelfCheckinForm.hidden, true);
   await elements.acceptUsherTask.handlers.click(); assert.equal(elements.usherSelfCheckinForm.hidden, false);
-  assert.equal(elements.usherUniversityId.value, '00012');
+  assert.equal(elements.usherUniversityId.value, '2024/00012');
   assert.equal(elements.openUsherQr.textContent, 'Open attendance scanner');
   assert.equal(elements.recordUsherAttendance.textContent, 'Take my attendance');
   // A complete verified profile needs no typing: the detail fields stay hidden.

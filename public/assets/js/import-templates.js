@@ -11,7 +11,7 @@
     members: {
       file: 'MIU club members import template.xlsx',
       clubColumn: 'Club Name',
-      columns: [['Full Name', true, 'Sara Nabil'], ['Phone Number', false, '01112223334'], ['MIU ID', false, '2500123'], ['MIU Email Address', true, 'sara2500123@miuegypt.edu.eg'], ['Faculty', false, 'Pharmacy'], ['Club Name', true, '(choose from the list)'], ['Role / Position in the club', false, 'Member'], ['Board Position', false, 'Head of PR'], ['Member Committee', false, 'Media']],
+      columns: [['Full Name', true, 'Sara Nabil'], ['Phone Number', false, '01112223334'], ['MIU ID', false, '2025/00123'], ['MIU Email Address', true, 'sara2500123@miuegypt.edu.eg'], ['Faculty', false, 'Pharmacy'], ['Club Name', true, '(choose from the list)'], ['Role / Position in the club', false, 'Member'], ['Board Position', false, 'Head of PR'], ['Member Committee', false, 'Media']],
       rules: ['One row per member per club. A student in two clubs gets two rows.', 'Club Name: choose from the dropdown (names match the website).', 'Members with the same email in the same club are updated, not duplicated.', 'MIU ID can be left empty; it is read from the MIU email.']
     }
   };

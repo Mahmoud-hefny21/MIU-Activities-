@@ -4,6 +4,7 @@ const { publicClubProjection, registerPublicClubMedia, publicFields, sanitizePub
 const cors = require('cors');
 const httpSecurity = require('./services/http-security');
 const { validSponsorAttachment } = require('./services/attachment-validation');
+const studentFields = require('./public/assets/js/student-fields');
 const mongoose = require('./database');
 const { readAdminSessionData } = require('./services/admin-session-read');
 const crypto = require('crypto');
@@ -3159,14 +3160,15 @@ app.post('/api/attendance/admin-self-checkin', requireClubAuth, async (req, res)
     || typeof req.body.major !== 'string' || !req.body.major.trim() || req.body.major.length > 120) {
     return res.status(400).json({ message: 'Enter your MIU ID (maximum 40 characters) and major (maximum 120 characters).' });
   }
-  let universityId = req.body.universityId.trim(), major = req.body.major.trim();
+  let universityId = studentFields.normalizeMiuId(req.body.universityId), major = req.body.major.trim();
+  if (!universityId) return res.status(400).json({ message: studentFields.MIU_ID_HINT });
   if (clubId !== Number(account.clubId) || !Number.isSafeInteger(eventRequestId) || !itemType || !name) {
     return res.status(400).json({ message: 'Enter your name and choose an event or booth from your club.' });
   }
   try {
     if (!requireLiveDatabase(res)) return;
     const selfProfile = await StudentAccount.findOne({ email }).select('universityId major').lean();
-    universityId = selfProfile?.universityId || universityId;
+    universityId = studentFields.normalizeMiuId(selfProfile?.universityId) || universityId;
     major = selfProfile?.major || major;
     const club = await Club.findOne({ id: clubId, archivedAt: null })
       .select('id name events booths').read('primary').readConcern('majority').lean();
@@ -6326,14 +6328,13 @@ app.put('/api/student-auth/profile', requireStudentAuth, async (req, res) => {
   const submittedProfile = req.body || {};
   const profile = {
     name: cleanText(submittedProfile.name, 160) || req.studentAccount.name,
-    universityId: cleanText(submittedProfile.universityId, 40),
+    universityId: studentFields.normalizeMiuId(submittedProfile.universityId),
     major: cleanText(submittedProfile.major, 120),
     phone: cleanText(submittedProfile.phone, 40),
-    age: cleanText(submittedProfile.age, 3)
+    age: studentFields.normalizeAge(submittedProfile.age)
   };
-  if (profile.age && (!/^\d{1,3}$/.test(profile.age) || Number(profile.age) < 16 || Number(profile.age) > 100)) {
-    return res.status(422).json({ message: 'Enter an age between 16 and 100.' });
-  }
+  if (profile.universityId === null) return res.status(422).json({ message: studentFields.MIU_ID_HINT });
+  if (profile.age === null) return res.status(422).json({ message: studentFields.AGE_HINT });
   try {
     if (!requireLiveDatabase(res)) return;
     const updated = await StudentAccount.findOneAndUpdate(
@@ -8085,6 +8086,12 @@ app.get('/api/applications', requireAdmin, async (req, res) => {
 app.post('/api/applications', async (req, res) => {
   const payload = req.body;
   const clubId = Number(payload.clubId);
+  const applicantUniversityId = studentFields.normalizeMiuId(payload.universityId);
+  const applicantAge = studentFields.normalizeAge(payload.age);
+  if (!applicantUniversityId) return res.status(400).json({ message: studentFields.MIU_ID_HINT });
+  if (applicantAge === null) return res.status(400).json({ message: studentFields.AGE_HINT });
+  payload.universityId = applicantUniversityId;
+  payload.age = applicantAge;
   let selectedClub;
   try {
     if (!requireLiveDatabase(res)) return;
@@ -8340,6 +8347,14 @@ app.patch('/api/my-forms/:id', limitMyFormAccessAttempts, async (req, res) => {
   ];
   for (const [field, maxLength] of textFields) {
     if (req.body[field] !== undefined) updates[field] = cleanText(req.body[field], maxLength);
+  }
+  if (updates.universityId !== undefined) {
+    updates.universityId = studentFields.normalizeMiuId(updates.universityId);
+    if (!updates.universityId) return res.status(400).json({ message: studentFields.MIU_ID_HINT });
+  }
+  if (updates.age !== undefined) {
+    updates.age = studentFields.normalizeAge(updates.age);
+    if (updates.age === null) return res.status(400).json({ message: studentFields.AGE_HINT });
   }
   // The interview time can change only to another of the club's slots with a free seat (never free text).
   if (req.body.interviewSlotId !== undefined && selectedClub && String(req.body.interviewSlotId || '') !== String(application.interviewSlotId || '')) {

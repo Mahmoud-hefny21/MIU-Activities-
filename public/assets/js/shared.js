@@ -111,6 +111,8 @@
       });
     },
     initFormValidation() {
+      const isAgeField = (field) => field.type !== 'hidden' && /(?:^|[-_ ])age(?:$|[-_ ])/i.test(`${field.name} ${field.id}`);
+      const isMiuIdField = (field) => field.type !== 'hidden' && /universityid/i.test(`${field.name} ${field.id}`);
       const validateDataEntryForm = (form) => {
         if (!form) return true;
         let firstInvalid = null;
@@ -125,9 +127,16 @@
             const digits = value.replace(/\D/g, '');
             if (digits.length < 7 || digits.length > 15) message = 'Please enter a valid phone number.';
           }
-          if (!message && trimmed && /(?:^|[-_ ])age(?:$|[-_ ])/i.test(`${field.name} ${field.id}`)
-            && (!/^\d{1,3}$/.test(trimmed) || Number(trimmed) < 16 || Number(trimmed) > 100)) {
-            message = 'Please enter a valid age between 16 and 100.';
+          const studentFields = window.MiuStudentFields;
+          if (!message && trimmed && isAgeField(field)) {
+            const age = studentFields ? studentFields.normalizeAge(trimmed) : (/^\d{1,3}$/.test(trimmed) && Number(trimmed) >= 16 && Number(trimmed) <= 100 ? trimmed : null);
+            if (age === null) message = studentFields?.AGE_HINT || 'Please enter a valid age between 16 and 100.';
+            else field.value = age;
+          }
+          if (!message && trimmed && studentFields && isMiuIdField(field)) {
+            const id = studentFields.normalizeMiuId(trimmed);
+            if (!id) message = studentFields.MIU_ID_HINT;
+            else field.value = id;
           }
           if (!message && trimmed && /(?:first.?name|last.?name|regName|contact)/i.test(`${field.name} ${field.id}`)
             && !/^[\p{L}\p{M}\s.'’\-]+$/u.test(trimmed)) message = 'Numbers and inappropriate characters are not allowed in this field.';
@@ -164,6 +173,17 @@
       window.validateDataEntryForm = validateDataEntryForm;
       document.addEventListener('input', (event) => {
         if (event.target.matches('input, textarea, select')) event.target.setCustomValidity('');
+      }, true);
+      // Leaving an MIU ID or age field tidies it ("2406700" -> "2024/06700", "20 years" -> "20") or explains the format.
+      document.addEventListener('change', (event) => {
+        const field = event.target, studentFields = window.MiuStudentFields;
+        if (!studentFields || !field.matches?.('input') || !field.value.trim()) return;
+        const miuId = isMiuIdField(field), age = isAgeField(field);
+        if (!miuId && !age) return;
+        const value = miuId ? studentFields.normalizeMiuId(field.value) : studentFields.normalizeAge(field.value);
+        if (value) { field.value = value; field.setCustomValidity(''); return; }
+        field.setCustomValidity(miuId ? studentFields.MIU_ID_HINT : studentFields.AGE_HINT);
+        field.reportValidity();
       }, true);
       document.addEventListener('submit', (event) => {
         if (!validateDataEntryForm(event.target)) event.preventDefault();

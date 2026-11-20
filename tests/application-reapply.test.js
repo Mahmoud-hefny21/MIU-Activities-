@@ -15,7 +15,7 @@ function harness({ status = 'removed', signedIn = true, failRelease = false, fai
     requireLiveDatabase: () => true,
     Club: { findOne: () => query({ id: 1, status: 'open', applicationFields: [] }) },
     clubAccounts: [{ clubId: 1, role: 'head', committee: 'IT' }],
-    cleanText: value => String(value || '').trim(),
+    cleanText: value => String(value || '').trim(), studentFields: require('../public/assets/js/student-fields'),
     getManagedCommittees: () => ['IT'], getCommitteeApplicationStatus: () => 'open',
     getStudentAccountFromRequest: async () => signedIn ? { _id: 'student', email: 'member@example.test', sessionVersion: 1 } : null,
     getApplicantPhoto: async () => ({ url: '/photo.png', publicId: '' }),
@@ -49,7 +49,7 @@ function harness({ status = 'removed', signedIn = true, failRelease = false, fai
   vm.runInNewContext(source.slice(start, end), context);
   return { records, get releases() { return releases; }, async submit() {
     const response = { code: 200, status(code) { this.code = code; return this; }, json(body) { this.body = body; return this; } };
-    await handler({ body: { clubId: 1, committee: 'IT', email: 'member@example.test', studentName: 'Fixture Member' } }, response);
+    await handler({ body: { clubId: 1, committee: 'IT', email: 'member@example.test', studentName: 'Fixture Member', universityId: '2024/06700' } }, response);
     return response;
   } };
 }

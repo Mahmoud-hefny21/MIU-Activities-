@@ -3,6 +3,7 @@
 // profile  = mission, vision, faculty advisor, club number, social links, officer names.
 // officers = President / Vice President MIU ID, email, phone, faculty & year; supervisor name and email.
 // Blank cells never erase saved values, so re-uploading a partial sheet only updates what it contains.
+const { displayMiuId } = require('../public/assets/js/student-fields');
 const clean = (value, max) => String(value ?? '').normalize('NFKC').replace(/\s+/g, ' ').trim().slice(0, max);
 const cleanBlock = (value, max) => String(value ?? '').normalize('NFKC').replace(/\r\n?/g, '\n').replace(/[ \t]+/g, ' ').trim().slice(0, max);
 
@@ -15,7 +16,7 @@ function socialLinks(value) {
 
 function person(row, prefix) {
   return {
-    name: clean(row[`${prefix}Name`], 120), universityId: clean(row[`${prefix}UniversityId`], 40),
+    name: clean(row[`${prefix}Name`], 120), universityId: displayMiuId(clean(row[`${prefix}UniversityId`], 40), row[`${prefix}Email`]),
     email: clean(row[`${prefix}Email`], 254).toLowerCase(), phone: clean(row[`${prefix}Phone`], 40),
     facultyYear: clean(row[`${prefix}FacultyYear`], 120)
   };

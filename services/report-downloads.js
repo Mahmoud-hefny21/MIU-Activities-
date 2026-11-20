@@ -1,4 +1,5 @@
 const express = require('express');
+const { displayMiuId } = require('../public/assets/js/student-fields');
 const { assignedIds } = require('./supervisor-dashboard');
 const { EventReport, period, eventsFor, statistics, fields } = require('./event-reports');
 
@@ -144,7 +145,7 @@ function registerReportDownloads(app, deps) {
       for (const person of people) {
         const profile = profiles.get(String(person.email || '').trim().toLowerCase());
         const membership = person.membershipStatus === 'member' ? 'Member' : person.membershipStatus === 'non_member' ? 'Non-member' : '';
-        rows.push([event.clubName, event.title, event.date, event.startTime, event.endTime, event.itemType, profile?.name || person.name, person.universityId || profile?.universityId || '', person.email, person.major || profile?.major || '', membership, (person.memberClubNames || []).join('; '), sheet === 'registered' ? '' : require('./attendance-participation').eventRoleLabel(person), sheet === 'registered' ? 'Registered (not proof of attendance)' : 'Verified check-in', person.attendedAt ? new Date(person.attendedAt).toISOString() : '', person.approvalStatus || '', sheet === 'registered' ? '' : require('./attendance-participation').attendanceCategory(person), sheet === 'registered' ? '' : require('./attendance-participation').checkInVerification(person), sheet === 'registered' ? '' : require('./attendance-participation').checkInScannedBy(person), phoneChecks.get(person) || '']);
+        rows.push([event.clubName, event.title, event.date, event.startTime, event.endTime, event.itemType, profile?.name || person.name, displayMiuId(person.universityId || profile?.universityId, person.email), person.email, person.major || profile?.major || '', membership, (person.memberClubNames || []).join('; '), sheet === 'registered' ? '' : require('./attendance-participation').eventRoleLabel(person), sheet === 'registered' ? 'Registered (not proof of attendance)' : 'Verified check-in', person.attendedAt ? new Date(person.attendedAt).toISOString() : '', person.approvalStatus || '', sheet === 'registered' ? '' : require('./attendance-participation').attendanceCategory(person), sheet === 'registered' ? '' : require('./attendance-participation').checkInVerification(person), sheet === 'registered' ? '' : require('./attendance-participation').checkInScannedBy(person), phoneChecks.get(person) || '']);
       }
       if (req.path.endsWith('.xlsx')) {
         const buffer = await require('./attendance-workbook').attendanceWorkbook(rows, { event, sheet, people, period: range, attendanceAudience: audience });
@@ -217,7 +218,7 @@ function registerReportDownloads(app, deps) {
           });
           rows.push([names.get(record.clubId), record.eventTitle, record.eventDate,
             activity?.startTime || activity?.time || activity?.boothOpenTime || record.eventTime || '', activity?.endTime || activity?.boothCloseTime || '', type,
-            profile?.name || record.name, record.universityId || profile?.universityId || '', record.email, record.major || profile?.major || '',
+            profile?.name || record.name, displayMiuId(record.universityId || profile?.universityId, record.email), record.email, record.major || profile?.major || '',
             record.attendedAt ? new Date(record.attendedAt).toISOString() : '', record.approvalStatus,
             (record.universityId || profile?.universityId) && (record.major || profile?.major) ? 'Available (attendance record or student profile)' : 'Missing ID or major in student profile',
             record.membershipStatus === 'member' ? 'Member' : record.membershipStatus === 'non_member' ? 'Non-member' : '',

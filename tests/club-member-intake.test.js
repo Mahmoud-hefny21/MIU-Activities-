@@ -21,7 +21,7 @@ test('validates and normalizes direct member intake including interview answers'
 });
 
 test('requires the same required interview answers and core student details', () => {
-  assert.throws(() => validateDirectMember({ ...valid, universityId: '' }, committees, questions, validateAnswers), /university ID/);
+  assert.throws(() => validateDirectMember({ ...valid, universityId: '' }, committees, questions, validateAnswers), /MIU ID like 2024\/06700/);
   assert.throws(() => validateDirectMember({ ...valid, interviewAnswers: [] }, committees, questions, validateAnswers), /Why do you want to join\? is required/);
   assert.throws(() => validateDirectMember({ ...valid, committee: 'Unknown' }, committees, questions, validateAnswers), /Choose a committee/);
 });
@@ -30,6 +30,6 @@ test('accepts an omitted optional age and motivation but rejects invalid age or 
   const member = validateDirectMember({ ...valid, age: '', motivation: '' }, committees, questions, validateAnswers);
   assert.equal(member.age, '');
   assert.equal(member.motivation, '');
-  assert.throws(() => validateDirectMember({ ...valid, age: '12' }, committees, questions, validateAnswers), /age between 16 and 100/);
+  assert.throws(() => validateDirectMember({ ...valid, age: '12' }, committees, questions, validateAnswers), /whole number from 16 to 100/);
   assert.throws(() => validateDirectMember({ ...valid, interviewRating: '8' }, committees, questions, validateAnswers), /valid interview rating/);
 });

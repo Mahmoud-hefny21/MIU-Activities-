@@ -103,7 +103,7 @@ function createReverseAttendance(deps) {
       const registration = await context.registration(ctx, student, session);
       if (!registration) fail(403, 'NOT_REGISTERED', 'The student is not registered, or the registration was cancelled.');
       if (!await context.eligible(ctx, student, session)) fail(403, 'NOT_ELIGIBLE', 'The student is no longer eligible for this event.');
-      const identity = { name: student.name, universityId: student.universityId, registrationStatus: 'registered', eventTitle: ctx.event.title, eventType: ctx.source === 'miu' ? 'University event' : 'Club event' };
+      const identity = { name: student.name, universityId: require('../public/assets/js/student-fields').displayMiuId(student.universityId, student.email), registrationStatus: 'registered', eventTitle: ctx.event.title, eventType: ctx.source === 'miu' ? 'University event' : 'Club event' };
       const key = `${ctx.key}:${student._id}`, filter = { clubId: ctx.clubId, itemType: 'event', eventRequestId: ctx.eventRequestId };
       const binding = await DeviceBinding.findOne({ deviceHash: payload.device }).session(session).lean();
       if (!binding || new Date(binding.expiresAt).getTime() <= clock() || binding.state.generation !== payload.generation || binding.state.current !== String(student._id)) fail(403, 'REVOKED_QR', 'The browser account association changed. Ask for a refreshed QR.');

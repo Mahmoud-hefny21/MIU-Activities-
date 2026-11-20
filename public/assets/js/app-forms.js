@@ -645,7 +645,7 @@ async function openApplicationForm(clubId, allowClosedClub = false) {
     const nameParts = String(profile.name || '').trim().split(/\s+/).filter(Boolean);
     const defaults = {
       firstName: nameParts.shift() || miuEmailMatch?.[1] || '', lastName: nameParts.join(' '),
-      universityId: profile.universityId || miuEmailMatch?.[2] || '',
+      universityId: window.MiuStudentFields ? window.MiuStudentFields.displayMiuId(profile.universityId, profile.email) : profile.universityId || '',
       major: profile.major, email: profile.email, phone: profile.phone, age: profile.age
     };
     for (const [field, value] of Object.entries(defaults)) {
@@ -677,6 +677,15 @@ function getStudentProfileFormData() {
 async function saveStudentProfileFromForm() {
   if (!state.studentProfile) return;
   const profile = getStudentProfileFormData();
+  const fields = window.MiuStudentFields;
+  if (fields) {
+    // Half-typed MIU ID or age: wait (the field explains the format when it is left or the form is sent).
+    const universityId = fields.normalizeMiuId(profile.universityId);
+    const age = fields.normalizeAge(profile.age);
+    if (universityId === null || age === null) return state.studentProfile;
+    profile.universityId = universityId;
+    profile.age = age;
+  }
   const save = studentProfileSaveQueue.then(async () => {
     const response = await fetch('/api/student-auth/profile', {
       method: 'PUT',

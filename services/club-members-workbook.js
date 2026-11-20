@@ -1,5 +1,22 @@
 const ExcelJS = require('exceljs');
 const { formatSheet } = require('../public/assets/js/spreadsheet-export');
+const { displayMiuId, displayAge, normalizeMiuId, normalizeAge } = require('../public/assets/js/student-fields');
+const FLAG = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE0B2' } };
+
+// Orange cell: an MIU ID or age that is not in the standard form and could not be fixed automatically.
+function flagInvalidCells(sheet) {
+  const headers = sheet.getRow(1).values;
+  const checks = [[headers.indexOf('MIU ID'), normalizeMiuId], [headers.indexOf('Age'), normalizeAge]].filter(([column]) => column > 0);
+  let flagged = 0;
+  sheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return;
+    for (const [column, normalize] of checks) {
+      const cell = row.getCell(column);
+      if (String(cell.value ?? '').trim() && normalize(cell.value) === null) { cell.fill = FLAG; flagged++; }
+    }
+  });
+  return flagged;
+}
 
 const MEMBER_HEADERS = ['Full name', 'MIU email', 'MIU ID', 'Major', 'Phone', 'Age', 'Committee', 'Position', 'Member type', 'Joined through', 'Joined on'];
 
@@ -12,7 +29,7 @@ function joinedOn(value) {
 
 function memberRow(member) {
   return [
-    member.name || '', member.email || '', member.universityId || '', member.major || '', member.phone || '', member.age || '',
+    member.name || '', member.email || '', displayMiuId(member.universityId, member.email), member.major || '', member.phone || '', displayAge(member.age),
     member.committee || '', member.position || 'Member', member.memberType === 'senior' ? 'Senior' : 'New',
     member.source === 'accepted-application' ? 'Application' : 'Added by club', joinedOn(member.createdAt)
   ];
@@ -41,13 +58,20 @@ async function clubMembersWorkbook(clubs) {
     summary.push([club.name, club.members.length, club.members.filter(m => m.memberType !== 'senior').length,
       club.members.filter(m => m.memberType === 'senior').length, committees.size]);
   }
-  formatSheet(workbook, summary, 'Summary');
+  const summarySheet = formatSheet(workbook, summary, 'Summary');
+  let flagged = 0;
   if (clubs.length > 1) {
     const all = clubs.flatMap(club => [...club.members].sort(byCommitteeThenName).map(member => [club.name, ...memberRow(member)]));
-    formatSheet(workbook, [['Club', ...MEMBER_HEADERS], ...all], 'All members');
+    flagInvalidCells(formatSheet(workbook, [['Club', ...MEMBER_HEADERS], ...all], 'All members'));
   }
   for (const club of clubs) {
-    formatSheet(workbook, [MEMBER_HEADERS, ...[...club.members].sort(byCommitteeThenName).map(memberRow)], sheetName(club.name, used));
+    flagged += flagInvalidCells(formatSheet(workbook, [MEMBER_HEADERS, ...[...club.members].sort(byCommitteeThenName).map(memberRow)], sheetName(club.name, used)));
+  }
+  if (flagged) {
+    summarySheet.addRow([]);
+    const note = summarySheet.addRow([`${flagged} orange cell${flagged === 1 ? '' : 's'}`, 'MIU ID or age not in the standard form (MIU ID like 2024/06700, age like 20). Ask the member to update it.']);
+    note.getCell(1).fill = FLAG;
+    note.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF172033' } };
   }
   workbook.views = [{ activeTab: 1 }];
   return workbook.xlsx.writeBuffer();

@@ -20,7 +20,8 @@ const ORDER = ['name', 'phone', 'universityId', 'email', 'faculty', 'clubName', 
 const text = value => String(value ?? '').normalize('NFKC').replace(/[​-‏﻿]/g, '').replace(/\s+/g, ' ').trim();
 const looksEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const looksPhone = v => /^\+?[\d\s()-]{9,16}$/.test(v) && v.replace(/\D/g, '').length >= 10;
-const looksMiuId = v => /^\d{7}$/.test(v.replace(/\s/g, ''));
+const { normalizeMiuId, miuIdFromEmail } = require('../public/assets/js/student-fields');
+const looksMiuId = v => Boolean(normalizeMiuId(v));
 
 // "ahmed MOHAMED" stays readable as "Ahmed Mohamed"; mixed-case names the person typed carefully are kept.
 function nameCase(value) {
@@ -121,10 +122,10 @@ function autofixMembers(grid, { clubNames = [], aliases = new Map() } = {}) {
       if (field === 'name') after = nameCase(after);
       if (field === 'email') after = fixEmail(after);
       if (field === 'phone' && after) after = fixPhone(after);
-      if (field === 'universityId' && after) after = after.replace(/\D/g, '') || after;
+      if (field === 'universityId' && after) after = normalizeMiuId(after) || after;
       if (field === 'clubName') after = matchClub(after, clubNames, aliases);
       if (['committee', 'faculty', 'role', 'boardPosition'].includes(field) && after && (after === after.toLowerCase() || after === after.toUpperCase()) && after.length > 3) after = nameCase(after);
-      const why = { name: 'Fixed capital letters', email: 'Fixed email format', phone: 'Fixed phone format', universityId: 'Kept digits only', clubName: 'Matched the club name on the website', committee: 'Fixed capital letters', faculty: 'Fixed capital letters', role: 'Fixed capital letters', boardPosition: 'Fixed capital letters' }[field];
+      const why = { name: 'Fixed capital letters', email: 'Fixed email format', phone: 'Fixed phone format', universityId: 'Standard MIU ID format (2024/06700)', clubName: 'Matched the club name on the website', committee: 'Fixed capital letters', faculty: 'Fixed capital letters', role: 'Fixed capital letters', boardPosition: 'Fixed capital letters' }[field];
       const reasons = [spaced ? 'Removed extra spaces' : '', after !== text(before) ? why : ''].filter(Boolean);
       if (reasons.length) pending.push({ rowNumber, column: FIELDS[field].label, before: String(before), after, why: reasons.join(' + ') });
       out[field] = after;
@@ -138,8 +139,8 @@ function autofixMembers(grid, { clubNames = [], aliases = new Map() } = {}) {
       continue;
     }
     changes.push(...pending);
-    // Missing MIU ID: read it from the MIU email (e.g. mahmoud2406700@ -> 2406700).
-    if (!out.universityId) { const digits = out.email.split('@')[0].match(/(\d{7})$/); if (digits) { out.universityId = digits[1]; note(rowNumber, 'universityId', '', out.universityId, 'Filled from the MIU email'); } }
+    // Missing MIU ID: read it from the MIU email (e.g. mahmoud2406700@ -> 2024/06700).
+    if (!out.universityId) { const fromEmail = miuIdFromEmail(out.email); if (fromEmail) { out.universityId = fromEmail; note(rowNumber, 'universityId', '', out.universityId, 'Filled from the MIU email'); } }
     seen.set(key, out); rows.push(out);
   }
   const found = Object.values(map);

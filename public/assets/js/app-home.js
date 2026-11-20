@@ -256,7 +256,7 @@ async function startEditingMyForm(item) {
   applicationForm.elements.namedItem('firstName').value = nameParts.shift() || '';
   applicationForm.elements.namedItem('lastName').value = nameParts.join(' ');
   for (const [field, value] of Object.entries({
-    universityId: app.universityId, major: app.major, email: app.email, phone: app.phone,
+    universityId: window.MiuStudentFields?.displayMiuId(app.universityId, app.email) ?? app.universityId, major: app.major, email: app.email, phone: app.phone,
     committee: app.committee, age: app.age, motivation: app.motivation, notes: app.notes
   })) {
     const input = applicationForm.elements.namedItem(field);

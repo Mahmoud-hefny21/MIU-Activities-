@@ -29,7 +29,7 @@ test('finds the header under title rows, recognises columns, fixes and merges du
   assert.equal(ahmed.name, 'Ahmed Ali'); assert.equal(ahmed.email, 'ahmed2406700@miuegypt.edu.eg');
   assert.equal(ahmed.clubName, 'Robotics Club'); assert.equal(ahmed.committee, 'Media');
   assert.equal(ahmed.phone, '01012345678', 'phone column recognised from its content');
-  assert.equal(ahmed.universityId, '2406700', 'MIU ID read from the email');
+  assert.equal(ahmed.universityId, '2024/06700', 'MIU ID read from the email in the standard form');
   assert.ok(result.changes.some(c => c.why === 'Same email and club listed twice'));
   assert.equal(result.rows[1].name, 'Sara Nabil', 'correct values are not touched');
 });

@@ -78,7 +78,7 @@ function renderHeadDashboard() {
             <span class="badge ${escapeHtml(app.status)}${app.status === 'pending' && app.interviewed ? ' processing' : ''}">${app.status === 'pending' && app.interviewed ? 'Interviewed · pending' : escapeHtml(app.status)}</span>
           </header>
           <div class="head-applicant-details">
-            <div><span>Student ID</span><strong>${escapeHtml(app.universityId || 'Not provided')}</strong></div>
+            <div><span>MIU ID</span><strong>${escapeHtml((window.MiuStudentFields?.displayMiuId(app.universityId, app.email) ?? app.universityId) || 'Not provided')}</strong></div>
             <div><span>Email</span><strong>${escapeHtml(app.email || 'Not provided')}</strong></div>
             <div><span>Phone</span><strong>${escapeHtml(app.phone || 'Not provided')}</strong></div>
             <div><span>Interview slot</span><strong>${escapeHtml(app.slot || 'Not selected')}</strong></div>
@@ -129,7 +129,7 @@ async function openReviewModal(appId) {
   document.getElementById('modalPhoto').value = '';
   modalName.textContent = app.studentName;
   modalEmail.textContent = app.email;
-  modalAge.value = app.age || '';
+  modalAge.value = (window.MiuStudentFields?.displayAge(app.age) ?? app.age) || '';
   modalMotivation.value = app.motivation || '';
   modalNotes.value = app.notes || '';
   modalRating.value = String(app.rating || 4);
@@ -508,7 +508,7 @@ async function loadClubMembers(force = false) {
         summary.textContent = 'Student and interview details';
         disclosure.append(summary);
         const profile = document.createElement('p');
-        profile.textContent = [member.universityId && `ID: ${member.universityId}`, member.major && `Major: ${member.major}`, member.phone && `Phone: ${member.phone}`, member.age && `Age: ${member.age}`].filter(Boolean).join(' · ');
+        profile.textContent = [member.universityId && `MIU ID: ${window.MiuStudentFields?.displayMiuId(member.universityId, member.email) ?? member.universityId}`, member.major && `Major: ${member.major}`, member.phone && `Phone: ${member.phone}`, member.age && `Age: ${member.age}`].filter(Boolean).join(' · ');
         if (profile.textContent) disclosure.append(profile);
         if (member.motivation) {
           const motivation = document.createElement('p');

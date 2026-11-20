@@ -3,6 +3,7 @@
 // Club Name, Role / Position in the club, Board Position (e.g. Head of PR), Member Committee.
 // Each row is added to that club's roster, or updates the roster entry with the same email. Nothing is deleted.
 const crypto = require('node:crypto');
+const { normalizeMiuId, miuIdFromEmail } = require('../public/assets/js/student-fields');
 
 const clean = (value, max) => String(value ?? '').normalize('NFKC').replace(/\s+/g, ' ').trim().slice(0, max);
 const normalizeName = value => clean(value, 200).toLocaleLowerCase('en-US');
@@ -17,6 +18,10 @@ function validateRow(row, rowNumber) {
     role: clean(row.role, 100), boardPosition: clean(row.boardPosition, 100), committee: clean(row.committee, 100)
   };
   const problems = [];
+  // MIU ID in the standard form (2024/06700); when empty it is read from the MIU email if possible.
+  const universityId = normalizeMiuId(member.universityId);
+  if (universityId === null) problems.push('MIU ID must look like 2024/06700');
+  else member.universityId = universityId || miuIdFromEmail(member.email);
   if (!member.name) problems.push('Full Name is empty');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(member.email)) problems.push('MIU Email Address is not a valid email');
   if (!member.clubName) problems.push('Club Name is empty');

@@ -94,14 +94,14 @@ test('the real backend handler responds 201 only after database creation finishe
     const context = { require: name => require(require('node:path').resolve(__dirname, '..', name)), app: { post: (_path, callback) => { handler = callback; } }, applications: records,
       requireLiveDatabase: () => true, Club: { findOne: () => chain({ id: 1, status: 'open', applicationFields: [] }) },
       clubAccounts: [{ clubId: 1, role: 'head', committee: 'IT' }], getManagedCommittees: () => ['IT'], getCommitteeApplicationStatus: () => 'open',
-      cleanText: value => String(value || '').trim(), getStudentAccountFromRequest: async () => null,
+      cleanText: value => String(value || '').trim(), studentFields: require('../public/assets/js/student-fields'), getStudentAccountFromRequest: async () => null,
       getApplicantPhoto: async () => ({ url: '/fixture.png' }), generateMyFormCode: () => 'fixture-token', hashMyFormToken: () => 'fixture-hash',
       Application: { findOne: () => chain(null), create: () => new Promise((resolve, reject) => { finishSave = () => fails ? reject(new Error('Database failed')) : resolve(); }) },
       toApiRecord: record => record, console: { error() {} }
     };
     vm.runInNewContext(fragment, context);
     const response = { code: 200, status(code) { this.code = code; return this; }, json(body) { this.body = body; } };
-    const pending = handler({ body: { clubId: 1, committee: 'IT', email: 'student@example.test' } }, response);
+    const pending = handler({ body: { clubId: 1, committee: 'IT', email: 'student@example.test', universityId: '2024/06700' } }, response);
     for (let attempts = 0; !finishSave && attempts < 100; attempts++) await new Promise(resolve => setImmediate(resolve));
     assert.ok(finishSave, JSON.stringify(response.body));
     assert.equal(response.body, undefined, 'No success response before the write settles');

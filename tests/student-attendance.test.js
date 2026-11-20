@@ -19,7 +19,7 @@ test('counts actual check-ins once per event; rejected check-ins never count', (
   assert.equal(report.totals.students, 2);
   assert.equal(report.totals.checkIns, 4);
   const [first] = report.students;
-  assert.equal(first.attended, 2); assert.equal(first.enrollmentYear, '2024'); assert.equal(first.universityId, '06700');
+  assert.equal(first.attended, 2); assert.equal(first.enrollmentYear, '2024'); assert.equal(first.universityId, '2024/06700');
   assert.equal(first.approved, 1); assert.equal(first.waiting, 1);
   assert.deepEqual(report.students[1].clubs, ['MIU events', 'Robotics']);
   assert.equal(report.byYear['2025'].students, 1);
