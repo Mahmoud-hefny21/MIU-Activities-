@@ -34,7 +34,7 @@
       const message = String(item.text || item.description || '').trim();
       const image = item.image && item.image !== club.image
         ? window.FeedMedia.render(item.image, title || 'Club post image', 'feed-timeline-image') : '';
-      const avatar = club.image ? `<img src="${escapeHtml(club.image)}" alt="" class="feed-timeline-avatar${entry.university ? ' university-brand-avatar' : ''}" loading="lazy" decoding="async" />` : '';
+      const avatar = club.image ? `<img src="${escapeHtml((window.miuImage || String)(club.image, 160))}" alt="" class="feed-timeline-avatar${entry.university ? ' university-brand-avatar' : ''}" loading="lazy" decoding="async" />` : '';
       const dateText = entry.publishedAt ? `<span class="feed-timeline-date">${escapeHtml(formatDate(entry.publishedAt))}</span>` : '';
       if (entry.kind === 'event') {
         const eventDate = formatDate(entry.eventDate);

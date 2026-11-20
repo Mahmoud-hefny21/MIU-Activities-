@@ -32,7 +32,7 @@
         <span class="event-timeline-marker" aria-hidden="true"></span>
         <span class="event-timeline-content">
           <span class="event-timeline-header">
-            <img src="${escapeHtml(booth.clubImage)}" alt="" class="feed-timeline-avatar" loading="lazy" decoding="async" />
+            <img src="${escapeHtml((window.miuImage || String)(booth.clubImage, 160))}" alt="" class="feed-timeline-avatar" loading="lazy" decoding="async" />
             <span class="event-timeline-meta">
               <span class="event-tile-club">${escapeHtml(booth.clubName || '')}</span>
               <span class="feed-timeline-date">Campus booth</span>

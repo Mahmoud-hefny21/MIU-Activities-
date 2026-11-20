@@ -171,3 +171,19 @@
     }
   });
 })();
+
+// Smaller images for lists and cards: Cloudinary pictures are resized and compressed on the fly
+// (f_auto,q_auto,w_N), and the built-in club pictures use their 480 px thumbnails. Full-size views keep the original.
+window.miuImage = function miuImage(value, width = 480) {
+  if (typeof value !== 'string' || !value) return value;
+  try {
+    const url = new URL(value, location.origin);
+    if (url.hostname === 'res.cloudinary.com' && /\/image\/upload\/v\d+\//.test(url.pathname)) {
+      url.pathname = url.pathname.replace('/image/upload/', `/image/upload/f_auto,q_auto,w_${width},c_limit/`);
+      return url.href;
+    }
+    const file = url.origin === location.origin && url.pathname.match(/^\/assets\/img\/pics\/(utopia|mun|cdc|dimas|ieee|msp|theater|tuners|gamerslegacy|ihepc|acpc|tedx)\.jpg$/i);
+    if (file && width <= 480) return `/assets/img/pics/club-thumbnails/${file[1].toLowerCase()}-480.jpg`;
+  } catch { /* keep the original */ }
+  return value;
+};

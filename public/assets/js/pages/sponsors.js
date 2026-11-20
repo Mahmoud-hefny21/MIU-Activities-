@@ -29,7 +29,7 @@
         <span class="event-timeline-marker" aria-hidden="true"></span>
         <span class="event-timeline-content">
           <span class="event-timeline-header">
-            <img src="${escapeHtml(sponsor.clubImage || '')}" alt="" class="feed-timeline-avatar" loading="lazy" decoding="async" />
+            <img src="${escapeHtml((window.miuImage || String)(sponsor.clubImage || '', 160))}" alt="" class="feed-timeline-avatar" loading="lazy" decoding="async" />
             <span class="event-timeline-meta">
               <span class="event-tile-club">${escapeHtml(sponsor.clubName || '')}</span>
               <span class="feed-timeline-date">Upcoming Sponsor</span>
@@ -40,7 +40,7 @@
             ${sponsor.sponsorCompany ? `<span class="event-timeline-location">${escapeHtml(sponsor.sponsorCompany)}</span>` : ''}
             
               ${sponsorDescription(sponsor) ? `<span class="feed-timeline-text">${escapeHtml(sponsorDescription(sponsor))}</span>` : ''}
-            ${sponsor.sponsorLogo ? `<img src="${escapeHtml(sponsor.sponsorLogo)}" alt="${escapeHtml(sponsor.sponsorName || sponsor.sponsorCompany || sponsor.title || 'Sponsor logo')}" class="feed-timeline-image" loading="lazy" decoding="async" />` : ''}
+            ${sponsor.sponsorLogo ? `<img src="${escapeHtml((window.miuImage || String)(sponsor.sponsorLogo, 900))}" alt="${escapeHtml(sponsor.sponsorName || sponsor.sponsorCompany || sponsor.title || 'Sponsor logo')}" class="feed-timeline-image" loading="lazy" decoding="async" />` : ''}
             <span class="event-timeline-link">View sponsor details →</span>
           </span>
         </span>

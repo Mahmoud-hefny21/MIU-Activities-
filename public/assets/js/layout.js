@@ -654,7 +654,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Sign-in, password and error pages are single-purpose screens: no quiz launcher there (same rule as the bottom bar).
   const singlePurposePage = /(?:forgot-password|reset-password|applicant-login|admin-login|club-login|\/login|404|500|offline)(?:\.html)?$/.test(location.pathname)
     || document.querySelector('.home-action, .retry-action, .error-reference');
-  if (!singlePurposePage) (function loadNext() {
+  // Loaded after the page has finished and the browser is idle, so the quiz never slows the first view.
+  const whenIdle = fn => { const go = () => (window.requestIdleCallback ? requestIdleCallback(fn, { timeout: 3000 }) : setTimeout(fn, 1200)); if (document.readyState === 'complete') go(); else addEventListener('load', go, { once: true }); };
+  if (!singlePurposePage) whenIdle(function loadNext() {
     const src = quizScripts.shift();
     if (!src) return;
     const script = document.createElement('script');
@@ -664,5 +666,5 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Quiz script failed to load: ' + src);
     };
     document.head.appendChild(script);
-  })();
+  });
 });

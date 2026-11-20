@@ -43,7 +43,7 @@
         <span class="event-timeline-marker" aria-hidden="true"></span>
         <span class="event-timeline-content">
           <span class="event-timeline-header">
-            <img src="${escapeHtml(event.clubImage)}" alt="" class="feed-timeline-avatar${event.university ? ' university-brand-avatar' : ''}" loading="lazy" decoding="async" />
+            <img src="${escapeHtml((window.miuImage || String)(event.clubImage, 160))}" alt="" class="feed-timeline-avatar${event.university ? ' university-brand-avatar' : ''}" loading="lazy" decoding="async" />
             <span class="event-timeline-meta">
               <span class="event-tile-club">${escapeHtml(event.clubName || '')}</span>
               <span class="feed-timeline-date">${event.date ? `${formatDateForTimeline(event.date)}${label ? ` · ${label}` : ''}` : 'Date to be announced'}</span>
@@ -56,7 +56,7 @@
             ${event.attendanceEnabled === true ? '<span class="event-attendance-status">Attendance taken</span>' : ''}
             ${event.location ? `<span class="event-timeline-location">${escapeHtml(event.location)}</span>` : ''}
             ${event.description ? `<span class="feed-timeline-text">${escapeHtml(event.description)}</span>` : ''}
-            ${event.image && event.image !== event.clubImage ? `<img src="${escapeHtml(event.image)}" alt="${escapeHtml(event.title || 'Event image')}" class="feed-timeline-image" loading="lazy" decoding="async" />` : ''}
+            ${event.image && event.image !== event.clubImage ? `<img src="${escapeHtml((window.miuImage || String)(event.image, 900))}" alt="${escapeHtml(event.title || 'Event image')}" class="feed-timeline-image" loading="lazy" decoding="async" />` : ''}
             <span class="event-timeline-link">View event details →</span>
           </span>
         </span>

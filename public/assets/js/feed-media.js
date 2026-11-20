@@ -13,7 +13,7 @@
   }
   function render(source, title = '', className = '') {
     if (!source) return '';
-    if (!isVideo(source)) return `<img class="${escape(className)}" src="${escape(source)}" alt="${escape(title)}" loading="lazy" decoding="async">`;
+    if (!isVideo(source)) return `<img class="${escape(className)}" src="${escape(typeof window !== "undefined" && window.miuImage ? window.miuImage(source, 900) : source)}" alt="${escape(title)}" loading="lazy" decoding="async">`;
     return `<button type="button" class="feed-video-preview ${escape(className)}" data-feed-video="${escape(source)}" aria-label="Play video: ${escape(title || 'Feed post')}"><img src="${escape(poster(source))}" alt="" loading="lazy" decoding="async"><span class="feed-video-play" aria-hidden="true">▶</span><span class="feed-video-caption">Play video</span></button>`;
   }
   const api = { isVideo, poster, render };
