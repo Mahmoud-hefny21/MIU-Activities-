@@ -113,3 +113,13 @@ test('keeps identity lookup behind account authentication and exposes no client-
   assert.match(serverSource, /app\.use\('\/api\/admin',\s*requireAdmin\)/);
   assert.doesNotMatch(serverSource, /app\.(?:post|put|patch|delete)\('\/api\/notifications\/(?:dispatch|send)/);
 });
+
+test('published content push can target every subscribed device', async () => {
+  let body;
+  const fetchImpl = async (_url, options) => { body = JSON.parse(options.body); return { ok: true, json: async () => ({ id: 'all-1' }) }; };
+  const { externalId, ...message } = baseMessage;
+  const result = await sendOneSignalPush({ ...message, allSubscribers: true, fetchImpl });
+  assert.equal(result.messageId, 'all-1');
+  assert.deepEqual(body.included_segments, ['Total Subscriptions']);
+  assert.equal(body.include_aliases, undefined);
+});

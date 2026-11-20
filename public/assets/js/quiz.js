@@ -87,12 +87,14 @@
     if (document.querySelector('.quiz-launcher')) return;
     const wrap = document.createElement('div'); wrap.className = 'quiz-launcher';
     const isHome = location.pathname === '/' || location.pathname === '/index.html';
-    let seen = false; try { seen = sessionStorage.getItem('miu:quiz:greeted') === '1'; sessionStorage.setItem('miu:quiz:greeted', '1'); } catch { /* optional */ }
-    if (!isHome || seen) wrap.classList.add('quiz-launcher-quiet');
+    // The greeting shows only on the first home visit of a session, and never again once dismissed.
+    let seen = false, dismissed = false;
+    try { seen = sessionStorage.getItem('miu:quiz:greeted') === '1'; dismissed = localStorage.getItem('miu:quiz:message-dismissed-v1') === '1'; if (isHome) sessionStorage.setItem('miu:quiz:greeted', '1'); } catch { /* optional */ }
+    if (!isHome || seen || dismissed) wrap.classList.add('quiz-launcher-quiet');
     wrap.innerHTML = `<button type="button" class="quiz-launcher-circle" aria-label="Find your club" title="Find your club">${LAUNCHER_SVG}</button>`
-      + `<div class="quiz-launcher-bubble" role="region" aria-label="Find your club"><span class="quiz-launcher-bubble-text">Not sure which club? Take the 1-minute quiz</span><button class="quiz-launcher-dismiss" type="button" aria-label="Dismiss">&times;</button></div>`;
+      + `<div class="quiz-launcher-bubble" role="region" aria-label="Can't Find your Club yet?"><span class="quiz-launcher-bubble-text">Can't Find your Club yet?</span><button class="quiz-launcher-dismiss" type="button" aria-label="Dismiss">&times;</button></div>`;
     wrap.querySelector('.quiz-launcher-circle').addEventListener('click', open);
-    wrap.querySelector('.quiz-launcher-bubble').addEventListener('click', event => { if (event.target.closest('.quiz-launcher-dismiss')) { wrap.classList.add('quiz-launcher-quiet'); event.stopPropagation(); } else open(); });
+    wrap.querySelector('.quiz-launcher-bubble').addEventListener('click', event => { if (event.target.closest('.quiz-launcher-dismiss')) { wrap.classList.add('quiz-launcher-quiet'); try { localStorage.setItem('miu:quiz:message-dismissed-v1', '1'); } catch { /* optional */ } event.stopPropagation(); } else open(); });
     document.body.append(wrap);
     // Stay above the footer.
     const footer = () => document.querySelector('#site-footer, .site-footer');

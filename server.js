@@ -2761,7 +2761,6 @@ async function dispatchPublishedContentNotifications({ source, contentId, revisi
     console.error('Published content notification recipients unavailable:', error.name);
     return;
   }
-  const allStudentIds = students.map((student) => String(student._id));
   const emailStudentIds = students.filter((student) => student.emailNotificationsEnabled === true).map((student) => String(student._id));
   const publishKey = `published-content:${source}:${contentId}:${revision}`;
   const message = `New ${kind} published: ${safeTitle}. Open the club feed for details.`;
@@ -2786,10 +2785,10 @@ async function dispatchPublishedContentNotifications({ source, contentId, revisi
     }
   };
 
-  await sendChannel('push', allStudentIds, () => sendOneSignalPush({
+  await sendChannel('push', ['all'], () => sendOneSignalPush({
     appId,
     apiKey,
-    externalIds: allStudentIds,
+    allSubscribers: true,
     title: 'MIU Activities',
     message,
     url: feedUrl

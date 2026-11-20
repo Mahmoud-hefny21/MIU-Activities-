@@ -49,6 +49,7 @@ html.quiz-scroll-lock {
   100% { scale: 0.83; }
 }
 
+.quiz-launcher-quiet .quiz-launcher-bubble { display: none; }
 .quiz-launcher-quiet .quiz-launcher-circle {
   animation: none;
   scale: 0.83;
@@ -165,6 +166,12 @@ html.quiz-scroll-lock .quiz-launcher-circle,
   14%, 78% {
     opacity: 1;
     transform: translateX(0) scale(1);
+    visibility: visible;
+    pointer-events: auto;
+  }
+  95% {
+    visibility: visible;
+    pointer-events: auto;
   }
   96%, 100% {
     opacity: 0;

@@ -31,7 +31,7 @@ async function setup() {
   for (const [i, email] of STUDENTS.entries()) {
     if (!await StudentAccount.findOne({ email }).lean()) await StudentAccount.create({ email, name: `QA Student ${i + 1}`, universityId: `99000${i + 1}`, major: 'Computer Science', phone: '0100000000' + i, age: 20, sessionVersion: 0 });
   }
-  console.log('Setup done: club', CLUB_ID, 'and', STUDENTS.length, 'students. Restart the server so it loads the club.');
+  console.log('Setup done: club', CLUB_ID, 'and', STUDENTS.length, 'students. Restart the test server with ONESIGNAL_APP_ID empty (no real pushes), then run.');
   process.exit(0);
 }
 
@@ -82,6 +82,8 @@ const expect = (r, ok, label) => { if (!(Array.isArray(ok) ? ok : [ok]).includes
 const save = (name, buffer) => { fs.mkdirSync(OUT, { recursive: true }); fs.writeFileSync(path.join(OUT, name), buffer); return name; };
 
 async function run() {
+  // Published test events must never reach real phones: the test server must run with ONESIGNAL_APP_ID empty.
+  if (process.env.E2E_SERVER_PUSH_OFF !== '1') { console.error('Start the test server with ONESIGNAL_APP_ID empty, then run again with E2E_SERVER_PUSH_OFF=1.'); process.exit(1); }
   const admin = jar(), ctx = {};
   const staff = Object.fromEntries(Object.keys(STAFF).map(k => [k, jar()]));
   const students = STUDENTS.map(email => { const j = jar(); j.add(cookieFor(email)); return j; });

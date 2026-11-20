@@ -645,7 +645,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // "Find Your Club" quiz launcher and modal. Kept dependency-free and lazy:
   // the module creates the launcher itself; nothing opens automatically.
-  const quizScripts = ['/assets/js/quiz.js?v=20261120done1'];
+  const quizScripts = ['/assets/js/quiz.js?v=20261120fin1'];
   // Sign-in, password and error pages are single-purpose screens: no quiz launcher there (same rule as the bottom bar).
   const singlePurposePage = /(?:forgot-password|reset-password|applicant-login|admin-login|club-login|\/login|404|500|offline)(?:\.html)?$/.test(location.pathname)
     || document.querySelector('.home-action, .retry-action, .error-reference');

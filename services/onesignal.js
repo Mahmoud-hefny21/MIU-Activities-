@@ -28,10 +28,11 @@ function resolveExternalIds(externalId, externalIds) {
   return unique;
 }
 
-async function sendOneSignalPush({ appId, apiKey, externalId, externalIds, title, message, url, fetchImpl = fetch }) {
+async function sendOneSignalPush({ appId, apiKey, externalId, externalIds, allSubscribers = false, title, message, url, fetchImpl = fetch }) {
   if (!appId || !apiKey) throw new Error('ONESIGNAL_NOT_CONFIGURED');
   if (!title || !message || !url) throw new Error('ONESIGNAL_INVALID_MESSAGE');
-  const recipients = resolveExternalIds(externalId, externalIds);
+  // allSubscribers: every device that turned notifications on (students, staff and visitors).
+  const target = allSubscribers ? { included_segments: ['Total Subscriptions'] } : { include_aliases: { external_id: resolveExternalIds(externalId, externalIds) } };
 
   const response = await fetchImpl(ONESIGNAL_API_URL, {
     method: 'POST',
@@ -42,7 +43,7 @@ async function sendOneSignalPush({ appId, apiKey, externalId, externalIds, title
     body: JSON.stringify({
       app_id: appId,
       target_channel: 'push',
-      include_aliases: { external_id: recipients },
+      ...target,
       headings: { en: title },
       contents: { en: message },
       url
