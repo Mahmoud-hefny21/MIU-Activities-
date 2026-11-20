@@ -2782,6 +2782,13 @@ html.quiz-scroll-lock {
 }
 .quiz-launcher-waiting .quiz-launcher-bubble { pointer-events: none; }
 
+/* The header (and its menus) sits on a lower layer, so step aside while its menus are open. */
+body:has(#headerStudentProfileDropdown:not([hidden])) :is(.quiz-launcher-circle, .quiz-launcher-bubble),
+body:has(#navLinks.open) :is(.quiz-launcher-circle, .quiz-launcher-bubble) {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 .quiz-launcher-quiet .quiz-launcher-bubble { display: none; }
 .quiz-launcher-quiet .quiz-launcher-circle {
   animation: none;

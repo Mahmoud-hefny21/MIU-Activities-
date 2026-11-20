@@ -213,8 +213,8 @@ body :is(.badge, .status-pill, .feed-post-type) { border-radius: 999px; font-wei
 #calendarModal .calendar-event img { flex: 0 0 14px; }
 #calendarModal .calendar-more { padding: 4px 2px; color: var(--primary-800); font-size: .65rem; }
 #calendarModal .calendar-month-prompt { margin: 12px 0; color: var(--text-muted); text-align: center; }
-body:has(#calendarModal:not(.hidden)) .quiz-launcher,
-body:has(#calendarModal:not(.hidden)) .site-loading-indicator {
+body:has(#calendarModal:not(.hidden)) .site-loading-indicator,
+body:has(#calendarModal:not(.hidden)) :is(.quiz-launcher-circle, .quiz-launcher-bubble) {
   visibility: hidden !important;
   pointer-events: none !important;
 }
