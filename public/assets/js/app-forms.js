@@ -473,24 +473,15 @@ function openClubDetail(clubId) {
       <p class="detail-description">${escapeHtml(club.description)}</p>
     </section>
 
-    <div class="detail-info">
-      <div class="detail-box">
-        <p>Members</p>
-        <strong>${Number(club.members) || 0}</strong>
-      </div>
-      <div class="detail-box">
-        <p>Available seats</p>
-        <strong>Unlimited</strong>
-      </div>
-      <div class="detail-box">
-        <p>Applicants</p>
-        <strong>${Number(club.applicants) || 0}</strong>
-      </div>
+    <div class="detail-info detail-stats" role="list" aria-label="${escapeHtml(club.name)} in numbers">
+      <div class="detail-box" role="listitem"><strong>${Number(club.members) || 0}</strong><p>Members</p></div>
+      <div class="detail-box" role="listitem"><strong>Unlimited</strong><p>Seats</p></div>
+      <div class="detail-box" role="listitem"><strong>${Number(club.applicants) || 0}</strong><p>Applicants</p></div>
     </div>
 
     <section class="detail-requirements">
       <h3>Joining requirements</h3>
-      <p>${escapeHtml(club.requirements)}</p>
+      ${clubRequirementsMarkup(club.requirements)}
     </section>
 
     <dialog class="club-rating-dialog" aria-label="Rate ${escapeHtml(club.name)}">
@@ -961,4 +952,14 @@ function clubSocialLinks(club) {
     const [label, path] = CLUB_SOCIAL_ICONS[kind];
     return `<a class="club-social-link is-${kind}" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(club.name)} on ${label}" title="${label}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg></a>`;
   }).join('')}</nav>`;
+}
+
+// A comma or line separated list of short qualities shows as tags; anything else stays a paragraph.
+function clubRequirementsMarkup(text) {
+  const value = String(text || '').trim();
+  const items = value.replace(/\.\s*$/, '').split(/\s*(?:,|\n|;|•)\s*/).map((item) => item.trim()).filter(Boolean);
+  if (items.length >= 3 && items.every((item) => item.length <= 32)) {
+    return `<ul class="detail-requirement-tags">${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`;
+  }
+  return `<p>${escapeHtml(value)}</p>`;
 }

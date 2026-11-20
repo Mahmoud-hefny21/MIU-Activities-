@@ -183,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const drawerStyles = document.createElement('link'); drawerStyles.rel = 'stylesheet'; drawerStyles.href = '/assets/css/mobile-sidebars.css?v=20261120back1';
   const drawerScript = document.createElement('script'); drawerScript.src = '/assets/js/mobile-sidebars.js?v=20261119bar5';
   let drawerStarted = false;
-  const bottomBarScript = document.createElement('script'); bottomBarScript.src = '/assets/js/bottom-bar.js?v=20261120five5';
+  const bottomBarScript = document.createElement('script'); bottomBarScript.src = '/assets/js/bottom-bar.js?v=20261120five6';
   // The bottom bar starts after the drawer script so dashboards can open their menu from it.
   const swipeBackScript = document.createElement('script'); swipeBackScript.src = '/assets/js/swipe-back.js?v=20261119bar3';
   drawerScript.addEventListener('load', () => { document.head.append(bottomBarScript); document.head.append(swipeBackScript); }, { once: true });

@@ -182,7 +182,8 @@ hub: '<path d="M3 10 12 4l9 6"/><path d="M5 10v9M9.5 10v9M14.5 10v9M19 10v9M3 21
   }
   function siteItems() {
     const path = location.pathname;
-    const onHome = path === '/' && !location.search && location.hash !== '#calendar';
+    // Only the Home list itself counts as Home; a club view, My Forms or a form opened on / gets Back.
+    const onHome = path === '/' && location.hash !== '#calendar' && (!location.search || Boolean(document.querySelector('#homeView.active'))) && !document.querySelector('#clubView.active, #myFormsView.active, #applicationView.active, #signInView.active');
     const menuButton = makeItem({ label: 'Menu', icon: 'menu', onClick: () => {
       if (!siteMenu.hidden) { closeSiteMenu(); return; }
       siteMenu.replaceChildren(...siteMenuEntries(onHome));
