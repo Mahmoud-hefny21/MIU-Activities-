@@ -117,6 +117,21 @@ hub: '<path d="M3 10 12 4l9 6"/><path d="M5 10v9M9.5 10v9M14.5 10v9M19 10v9M3 21
       onClick: () => { link.click(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
     });
     const items = [back(), fromLink(overview), ...picks.map(fromLink), makeItem({ label: 'Menu', icon: 'menu', onClick: (event) => {
+      // Admin has no slide-out drawer: list every section in the small pop-up menu instead.
+      if (sidebar.id === 'dashboardNavigation') {
+        if (!siteMenu.hidden) { closeSiteMenu(); return; }
+        siteMenu.replaceChildren(...links.map((link) => {
+          const el = document.createElement('button'); el.type = 'button'; el.className = 'bottom-bar-menu-item'; el.setAttribute('role', 'menuitem');
+          el.innerHTML = `${svg(iconFor(link, link === overview))}<span></span>`; el.querySelector('span').textContent = labelOf(link).replace(/\s*\d+$/, '');
+          if (link.matches('.is-active, [aria-pressed="true"]')) el.setAttribute('aria-current', 'page');
+          el.addEventListener('click', () => { closeSiteMenu(); link.click(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+          return el;
+        }));
+        if (!siteMenu.isConnected) document.body.append(siteMenu);
+        siteMenu.hidden = false; event.currentTarget.setAttribute('aria-expanded', 'true'); event.currentTarget.dataset.siteMenu = '';
+        siteMenu.querySelector('button')?.focus({ preventScroll: true });
+        return;
+      }
       prioritise(); sidebar.classList.add('as-sheet');
       // With the buttons at the top of a short page, the menu opens just under the Menu button.
       const button = event.currentTarget.getBoundingClientRect();
@@ -155,7 +170,10 @@ hub: '<path d="M3 10 12 4l9 6"/><path d="M5 10v9M9.5 10v9M14.5 10v9M19 10v9M3 21
       return el;
     };
     const askAi = document.querySelector('#navLinks a[href="/pages/ask-ai.html"]');
+    const onBar = new Set([...bar.querySelectorAll('a[href]')].map((el) => new URL(el.href).pathname));
     return [
+      ...[['MIU Hub', 'hub', '/pages/miu-hub.html'], ['Events', 'events', '/pages/events.html'], ['Feed', 'feed', '/pages/feed.html']]
+        .filter(([, , href]) => !onBar.has(href)).map(([label, icon, href]) => entry(label, icon, href)),
       entry('Calendar', 'calendar', '/#calendar'),
       entry('Sponsors', 'sponsors', '/pages/sponsors.html'),
       entry('Booths', 'booths', '/pages/booths.html'),
@@ -173,19 +191,22 @@ hub: '<path d="M3 10 12 4l9 6"/><path d="M5 10v9M9.5 10v9M14.5 10v9M19 10v9M3 21
     } });
     menuButton.dataset.siteMenu = ''; menuButton.setAttribute('aria-haspopup', 'menu'); menuButton.setAttribute('aria-controls', siteMenu.id); menuButton.setAttribute('aria-expanded', 'false');
     if (!siteMenu.isConnected) document.body.append(siteMenu);
-    return [
-      // Every page except Home starts with Back, the same as the dashboards.
-      ...(onHome ? [] : [back()]),
-      makeItem({ label: 'Home', icon: 'home', href: '/', active: onHome }),
-      makeItem({ label: 'MIU Hub', icon: 'hub', href: '/pages/miu-hub.html', active: path === '/pages/miu-hub.html' }),
-      makeItem({ label: 'Feed', icon: 'feed', href: '/pages/feed.html', active: path === '/pages/feed.html' }),
-      makeItem({ label: 'Events', icon: 'events', href: '/pages/events.html', active: path === '/pages/events.html' }),
-      menuButton
-    ];
+    // Always five buttons. Home: Home, MIU Hub, Events, Feed, Menu.
+    // Every other page: Back, Home, two shortcuts, Menu. A page opened from the menu (Feed, Sponsors,
+    // Booths, Ask AI) takes the first shortcut and is highlighted, so visitors always see where they are.
+    const pages = {
+      '/pages/miu-hub.html': ['MIU Hub', 'hub'], '/pages/events.html': ['Events', 'events'], '/pages/feed.html': ['Feed', 'feed'],
+      '/pages/sponsors.html': ['Sponsors', 'sponsors'], '/pages/booths.html': ['Booths', 'booths'], '/pages/ask-ai.html': ['Ask AI', 'ai']
+    };
+    const link = (href) => makeItem({ label: pages[href][0], icon: pages[href][1], href, active: path === href });
+    if (onHome) return [makeItem({ label: 'Home', icon: 'home', href: '/', active: true }), link('/pages/miu-hub.html'), link('/pages/events.html'), link('/pages/feed.html'), menuButton];
+    const shortcuts = ['/pages/miu-hub.html', '/pages/events.html'];
+    if (pages[path] && !shortcuts.includes(path)) shortcuts[0] = path;
+    return [back(), makeItem({ label: 'Home', icon: 'home', href: '/', active: false }), ...shortcuts.map(link), menuButton];
   }
 
   function build() {
-    const sidebar = [...document.querySelectorAll('.committee-sidebar, #presidentSidebar, .president-sidebar, .student-dashboard-sidebar, .report-admin-sidebar')]
+    const sidebar = [...document.querySelectorAll('.committee-sidebar, #presidentSidebar, .president-sidebar, .student-dashboard-sidebar, .report-admin-sidebar, .v2-sidebar #dashboardNavigation')]
       .find((el) => el.querySelector('a, button') && !el.closest('[hidden], .view:not(.active)'));
     const items = (sidebar && dashboardItems(sidebar)) || siteItems();
     bar.replaceChildren(...items);

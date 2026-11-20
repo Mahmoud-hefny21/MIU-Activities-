@@ -1773,3 +1773,4 @@ body :is(button[aria-label*="close" i], button[aria-label*="exit" i], button[tit
 .club-profile-back { display: inline-flex !important; }
 .club-detail-hero .detail-status-dot { padding: 0 !important; border: 0 !important; background: none !important; box-shadow: none !important; min-height: 0; }
 @media (max-width: 560px) { .club-detail-hero .detail-meta { flex-basis: 100%; } .club-detail-hero .detail-meta::before { content: none; } }
+.club-detail-hero .detail-chip-row { align-items: baseline; }
