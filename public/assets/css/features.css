@@ -1918,3 +1918,21 @@ body :is(button[aria-label*="close" i], button[aria-label*="exit" i], button[tit
 .fq-empty { margin: 0; color: var(--text-muted); }
 @media (max-width: 420px) { .fq-options { grid-template-columns: 1fr; } .fq-question { font-size: 20px; } .fq-option { min-height: 50px; } }
 .fq-dialog a.fq-view, .fq-dialog a.fq-view:visited, .fq-dialog a.fq-view:hover { color: #fff; }
+
+/* Review history ("Review All Edits"): every entry left-aligned with the badge beside the title. */
+.review-history-entry, .review-history-entry :is(h3, p) { text-align: left !important; }
+.review-history-entry h3 { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; line-height: 1.35; }
+.review-history-entry .review-history-badge { margin-left: 0 !important; }
+.review-history-entry p { margin: 4px 0 !important; font-size: .86rem; line-height: 1.45; }
+.review-history-entry .review-committee-links { display: flex; flex-wrap: wrap; flex-basis: 100%; gap: 6px; }
+.review-history-entry .review-committee-links:empty { display: none; }
+
+/* Request list cards (All requests / tracking): compact buttons, two per row; Delete smaller underneath. */
+#statusOverviewList .req-actions { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; margin-top: 12px; }
+#statusOverviewList .req-actions > :is(button, a) { width: 100% !important; min-width: 0; min-height: 40px !important; padding: 8px 10px !important; font-size: .84rem !important; line-height: 1.2; }
+#statusOverviewList .req-actions > :is(button, a):only-child,
+#statusOverviewList .req-actions > :is(textarea, input, select, [role="status"]) { grid-column: 1 / -1; }
+#statusOverviewList .req-actions > .delete { grid-column: 1 / -1; justify-self: start; width: auto !important; min-height: 34px !important; padding: 6px 14px !important; font-size: .8rem !important; }
+/* Entries keep their full height; the list scrolls instead of squeezing them. */
+.review-history-list { align-content: start; grid-auto-rows: max-content; }
+.review-history-entry { flex-shrink: 0; height: auto !important; min-height: max-content; }
