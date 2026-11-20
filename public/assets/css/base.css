@@ -1708,8 +1708,11 @@ button:disabled,
 .member-dialog-header { align-items: flex-start; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); }
 .member-dialog-header h2 { margin: 4px 0; }
 .member-dialog-header p { margin: 0; color: var(--text-muted); }
+/* The close button floats in its own rail at the top-right corner; keep the title text clear of it. */
+.member-dialog-inner > .member-dialog-header > div:first-child { padding-right: 52px; }
 .member-dialog-toolbar { margin: 16px 0; color: var(--text-muted); font-weight: 700; }
 .member-dialog-toolbar #downloadMembersExcelBtn { margin-left: auto; }
+.member-dialog-toolbar #downloadMembersExcelBtn[hidden] { display: none; }
 .member-add-form { margin-bottom: 18px; padding: 16px; border: 1px solid var(--border-color); border-radius: var(--radius-lg); background: var(--bg-soft); }
 .member-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .member-form-grid label { display: grid; gap: 6px; font-weight: 700; }
@@ -1802,6 +1805,16 @@ button:disabled,
   .member-roster-actions .member-role-edit-btn { flex: 0 0 auto; width: max-content; min-width: max-content; white-space: nowrap; overflow-wrap: normal; }
   .member-role-edit-form { grid-template-columns: 1fr; }
   .member-manager-launch, .member-dialog-toolbar, .member-form-actions { align-items: stretch; flex-direction: column; }
+  /* Club members window: count on top, the two toolbar buttons side by side; cards get an even button row. */
+  .member-dialog-toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .member-dialog-toolbar > span { grid-column: 1 / -1; }
+  .member-dialog-toolbar > button { width: 100%; min-height: 44px; margin: 0; justify-content: center; }
+  .member-dialog-toolbar #downloadMembersExcelBtn[hidden] + #showMemberFormBtn { grid-column: 1 / -1; }
+  .member-roster-card { gap: 12px; }
+  .member-roster-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .member-roster-actions .member-type-pill { grid-column: 1 / -1; justify-self: start; }
+  .member-roster-actions .member-role-edit-btn { width: 100%; min-width: 0; min-height: 40px; justify-content: center; text-align: center; }
+  .member-roster-actions .member-type-pill + .member-role-edit-btn:last-child { grid-column: 1 / -1; }
   .admin-member-directory-card { align-items: stretch; flex-direction: column; }
   .member-directory-person, .member-directory-club > header { align-items: flex-start; flex-direction: column; }
   .approval-checkpoints { padding: 10px 12px; }

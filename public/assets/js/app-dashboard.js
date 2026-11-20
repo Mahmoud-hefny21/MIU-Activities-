@@ -420,6 +420,13 @@ function applyMemberSearch() {
       : `No members match “${input.value.trim()}”. Try a name, email or committee.`;
 }
 const memberSearchInput = document.getElementById('memberSearchInput');
+if (memberSearchInput) {
+  const fullHint = memberSearchInput.placeholder;
+  const narrow = window.matchMedia('(max-width: 700px)');
+  const fitHint = () => { memberSearchInput.placeholder = narrow.matches ? 'Search members' : fullHint; };
+  narrow.addEventListener('change', fitHint);
+  fitHint();
+}
 memberSearchInput?.addEventListener('input', applyMemberSearch);
 memberSearchInput?.addEventListener('keydown', (event) => {
   // Esc clears the search first; a second Esc closes the window as usual.
