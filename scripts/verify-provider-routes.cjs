@@ -35,7 +35,7 @@ if (require.main === module && process.argv.includes('--child')) {
   process.stdout.write(JSON.stringify({ routes: registeredRoutes(app._router?.stack), connectionState: require('../database').connection.readyState }));
 } else if (require.main === module) {
   const report = verifyRoutes();
-  if (process.argv.includes('--write')) fs.writeFileSync(path.resolve(__dirname, '../docs/database-migration/provider-routes.json'), JSON.stringify(report, null, 2) + '\n');
+  if (process.argv.includes('--write')) fs.mkdirSync(path.resolve(__dirname, '../docs/database-migration'), { recursive: true }), fs.writeFileSync(path.resolve(__dirname, '../docs/database-migration/provider-routes.json'), JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify({ passed: report.passed, routeCount: report.routeCount, databaseConnections: 0 }));
 }
 module.exports = { verifyRoutes };
