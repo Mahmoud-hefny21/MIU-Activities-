@@ -693,6 +693,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let seen = false, dismissed = false;
     try { seen = sessionStorage.getItem('miu:quiz:greeted') === '1'; dismissed = localStorage.getItem('miu:quiz:message-dismissed-v1') === '1'; if (isHome) sessionStorage.setItem('miu:quiz:greeted', '1'); } catch (_) {}
     if (!isHome || seen || dismissed) wrap.classList.add('quiz-launcher-quiet');
+    else {
+      wrap.classList.add('quiz-launcher-waiting');
+      let introStarted = false;
+      const startIntro = () => {
+        if (introStarted) return;
+        introStarted = true;
+        setTimeout(() => requestAnimationFrame(() => wrap.classList.remove('quiz-launcher-waiting')), 300);
+      };
+      if (document.readyState === 'complete') startIntro(); else addEventListener('load', startIntro, { once: true });
+      setTimeout(startIntro, 4000);
+    }
     const petals = ['#BE000B', '#AC010A', '#9C0108', '#060505', '#000000', '#7F1D1D', '#BE000B'].map((fill, i) =>
       `<g transform="rotate(${(i * 51.43).toFixed(2)} 12 12)"><ellipse cx="12" cy="4.8" rx="2.2" ry="3.4" fill="${fill}" transform="rotate(-20 12 4.8)"/></g>`).join('');
     wrap.innerHTML = `<button type="button" class="quiz-launcher-circle" aria-label="Find your club" title="Find your club"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">${petals}</svg></button>`

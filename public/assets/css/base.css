@@ -2774,6 +2774,14 @@ html.quiz-scroll-lock {
   100% { scale: 0.83; }
 }
 
+/* Icon is visible right away; its intro waits until the page has finished loading. */
+.quiz-launcher-waiting .quiz-launcher-circle,
+.quiz-launcher-waiting .quiz-launcher-circle svg,
+.quiz-launcher-waiting .quiz-launcher-bubble {
+  animation-play-state: paused;
+}
+.quiz-launcher-waiting .quiz-launcher-bubble { pointer-events: none; }
+
 .quiz-launcher-quiet .quiz-launcher-bubble { display: none; }
 .quiz-launcher-quiet .quiz-launcher-circle {
   animation: none;
