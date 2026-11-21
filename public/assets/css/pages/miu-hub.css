@@ -7,3 +7,5 @@
 
 /* Every MIU Hub card has the red left edge used across the site. */
 .miu-hub-card { border-left: 4px solid var(--primary-700, #9f1d24) !important; border-radius: 14px; }
+/* Dark mode greys every card border; keep the red left edge on MIU Hub cards. */
+:root[data-theme="dark"] body .feed-post-card.miu-hub-card { border-left-color: var(--primary-600, #c9222a) !important; }
