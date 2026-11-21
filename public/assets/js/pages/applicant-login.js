@@ -66,14 +66,14 @@
             const renderGoogleButton = () => {
               const availableWidth = buttonHost.getBoundingClientRect().width;
               if (availableWidth < 120) return;
-              // 2px wider than the box: the box's own rounded border replaces Google's square one.
-              const width = Math.min(400, Math.floor(availableWidth) + 2);
+              // A few px narrower than the box so Google's frame margin never gets clipped.
+              const width = Math.min(400, Math.floor(availableWidth) - 4);
               // Redraw only for a real size change (small changes made the Google frame flicker and reload).
               if (renderedWidth && Math.abs(width - renderedWidth) < 12) return;
               renderedWidth = width;
               buttonHost.replaceChildren();
               // English text on every phone, the same width as the Sign In button above it.
-              window.google.accounts.id.renderButton(buttonHost, { theme: 'outline', size: 'large', text: linkExistingAccount ? 'continue_with' : 'signin_with', shape: 'rectangular', logo_alignment: 'center', locale: 'en', width });
+              window.google.accounts.id.renderButton(buttonHost, { theme: 'outline', size: 'large', text: linkExistingAccount ? 'continue_with' : 'signin_with', shape: 'pill', logo_alignment: 'center', locale: 'en', width });
             };
             const scheduleRender = () => { cancelAnimationFrame(resizeFrame); resizeFrame = requestAnimationFrame(renderGoogleButton); };
             const initializeGoogle = (googleConfig) => {

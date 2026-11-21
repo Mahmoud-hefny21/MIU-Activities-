@@ -12,10 +12,8 @@
       .login-divider { display: flex; align-items: center; gap: 12px; margin: 14px 0; color: var(--text-light); font-size: .8rem; font-weight: 700; }
       .login-divider::before, .login-divider::after { content: ''; flex: 1; height: 1px; background: var(--border-color); }
       #googleLoginArea, #googleLoginButton { box-sizing: border-box; width: 100%; min-width: 0; }
-      #googleLoginButton { max-width: 400px; margin-inline: auto; overflow: hidden; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: #fff; }
-      #googleLoginButton:empty { border: 0; }
-      #googleLoginButton > div { box-sizing: border-box; width: calc(100% + 2px) !important; max-width: none !important; margin: -1px !important; }
-      #googleLoginButton iframe { display: block; width: 100% !important; max-width: none !important; margin: 0 !important; }
+      #googleLoginButton { display: flex; justify-content: center; max-width: 400px; margin-inline: auto; }
+      #googleLoginButton > div, #googleLoginButton iframe { max-width: 100%; }
       .google-btn { box-sizing: border-box; width: 100%; min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 10px; background: var(--bg-panel); border: 1px solid var(--border-color); padding: 12px; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; color: var(--text-main); transition: all var(--transition-fast); }
       .google-btn[hidden] { display: none !important; }
       .google-btn:hover { background: var(--slate-100); }
