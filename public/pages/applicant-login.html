@@ -30,7 +30,7 @@
       <main class="app-container">
         <div class="login-wrap">
           <img src="/assets/img/pics/logo.svg.png" alt="MIU logo" />
-          <h1>Sign In</h1>
+          <h1 id="loginTitle">Sign In</h1>
           <p class="sub">Sign in with your university Google account using the button below.</p>
           <form id="studentLoginForm">
             <div class="field-group">
@@ -41,7 +41,7 @@
               <label for="uniPassword">Password</label>
               <input id="uniPassword" type="password" placeholder="••••••••" autocomplete="current-password" required />
             </div>
-            <button class="primary-btn" type="submit" style="width:100%">Sign In</button>
+            <button class="primary-btn" type="submit" id="loginSubmitBtn" style="width:100%">Sign In</button>
           </form>
           <p class="login-foot" style="text-align:right;margin-top:10px"><a href="/pages/forgot-password.html">Forgot password?</a></p>
           <p id="loginFeedback" class="admin-feedback" aria-live="polite"></p>

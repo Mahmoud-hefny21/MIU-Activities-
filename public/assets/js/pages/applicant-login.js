@@ -1,3 +1,11 @@
+      // Same wording as the header: "Sign In" the first time, "Login" once this browser has signed in before.
+      try {
+        if (localStorage.getItem('miu:signed-in-before') === '1') {
+          document.getElementById('loginTitle').textContent = 'Login';
+          document.getElementById('loginSubmitBtn').textContent = 'Login';
+          document.title = 'Login · MIU Activities';
+        }
+      } catch (_) {}
 
       document.getElementById('studentLoginForm').addEventListener('submit', async (event) => {
         event.preventDefault();
