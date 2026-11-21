@@ -14,14 +14,14 @@
           });
           const result = await response.json();
           if (!response.ok) throw new Error(result.message || 'Login failed.');
-          window.location.replace(result.role === 'student' ? studentReturnTarget() : (result.redirect || '/'));
+          window.location.replace(studentReturnTarget());
         } catch (error) {
           feedback.textContent = error.message;
           feedback.classList.add('is-error');
         }
       });
       const studentReturnTarget = () => {
-        const target = new URLSearchParams(window.location.search).get('redirect') || '/?myForms=1';
+        const target = new URLSearchParams(window.location.search).get('redirect') || '/';
         try {
           const parsed = new URL(target, window.location.origin);
           return target.startsWith('/') && parsed.origin === window.location.origin
@@ -66,7 +66,8 @@
             const renderGoogleButton = () => {
               const availableWidth = buttonHost.getBoundingClientRect().width;
               if (availableWidth < 120) return;
-              const width = Math.min(400, Math.floor(availableWidth));
+              // 2px wider than the box: the box's own rounded border replaces Google's square one.
+              const width = Math.min(400, Math.floor(availableWidth) + 2);
               // Redraw only for a real size change (small changes made the Google frame flicker and reload).
               if (renderedWidth && Math.abs(width - renderedWidth) < 12) return;
               renderedWidth = width;
@@ -108,7 +109,7 @@
                       window.location.replace(studentReturnTarget());
                       return;
                     }
-                    window.location.replace(result.role === 'student' ? studentReturnTarget() : (result.redirect || '/'));
+                    window.location.replace(studentReturnTarget());
                   } catch (error) {
                     document.getElementById('googleLoginArea').classList.remove('is-busy');
                     document.getElementById('googleLoginArea').removeAttribute('aria-busy');

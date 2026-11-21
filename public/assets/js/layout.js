@@ -513,6 +513,7 @@ document.addEventListener('DOMContentLoaded', () => {
             : null;
 
           if (account) {
+            try { localStorage.setItem('miu:signed-in-before', '1'); } catch (_) {}
             authBtn.href = account.href;
             authBtn.title = session.name ? `Signed in as ${session.name}` : account.label;
             authBtn.setAttribute('aria-label', account.label);
@@ -521,9 +522,12 @@ document.addEventListener('DOMContentLoaded', () => {
           } else {
             authBtn.href = '/pages/applicant-login.html';
             authBtn.removeAttribute('title');
-            authBtn.setAttribute('aria-label', 'Sign In');
+            // First visit says "Sign In"; once this device has signed in before, it says "Login".
+            let label = 'Sign In';
+            try { if (localStorage.getItem('miu:signed-in-before') === '1') label = 'Login'; } catch (_) {}
+            authBtn.setAttribute('aria-label', label);
             const span = authBtn.querySelector('span');
-            if (span) span.textContent = 'Sign In';
+            if (span) span.textContent = label;
           }
           const isAuthenticated = Boolean(account && session?.authenticated);
           const isStudent = session?.type === 'student' && isAuthenticated;
@@ -695,10 +699,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.classList.toggle('has-bottom-bar', window.matchMedia('(max-width: 1024px)').matches);
     const wrap = document.createElement('div'); wrap.className = 'quiz-launcher';
     const isHome = location.pathname === '/' || location.pathname === '/index.html';
-    // The greeting shows only on the first home visit of a session, and never again once dismissed.
-    let seen = false, dismissed = false;
-    try { seen = sessionStorage.getItem('miu:quiz:greeted') === '1'; dismissed = localStorage.getItem('miu:quiz:message-dismissed-v1') === '1'; if (isHome) sessionStorage.setItem('miu:quiz:greeted', '1'); } catch (_) {}
-    if (!isHome || seen || dismissed) wrap.classList.add('quiz-launcher-quiet');
+    // The greeting shows on every home visit until it is dismissed for this session.
+    let dismissed = false;
+    try { dismissed = sessionStorage.getItem('miu:quiz:message-dismissed') === '1'; } catch (_) {}
+    if (!isHome || dismissed) wrap.classList.add('quiz-launcher-quiet');
     else {
       wrap.classList.add('quiz-launcher-waiting');
       let introStarted = false;
@@ -718,7 +722,7 @@ document.addEventListener('DOMContentLoaded', () => {
     wrap.querySelector('.quiz-launcher-bubble').addEventListener('click', event => {
       if (!event.target.closest('.quiz-launcher-dismiss')) return void openQuiz();
       wrap.classList.add('quiz-launcher-quiet');
-      try { localStorage.setItem('miu:quiz:message-dismissed-v1', '1'); } catch (_) {}
+      try { sessionStorage.setItem('miu:quiz:message-dismissed', '1'); } catch (_) {}
       event.stopPropagation();
     });
     // Sits in the page right before the footer; CSS sticky keeps it above the footer without scroll handlers.

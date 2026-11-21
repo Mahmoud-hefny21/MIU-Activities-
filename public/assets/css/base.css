@@ -3659,3 +3659,7 @@ body .quiz-dialog > .quiz-dialog-close:hover {
   .quiz-result-card > :nth-child(2) { flex: 1 1 calc(100% - 50px); }
   .quiz-result-card .quiz-view-club { flex: 1 1 100%; min-height: 44px; }
 }
+
+/* A page that failed to load shows only its error card: no half-built footer, bottom bar or quiz icon. */
+body:has(.page-load-error-wrap) :is(#site-footer, .site-footer, footer, .bottom-bar, .quiz-launcher) { display: none !important; }
+body:has(.page-load-error-wrap) { padding-bottom: 0 !important; }
