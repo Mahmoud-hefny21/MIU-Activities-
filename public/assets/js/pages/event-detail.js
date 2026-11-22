@@ -99,11 +99,11 @@
       registrationForm.dataset.studentManaged = event.attendanceAudience === 'members' ? 'true' : 'false';
       const ticket = ++generation;
       if (event.registrationEnabled === true && event.attendanceAudience === 'members') {
-        import('/assets/js/student-event-registration.js?v=20261119checkin1').then(() => {
+        import('/assets/js/student-event-registration.js?v=20261122reconcile1').then(() => {
           if (ticket === generation) window.mountStudentEventRegistration(registrationForm, feedbackEl, '/api/university-content/' + event.id + '/registrations');
         }).catch(() => { feedbackEl.textContent = 'Registration controls could not load. Please reload.'; });
       }
-      if (event.registrationEnabled === true && event.attendanceAudience !== 'members') import('/assets/js/student-event-registration.js?v=20261119checkin1').then(() => {
+      if (event.registrationEnabled === true && event.attendanceAudience !== 'members') import('/assets/js/student-event-registration.js?v=20261122reconcile1').then(() => {
         if (ticket === generation) window.mountPublicEventCapacity(registrationForm, '/api/university-content/' + event.id + '/registrations');
       }).catch(() => { feedbackEl.textContent = 'Registration availability could not load. Please reload.'; });
       document.title = (event.title || 'University Event') + ' · MIU Activities';
@@ -166,7 +166,7 @@
       }
       registrationForm.hidden = event.registrationEnabled === false;
       registrationForm.dataset.studentManaged = 'false';
-          import('/assets/js/student-event-registration.js?v=20261119checkin1').then(() => window.mountStudentEventRegistration(registrationForm, feedbackEl, `/api/events/${clubId}/${eventIndex}/registrations${event.requestId > 0 ? '?eventRequestId=' + event.requestId : ''}`))
+          import('/assets/js/student-event-registration.js?v=20261122reconcile1').then(() => window.mountStudentEventRegistration(registrationForm, feedbackEl, `/api/events/${clubId}/${eventIndex}/registrations${event.requestId > 0 ? '?eventRequestId=' + event.requestId : ''}`))
         .catch(() => { feedbackEl.textContent = 'Registration controls could not load. Please reload.'; });
       statusEl.hidden = true;
       contentEl.hidden = false;

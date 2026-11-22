@@ -41,10 +41,21 @@ window.mountStudentEventRegistration = async (form, feedback, endpoint) => {
   async function write(method) {
     if (busy) return; busy = true; submit.disabled = true; cancel.disabled = true; feedback.textContent = method === 'POST' ? 'Registering…' : 'Cancelling…';
     try {
-      const response = await fetch(endpoint, { method, credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: '{}', signal });
-      const data = await response.json(); if (!response.ok) throw new Error(data.message);
+      // A slow or dropped answer must not leave the button spinning; the server may still have saved it.
+      const timeout = AbortSignal.timeout ? AbortSignal.timeout(30000) : null;
+      const response = await fetch(endpoint, { method, credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: '{}',
+        signal: timeout && AbortSignal.any ? AbortSignal.any([signal, timeout]) : signal });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || 'Could not confirm registration.');
       await status();
-    } catch (error) { if (error.name !== 'AbortError') { feedback.textContent = error.message || 'Could not confirm registration. Reload to check your status.'; submit.disabled = false; } }
+      if (method === 'POST' && data.registered) feedback.textContent = data.alreadyRegistered ? 'You are registered for this event. Registration is not proof of physical attendance.' : data.message;
+    } catch (error) {
+      if (signal.aborted) return;
+      const message = error.name === 'TimeoutError' ? 'The server is taking too long to answer.' : error.message || 'Could not confirm registration.';
+      // Show what the server actually stored (registered or not) instead of a stale or disabled button.
+      try { await status(); } catch { submit.disabled = false; }
+      feedback.textContent = submit.textContent === 'Already registered' && method === 'POST' ? 'You are registered for this event.' : message;
+    }
     finally { busy = false; cancel.disabled = false; }
   }
   form.addEventListener('submit', event => { event.preventDefault(); if (needsSignIn) { window.location.assign(signInUrl()); return; } void write('POST'); }, { signal });

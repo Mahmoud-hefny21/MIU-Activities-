@@ -367,7 +367,7 @@
   html body.has-bottom-bar .mobile-dashboard-drawer.as-sheet .sidebar-icon { width: 20px !important; height: 20px !important; color: var(--text-muted); }
   html body.has-bottom-bar .mobile-dashboard-drawer.as-sheet > :not(a):not(button) { margin: 4px 4px 8px !important; }
   /* Light backdrop: the page stays visible behind the menu card. */
-  body.has-bottom-bar.dashboard-drawer-open .dashboard-drawer-overlay:not([hidden]) { background: rgba(8, 15, 28, .18); }
+  body.has-bottom-bar.dashboard-drawer-open .dashboard-drawer-overlay:not([hidden]) { background: rgba(8, 15, 28, .4); }
   /* Keep the bar visible under the menu card, like the reference. */
   body.has-bottom-bar.dashboard-drawer-open .bottom-bar { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; z-index: 10000; }
 }

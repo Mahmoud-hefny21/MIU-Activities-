@@ -16,10 +16,13 @@
     clearTimeout(notification);
     notification = setTimeout(() => watchers.forEach(run => void run()), 100);
   };
-  const invalidate = (names = Object.keys(keys)) => {
+  // The version becomes part of the refresh URL, so a refresh skips Vercel's cached copy of the list.
+  // Server-sent changes and the timed fallback use a version shared by every visitor (one fresh copy
+  // is cached for all of them); a change made in this browser uses its own.
+  const invalidate = (names = Object.keys(keys), shared = '') => {
     for (const name of names) {
       if (!keys[name]) continue;
-      const version = Date.now() + ':' + Math.random();
+      const version = shared || Date.now() + ':' + Math.random();
       memoryDirty.set(name, version);
       set(dirtyKey(name), version);
     }
@@ -30,7 +33,7 @@
     if (fallbackTimer || document.visibilityState !== 'visible' || navigator.onLine === false) return;
     fallbackTimer = setTimeout(() => {
       fallbackTimer = null;
-      invalidate();
+      invalidate(undefined, 't' + Math.floor(Date.now() / 30000));
       startFallback();
     }, 30000);
   };
@@ -45,7 +48,9 @@
     if (pending.has(name)) return (await pending.get(name)).clone();
     const generation = dirty(name);
     const request = (async () => {
-      const response = await nativeFetch(input, { ...options, cache: 'no-store' });
+      const networkUrl = new URL(url);
+      if (generation) networkUrl.searchParams.set('fresh', generation);
+      const response = await nativeFetch(generation ? networkUrl.href : input, { ...options, cache: 'no-store' });
       if (response.ok) {
         const data = await response.clone().json();
         if (Array.isArray(data)) {
@@ -82,7 +87,8 @@
       source = new EventSource('/api/site/public-data-stream?since=' + encodeURIComponent(get(tokenKey) || ''));
       source.addEventListener('invalidate', event => {
         stopFallback();
-        try { invalidate(JSON.parse(event.data).keys); } catch { invalidate(); }
+        const shared = event.lastEventId ? 'e' + event.lastEventId : '';
+        try { invalidate(JSON.parse(event.data).keys, shared); } catch { invalidate(undefined, shared); }
         if (event.lastEventId) set(tokenKey, event.lastEventId);
       });
       source.addEventListener('ready', event => {

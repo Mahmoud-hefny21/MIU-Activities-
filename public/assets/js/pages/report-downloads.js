@@ -59,6 +59,7 @@ window.mountReportDownloads = function (root, kind, audienceOverride) {
     const blob = await response.blob(), url = URL.createObjectURL(blob), link = document.createElement('a');
     link.href = url; link.download = response.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] || 'event-sheet.csv';
     document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return response.headers.get('X-Export-Empty') || '';
   }
   $('downloadPeriod').addEventListener('change', () => {
     const year = $('downloadPeriod').value === 'year', all = $('downloadPeriod').value === 'all';
@@ -122,7 +123,11 @@ window.mountReportDownloads = function (root, kind, audienceOverride) {
           button.addEventListener('click', async () => {
             button.disabled = true;
             const query = new URLSearchParams(params); query.set('clubId', item.clubId); query.set('eventKey', item.key); query.set('sheet', sheet);
-            try { await save('/event-sheet.xlsx?' + query); $('downloadFeedback').textContent = `${item.title}: download ready.`; }
+            try {
+              const empty = await save('/event-sheet.xlsx?' + query);
+              $('downloadFeedback').textContent = empty === 'verified' ? `${item.title}: downloaded. No verified check-ins are recorded yet, so the sheet is empty.`
+                : empty === 'registered' ? `${item.title}: downloaded. No registrations are recorded yet, so the sheet is empty.` : `${item.title}: download ready.`;
+            }
             catch (error) { $('downloadFeedback').textContent = error.message; }
             finally { button.disabled = false; }
           });

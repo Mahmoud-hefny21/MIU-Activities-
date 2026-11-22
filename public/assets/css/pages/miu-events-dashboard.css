@@ -354,3 +354,13 @@
   .miu-events-dashboard-page .miu-post-records .record-actions { order: 2; display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; margin-top: 4px; }
   .miu-events-dashboard-page .miu-post-records .record-actions > button { width: 100% !important; min-width: 0; }
 }
+/* MIU information card: one column that cannot grow past the card, so the publisher name
+   ends with an ellipsis and the description wraps inside the padding instead of being cut off. */
+.miu-events-dashboard-page .university-publisher-preview { grid-template-columns: minmax(0, 1fr); }
+.miu-events-dashboard-page .university-publisher-preview .miu-publisher-chip { min-width: 0; margin: 0; }
+.miu-events-dashboard-page .university-publisher-preview p { overflow-wrap: anywhere; }
+/* Fields in a row keep their natural height: a neighbour with help text (e.g. the audience field)
+   no longer stretches the "Attendance tracking" select or pushes it below its label. */
+.miu-events-dashboard-page .university-publisher-form .form-row { align-items: start; }
+.miu-events-dashboard-page .university-publisher-form .form-row > label { align-content: start; }
+.miu-events-dashboard-page .university-publisher-form .form-row select { height: 46px; }

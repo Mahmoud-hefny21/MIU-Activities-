@@ -625,3 +625,10 @@
     line-height: 1.35;
   }
 }
+
+/* Account menu backdrop: dims the page and takes the outside tap, so nothing behind the open menu
+   is activated. It sits under the sticky header (z-index 100), which holds the menu and its button. */
+.nav-profile-backdrop { position: fixed; inset: 0; z-index: 99; background: rgba(8, 15, 28, .4); }
+.nav-profile-backdrop[hidden] { display: none; }
+@media (prefers-reduced-motion: no-preference) { .nav-profile-backdrop { animation: nav-profile-backdrop-in .15s ease-out; } }
+@keyframes nav-profile-backdrop-in { from { opacity: 0; } to { opacity: 1; } }

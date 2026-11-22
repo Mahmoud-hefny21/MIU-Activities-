@@ -184,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initFloatingBack();
 
   const navigationScript = document.createElement('script'); navigationScript.src = '/assets/js/dashboard-navigation.js?v=20261119swipe1'; document.head.append(navigationScript);
-  const drawerStyles = document.createElement('link'); drawerStyles.rel = 'stylesheet'; drawerStyles.href = '/assets/css/mobile-sidebars.css?v=20261120nav1';
+  const drawerStyles = document.createElement('link'); drawerStyles.rel = 'stylesheet'; drawerStyles.href = '/assets/css/mobile-sidebars.css?v=20261122backdrop1';
   const drawerScript = document.createElement('script'); drawerScript.src = '/assets/js/mobile-sidebars.js?v=20261120menus1';
   let drawerStarted = false;
   const bottomBarScript = document.createElement('script'); bottomBarScript.src = '/assets/js/bottom-bar.js?v=20261120menus1';
@@ -446,24 +446,51 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     studentProfileLink?.addEventListener('click', openStudentDashboard);
     accountDashboardLink?.addEventListener('click', openStudentDashboard);
-    const closeStudentProfileMenu = () => {
+    // While the account menu is open the page behind it is dimmed and cannot be clicked:
+    // a tap outside only closes the menu. Focus moves into the menu and back to its button.
+    const profileBackdrop = document.createElement('div');
+    profileBackdrop.className = 'nav-profile-backdrop';
+    profileBackdrop.hidden = true;
+    document.body.append(profileBackdrop);
+    const profileMenuItems = () => [...(studentProfileDropdown?.querySelectorAll('a[href], button:not(:disabled)') || [])]
+      .filter((item) => !item.hidden && item.getClientRects().length);
+    const closeStudentProfileMenu = ({ restoreFocus = false } = {}) => {
       if (!studentProfileDropdown || !studentProfileTrigger) return;
+      const wasOpen = !studentProfileDropdown.hidden;
+      const focusInside = studentProfileDropdown.contains(document.activeElement);
       studentProfileDropdown.hidden = true;
+      profileBackdrop.hidden = true;
       studentProfileTrigger.setAttribute('aria-expanded', 'false');
+      if (wasOpen && (restoreFocus || focusInside)) studentProfileTrigger.focus();
     };
     studentProfileTrigger?.addEventListener('click', () => {
       const open = studentProfileDropdown?.hidden;
       if (!studentProfileDropdown) return;
-      studentProfileDropdown.hidden = !open;
-      studentProfileTrigger.setAttribute('aria-expanded', String(Boolean(open)));
-      if (open) announceMenuOpen('account');
+      if (!open) { closeStudentProfileMenu({ restoreFocus: true }); return; }
+      studentProfileDropdown.hidden = false;
+      profileBackdrop.hidden = false;
+      studentProfileTrigger.setAttribute('aria-expanded', 'true');
+      announceMenuOpen('account');
+      profileMenuItems()[0]?.focus();
     });
     onOtherMenuOpen('account', closeStudentProfileMenu);
+    profileBackdrop.addEventListener('click', (event) => {
+      event.preventDefault(); event.stopPropagation();
+      closeStudentProfileMenu({ restoreFocus: true });
+    });
     document.addEventListener('click', (event) => {
       if (studentProfileMenu && !studentProfileMenu.contains(event.target)) closeStudentProfileMenu();
     });
-    studentProfileDropdown?.querySelectorAll('a').forEach((link) => link.addEventListener('click', closeStudentProfileMenu));
-    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeStudentProfileMenu(); });
+    studentProfileDropdown?.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => closeStudentProfileMenu()));
+    document.addEventListener('keydown', (event) => {
+      if (!studentProfileDropdown || studentProfileDropdown.hidden) return;
+      if (event.key === 'Escape') { closeStudentProfileMenu({ restoreFocus: true }); return; }
+      if (event.key !== 'Tab') return;
+      const items = profileMenuItems();
+      if (!items.length) return;
+      if (event.shiftKey && document.activeElement === items[0]) { event.preventDefault(); items.at(-1).focus(); }
+      else if (!event.shiftKey && document.activeElement === items.at(-1)) { event.preventDefault(); items[0].focus(); }
+    });
     if (authBtn) {
       const headerSessionCacheKey = 'miu:header-session';
       const renderHeaderAccountState = async (cachedSession = null) => {

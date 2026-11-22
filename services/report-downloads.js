@@ -133,9 +133,9 @@ function registerReportDownloads(app, deps) {
           .select('name email universityId major itemType eventRequestId eventTitle eventDate attendedAt approvalStatus approvalHistory note attendanceAudience membershipStatus memberClubNames eventParticipation reverseAttendance +deviceHash').lean();
         people = records.filter(r => r.eventRequestId === event.attendanceId && (r.itemType || 'event') === event.itemType && (event.attendanceId > 0 || r.eventTitle === event.title && r.eventDate === event.date));
       }
-      if (!people.length) return res.status(404).json({ message: sheet === 'registered'
-        ? 'No registrations are recorded for this event. To download people who checked in, choose Download attendance sheet.'
-        : 'No verified check-ins were found for this event. Check that you selected the same event and club used for attendance.' });
+      // An event with nobody registered or checked in still downloads: the sheet has its headings
+      // and the summary reports 0 records. The header tells the page to say so.
+      if (!people.length) res.setHeader('X-Export-Empty', sheet);
       const emails = [...new Set(people.map(p => String(p.email || '').trim().toLowerCase()).filter(Boolean))];
       const students = emails.length ? await StudentAccount.find({ email: { $in: emails } }).select('name email universityId major').lean() : [];
       const profiles = new Map(students.map(s => [s.email.toLowerCase(), s]));

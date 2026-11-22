@@ -909,7 +909,7 @@ document.getElementById('saveReviewBtn').addEventListener('click', async () => {
 document.getElementById('myFormsButton')?.addEventListener('click', () => {});
 document.getElementById('myFormsBackHomeBtn').addEventListener('click', returnToPreviousAppView);
 function setStudentDashboardSection(sectionName, { updateUrl = true } = {}) {
-  const section = ['overview', 'clubs', 'applications', 'attendance'].includes(sectionName) ? sectionName : 'overview';
+  const section = ['overview', 'clubs', 'applications', 'attendance', 'my-attendance'].includes(sectionName) ? sectionName : 'overview';
   document.querySelectorAll('[data-student-panel]').forEach((panel) => {
     panel.hidden = panel.dataset.studentPanel !== section;
   });
@@ -920,6 +920,7 @@ function setStudentDashboardSection(sectionName, { updateUrl = true } = {}) {
     else button.removeAttribute('aria-current');
   });
   if (section === 'attendance') void window.loadMemberAttendanceAssignments?.();
+  if (section === 'my-attendance') void loadMyAttendance();
   void loadStudentClubs(section === 'clubs');
   if (updateUrl) {
     const url = new URL(window.location.href);
@@ -964,6 +965,49 @@ async function loadStudentClubs(force = false) {
   list.querySelectorAll('[data-open-club]').forEach((card) => card.addEventListener('click', () => openClubDetail(Number(card.dataset.openClub))));
 }
 window.loadStudentClubs = loadStudentClubs;
+
+// "My Attendance QR": the signed-in student's registered events, verified check-ins and history.
+// The QR itself opens on the attendance page, where the server issues and verifies it.
+let myAttendanceLoading = null;
+function loadMyAttendance() {
+  return myAttendanceLoading ||= (async () => {
+    const list = document.getElementById('studentMyAttendanceList'), history = document.getElementById('studentAttendanceHistory');
+    if (!list || !history) return;
+    try {
+      const response = await fetch('/api/reverse-attendance/my-attendance', { cache: 'no-store', credentials: 'same-origin' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || 'Your attendance could not be loaded.');
+      const count = document.getElementById('studentSidebarVerifiedCount');
+      if (count) count.textContent = String(data.verifiedCount || 0);
+      const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo' }).format(new Date());
+      const when = (item) => [item.date, item.time ? (window.formatSiteTime?.(item.time) || item.time) : ''].filter(Boolean).join(' · ') || 'Date not set';
+      const badge = (attendance) => attendance?.verified
+        ? `<span class="student-attendance-status is-verified">Verified check-in${attendance.attendedAt ? ' · ' + escapeHtml(new Date(attendance.attendedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })) : ''}</span>`
+        : '<span class="student-attendance-status">Not checked in</span>';
+      const card = (item, withQr) => {
+        const qr = new URLSearchParams({ source: item.source, clubId: String(item.clubId), eventIndex: String(item.eventIndex) });
+        if (item.eventRequestId) qr.set('eventRequestId', String(item.eventRequestId));
+        const showQr = withQr && !item.attendance?.verified && (!item.date || item.date >= today);
+        return `<article class="student-attendance-card">
+          <span class="student-club-copy"><strong>${escapeHtml(item.title || 'Event')}</strong><span>${escapeHtml([item.logoLabel, when(item)].filter(Boolean).join(' · '))}</span></span>
+          ${badge(item.attendance)}
+          ${showQr ? `<a class="secondary-btn" href="/pages/attendance-qr.html?${escapeHtml(qr.toString())}">Show my QR</a>` : ''}
+        </article>`;
+      };
+      const registered = Array.isArray(data.registered) ? data.registered : [];
+      const past = Array.isArray(data.history) ? data.history : [];
+      list.innerHTML = registered.length ? registered.map((item) => card(item, true)).join('')
+        : '<p class="member-assignment-empty">No registered events yet. Register from an event page, then your QR appears here.</p>';
+      history.innerHTML = past.length ? past.map((item) => card(item, false)).join('')
+        : '<p class="member-assignment-empty">No other verified check-ins yet.</p>';
+    } catch (error) {
+      list.innerHTML = `<p class="member-assignment-empty is-error">${escapeHtml(error.message || 'Your attendance could not be loaded.')}</p>`;
+      history.replaceChildren();
+    } finally { myAttendanceLoading = null; }
+  })();
+}
+window.loadMyAttendance = loadMyAttendance;
+document.getElementById('refreshMyAttendanceBtn')?.addEventListener('click', () => void loadMyAttendance());
 document.querySelectorAll('[data-student-section]').forEach((button) => {
   button.addEventListener('click', () => setStudentDashboardSection(button.dataset.studentSection));
 });

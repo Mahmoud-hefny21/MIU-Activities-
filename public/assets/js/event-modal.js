@@ -59,13 +59,13 @@
     feedback.textContent = '';
     form.reset();
     form.hidden = event.registrationEnabled === false;
-    if (!event.university) import('/assets/js/student-event-registration.js?v=20261119checkin1').then(() => {
+    if (!event.university) import('/assets/js/student-event-registration.js?v=20261122reconcile1').then(() => {
       if (activeEvent === event) window.mountStudentEventRegistration(form, feedback, `/api/events/${event.clubId}/${event.eventIndex}/registrations${event.requestId > 0 ? '?eventRequestId=' + event.requestId : ''}`);
     }).catch(() => { feedback.textContent = 'Registration controls could not load. Please reload.'; });
-    if (event.university && event.attendanceAudience !== 'members' && event.registrationEnabled === true) import('/assets/js/student-event-registration.js?v=20261119checkin1').then(() => {
+    if (event.university && event.attendanceAudience !== 'members' && event.registrationEnabled === true) import('/assets/js/student-event-registration.js?v=20261122reconcile1').then(() => {
       if (activeEvent === event) window.mountPublicEventCapacity(form, `/api/university-content/${event.universityContentId || event.id}/registrations`);
     }).catch(() => { feedback.textContent = 'Registration availability could not load. Please reload.'; });
-    else if (event.university && event.attendanceAudience === 'members' && event.registrationEnabled === true) import('/assets/js/student-event-registration.js?v=20261119checkin1').then(() => {
+    else if (event.university && event.attendanceAudience === 'members' && event.registrationEnabled === true) import('/assets/js/student-event-registration.js?v=20261122reconcile1').then(() => {
       if (activeEvent === event) window.mountStudentEventRegistration(form, feedback, `/api/university-content/${encodeURIComponent(event.universityContentId || event.id)}/registrations`);
     }).catch(() => { feedback.textContent = 'Registration controls could not load. Please reload.'; });
     window.MiuUI.modals.open(modal);

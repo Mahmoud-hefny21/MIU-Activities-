@@ -4,6 +4,9 @@
 -- Read the preview counts, then change the last line to COMMIT to really delete.
 -- Every DELETE matches the exact id AND title/description, so a real record that reuses an id is untouched.
 SET XACT_ABORT ON;
+-- Explicit target confirmation: type the database you mean to clean. Any other database stops here.
+DECLARE @expectedDatabase SYSNAME = N'CHANGE_ME';
+IF DB_NAME() <> @expectedDatabase THROW 50001, 'Set @expectedDatabase to the database you intend to clean. Nothing was changed.', 1;
 BEGIN TRANSACTION;
 
 DECLARE @suffix NVARCHAR(32) = N'eb3a3dbced965dbd';  -- from "Synthetic SQL attendance eb3a3dbced965dbd"

@@ -532,7 +532,8 @@ async function loadRequests(sharedResponse = null, invalidateStatus = true) {
     let responsePromise = sharedResponse;
     if (Array.isArray(cachedRequestsSnapshot)) {
       const saved = cachedRequestsSnapshot;
-      const liveResponsePromise = sharedResponse || fetch('/api/committee/requests', { cache: 'no-store' });
+      // Callers pass either a Response or a Promise of one; normalize before chaining.
+      const liveResponsePromise = Promise.resolve(sharedResponse || fetch('/api/committee/requests', { cache: 'no-store' }));
       responsePromise = Promise.resolve(new Response(JSON.stringify(saved), { status: 200, headers: { 'Content-Type': 'application/json' } }));
       void liveResponsePromise.then(async (liveResponse) => {
         const latest = await liveResponse.clone().json();

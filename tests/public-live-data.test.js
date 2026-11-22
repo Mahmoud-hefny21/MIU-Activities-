@@ -86,7 +86,8 @@ test('a change downloads only the affected dataset and coalesces simultaneous re
   });
   app.sources[0].send('invalidate', ['clubs']);
   await app.flush();
-  assert.deepEqual(downloads, ['/api/clubs?media=links']);
+  // A live change skips Vercel's cached copy with a version every visitor shares (the stream event id).
+  assert.deepEqual(downloads, ['https://example.test/api/clubs?media=links&fresh=eresume-token']);
   assert.equal((await (await app.window.fetch('/api/clubs?media=links')).json())[0].name, 'Updated');
   assert.equal(app.storage.get('miu:public-live-token'), 'resume-token');
 });
@@ -106,7 +107,8 @@ test('private APIs always use the network and failed refreshes remain dirty for 
   await app.flush();
   assert.equal(app.sources.length, 2);
   assert.ok(app.sources[1].url.includes('since=resume-token'));
-  assert.equal(downloads.filter(url => url === '/api/clubs?media=links').length, 3);
+  const path = url => { const parsed = new URL(url, 'https://example.test'); parsed.searchParams.delete('fresh'); return parsed.pathname + parsed.search; };
+  assert.equal(downloads.filter(url => path(url) === '/api/clubs?media=links').length, 3);
 });
 
 test('explicit fresh reads bypass saved university data even before a live invalidation arrives', async () => {

@@ -7,7 +7,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <script src="/assets/js/site-loading.js?v=20261014promptqueue1"></script>
-    <script src="/assets/js/public-live-data.js?v=20261116initialrefresh1"></script>
+    <script src="/assets/js/public-live-data.js?v=20261122fresh1"></script>
     <script src="/assets/js/auth-route-pending.js?v=20261122csp1"></script>
     <title>MIU Activities</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -16,9 +16,9 @@
     <script src="/assets/js/inline-actions.js?v=20261122csp1" defer></script>
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" /></noscript>
     <link rel="stylesheet" href="/assets/css/base.css?v=20261120qb2" />
-    <link rel="stylesheet" href="/assets/css/responsive.css?v=20261120qb1" />
+    <link rel="stylesheet" href="/assets/css/responsive.css?v=20261122backdrop1" />
     <link rel="stylesheet" href="/assets/css/dark.css?v=20261120menus2" />
-    <link rel="stylesheet" href="/assets/css/features.css?v=20261120review2" />
+    <link rel="stylesheet" href="/assets/css/features.css?v=20261122attendance1" />
     <link rel="stylesheet" href="/assets/css/event-modal.css?v=20261017mobilepopup1" />
     <link rel="icon" type="image/png" sizes="192x192" href="/assets/img/pics/pwa-icon-192.png?v=20261013favicon1">
     <link rel="apple-touch-icon" href="/assets/img/pics/pwa-icon-192.png?v=20261013favicon1">
@@ -26,7 +26,7 @@
     <meta name="application-name" content="MIU Activities">
     <link rel="stylesheet" href="/assets/css/pages/home.css?v=20261120pres2" />
     <link rel="stylesheet" href="/assets/css/pages/speaker-requests.css?v=20261120dead1" />
-      <script defer src="/assets/js/pwa-register.js?v=20261119ui1"></script>
+      <script defer src="/assets/js/pwa-register.js?v=20261122reset1"></script>
     <link rel="stylesheet" href="/assets/css/modal-controls.css?v=20261116closeunify2">
   <link rel="stylesheet" href="/assets/css/pages/event-reports.css?v=20261120btn1">
   <script src="/assets/js/feed-media.js?v=20261120done1" defer></script>
@@ -96,11 +96,11 @@
             <form id="unifiedLoginForm">
               <div class="field-group">
                 <label for="unifiedEmail">Email</label>
-                <input id="unifiedEmail" type="text" autocomplete="username" required />
+                <input id="unifiedEmail" name="email" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required />
               </div>
               <div class="field-group">
                 <label for="unifiedPassword">Password</label>
-                <input id="unifiedPassword" type="password" autocomplete="current-password" required />
+                <input id="unifiedPassword" name="password" type="password" autocomplete="current-password" required />
               </div>
               <button class="primary-btn" type="submit">Sign In</button>
             </form>
@@ -134,6 +134,7 @@
                   <button class="student-dashboard-nav-item" type="button" data-student-section="clubs"><svg class="student-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20v-1a6 6 0 0 1 12 0v1"/><path d="M16 4a3 3 0 0 1 0 6M21 20v-1a5 5 0 0 0-3-4.6"/></svg><span>My clubs</span><span class="student-nav-count" id="studentSidebarClubCount">—</span></button>
                   <button class="student-dashboard-nav-item" type="button" data-student-section="applications"><svg class="student-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg><span>Applications</span><span class="student-nav-count" id="studentSidebarApplicationCount">—</span></button>
                   <button class="student-dashboard-nav-item" type="button" data-student-section="attendance"><svg class="student-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Attendance</span><span class="student-nav-count" id="studentSidebarAttendanceCount">—</span></button>
+                  <button class="student-dashboard-nav-item" type="button" data-student-section="my-attendance"><svg class="student-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 17h4v4"/></svg><span>My Attendance QR</span><span class="student-nav-count" id="studentSidebarVerifiedCount">—</span></button>
                 </nav>
                 <a class="student-dashboard-explore" href="/?explore=clubs#clubGrid">Explore clubs <span aria-hidden="true">→</span></a>
               </aside>
@@ -169,6 +170,13 @@
                   <div class="student-section-heading"><div><span class="admin-eyebrow">YOUR CLUB FORMS</span><h3 id="studentApplicationsTitle">Applications</h3><p>Check your application status or update a form that is still open.</p></div></div>
                   <p id="myFormsFeedback" class="admin-feedback" role="status"></p>
                   <div id="myFormsList" class="my-forms-list"></div>
+                </section>
+
+                <section class="student-dashboard-section" data-student-panel="my-attendance" aria-labelledby="studentMyAttendanceTitle" hidden>
+                  <div class="student-section-heading"><div><span class="admin-eyebrow">YOUR EVENTS</span><h3 id="studentMyAttendanceTitle">My Attendance QR</h3><p>Events you registered for, your verified check-ins and your attendance history. Open an event&rsquo;s QR to check in; the scanner verifies it.</p></div><button id="refreshMyAttendanceBtn" class="secondary-btn" type="button">Refresh</button></div>
+                  <div id="studentMyAttendanceList" class="student-attendance-list" aria-live="polite"><p class="member-assignment-empty">Loading your attendance…</p></div>
+                  <h4 class="student-attendance-subtitle">Attendance history</h4>
+                  <div id="studentAttendanceHistory" class="student-attendance-list" aria-live="polite"></div>
                 </section>
 
                 <section class="student-dashboard-section" data-student-panel="attendance" aria-labelledby="memberAssignmentsTitle" hidden>
@@ -209,7 +217,7 @@
 
               <div class="field-group">
                 <label for="applicationUniversityId">University ID</label>
-                <input id="applicationUniversityId" type="text" name="universityId" placeholder="e.g. 2024/06700" maxlength="12" title="MIU ID like 2024/06700 (entry year / 5-digit number)" autocomplete="off" required />
+                <input id="applicationUniversityId" type="text" name="universityId" placeholder="e.g. 2024/06700" maxlength="12" title="MIU ID like 2024/06700 (entry year / 5-digit number)" required />
               </div>
 
               <div class="field-group">
@@ -626,8 +634,8 @@
           </div>
           <form id="clubMemberForm" class="member-add-form hidden">
             <div class="member-form-grid">
-              <label>Full name<input name="name" maxlength="120" autocomplete="name" required /></label>
-              <label>MIU email for Google sign-in<input name="email" type="email" maxlength="254" autocomplete="email" placeholder="member@miu.edu" required /></label>
+              <label>Full name<input name="name" maxlength="120" autocomplete="off" required /></label>
+              <label>MIU email for Google sign-in<input name="email" type="email" maxlength="254" autocomplete="off" placeholder="member@miu.edu" required /></label>
               <label>MIU ID<input name="universityId" maxlength="12" placeholder="e.g. 2024/06700" title="MIU ID like 2024/06700 (entry year / 5-digit number)" autocomplete="off" required /></label>
               <label>Major<input name="major" maxlength="120" required /></label>
               <label>Phone number<input name="phone" type="tel" maxlength="40" autocomplete="tel" required /></label>
@@ -708,7 +716,7 @@
           <details id="attendanceDelegationPanel" class="attendance-delegation-panel attendance-delegation-details hidden">
             <summary aria-labelledby="attendanceDelegationTitle">
               <span class="attendance-delegation-summary-copy"><strong id="attendanceDelegationTitle">Assign attendance</strong><small>Send today’s check-in request to an eligible club member.</small></span>
-              <span class="attendance-delegation-tag">IT committee</span>
+              <span class="attendance-delegation-tag">Club members</span>
             </summary>
             <div class="attendance-delegation-content">
             <form id="attendanceDelegationForm" class="attendance-delegation-form">
@@ -797,11 +805,11 @@
             <form id="eventModalForm">
               <div class="field-group">
                 <label for="eventModalName">Your Name</label>
-                <input id="eventModalName" placeholder="Full name" required />
+                <input id="eventModalName" name="name" placeholder="Full name" autocomplete="name" required />
               </div>
               <div class="field-group">
                 <label for="eventModalEmail">University Email</label>
-                <input id="eventModalEmail" type="email" placeholder="example@miuegypt.edu.eg" required />
+                <input id="eventModalEmail" name="email" type="email" placeholder="example@miuegypt.edu.eg" autocomplete="email" required />
               </div>
               <button class="primary-btn" type="submit">Register for event</button>
             </form>
@@ -886,7 +894,7 @@
 
     <div id="site-footer"></div>
 
-    <script src="/assets/js/event-modal.js?v=20261019miusync1" defer></script>
+    <script src="/assets/js/event-modal.js?v=20261122reconcile1" defer></script>
     <script src="/assets/js/committee-sidebar.js?v=20261013lighter1" defer></script>
     <script src="/assets/js/member-dashboard.js?v=20261120self1" defer></script>
     <script src="/assets/js/app-home.js?v=20261122upcoming1" defer></script>
@@ -896,16 +904,16 @@
     <script src="/assets/js/president-interview-slots.js?v=20261120slots1" defer></script>
     <script src="/assets/js/club-qr.js?v=20261120clubqr1" defer></script>
     <script src="/assets/js/app-forms.js?v=20261120qb1" defer></script>
-    <script src="/assets/js/app-dashboard.js?v=20261120ids1" defer></script>
+    <script src="/assets/js/app-dashboard.js?v=20261122attendance1" defer></script>
     <script src="/assets/js/student-checkin-auto.js?v=20261119checkin1" defer></script>
     <script src="/assets/js/president-overview.js?v=20261119todo1" defer></script>
     <script src="/assets/js/attendance-qr-style.js?v=20261120qr2" defer></script>
     <script src="/assets/js/attendance-dashboard.js?v=20261019radialqr1" defer></script>
     <script src="/assets/js/entry-permit-dashboard.js?v=20261014permitmobilecards1" defer></script>
     <script src="/assets/js/member-directory.js?v=20261013stagedload3" defer></script>
-    <script src="/assets/js/layout.js?v=20261120menus1" defer></script>
+    <script src="/assets/js/layout.js?v=20261122backdrop1" defer></script>
     <script src="/assets/js/theme.js?v=20261120done1" defer></script>
-    <script src="/assets/js/pages/report-downloads.js?v=20261014progressive1" defer></script>
+    <script src="/assets/js/pages/report-downloads.js?v=20261122empty1" defer></script>
   <script src="/assets/js/report-dashboard-panels.js?v=20261119icons1" defer></script>
 
     <dialog id="clubQrDialog" class="club-qr-dialog" aria-labelledby="clubQrTitle">

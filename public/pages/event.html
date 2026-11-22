@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <script src="/assets/js/shared.js?v=20261120ids1"></script>
   <script src="/assets/js/site-loading.js?v=20261014promptqueue1"></script>
-    <script src="/assets/js/public-live-data.js?v=20261019miusync1"></script>
+    <script src="/assets/js/public-live-data.js?v=20261122fresh1"></script>
     <title>Event - MIU Activities</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -14,7 +14,7 @@
     <script src="/assets/js/inline-actions.js?v=20261122csp1" defer></script>
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" /></noscript>
     <link rel="stylesheet" href="/assets/css/base.css?v=20261120qb2" />
-    <link rel="stylesheet" href="/assets/css/responsive.css?v=20261120qb1" />
+    <link rel="stylesheet" href="/assets/css/responsive.css?v=20261122backdrop1" />
     <link rel="stylesheet" href="/assets/css/dark.css?v=20261120menus2" />
     <link rel="stylesheet" href="/assets/css/features.css?v=20261120review2" />
     <link rel="stylesheet" href="/assets/css/pages/events.css?v=20261120dead1" />
@@ -23,7 +23,7 @@
     <meta name="apple-mobile-web-app-title" content="MIU Activities">
     <meta name="application-name" content="MIU Activities">
   <script src="/assets/js/student-feedback.js?v=20261119checkin1" defer></script>
-      <script defer src="/assets/js/pwa-register.js?v=20261119ui1"></script>
+      <script defer src="/assets/js/pwa-register.js?v=20261122reset1"></script>
     <link rel="stylesheet" href="/assets/css/modal-controls.css?v=20261116closeunify2">
   <link rel="stylesheet" href="/assets/css/site-polish.css?v=20261120menu1">
 </head>
@@ -47,11 +47,11 @@
             <form id="regForm">
               <div class="field-group">
                 <label for="regName">Your Name</label>
-                <input id="regName" placeholder="Full name" required />
+                <input id="regName" name="name" placeholder="Full name" autocomplete="name" required />
               </div>
               <div class="field-group">
                 <label for="regEmail">University Email</label>
-                <input id="regEmail" type="email" placeholder="example@miuegypt.edu.eg" required />
+                <input id="regEmail" name="email" type="email" placeholder="example@miuegypt.edu.eg" autocomplete="email" required />
               </div>
               <button class="primary-btn" type="submit">Register for event</button>
             </form>
@@ -62,9 +62,9 @@
       </main>
     </div>
     <div id="site-footer"></div>
-    <script src="/assets/js/pages/event-detail.js?v=20261119bugfix1" defer></script>
+    <script src="/assets/js/pages/event-detail.js?v=20261122reconcile1" defer></script>
     <script src="/assets/js/pages/event-completion.js?v=20261119per1" defer></script>
-    <script src="/assets/js/layout.js?v=20261120menus1" defer></script>
+    <script src="/assets/js/layout.js?v=20261122backdrop1" defer></script>
     <script src="/assets/js/theme.js?v=20261120done1" defer></script>
   </body>
 </html>

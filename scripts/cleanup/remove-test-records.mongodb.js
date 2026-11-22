@@ -1,8 +1,10 @@
 // MongoDB version of remove-test-records.sql, for a deployment whose data lives in MongoDB.
 // REVIEW BEFORE RUNNING. Dry run by default:   mongosh "<MONGO_URI>" scripts/cleanup/remove-test-records.mongodb.js
-// To delete for real:                          mongosh "<MONGO_URI>" --eval "var APPLY=true" scripts/cleanup/remove-test-records.mongodb.js
+// To delete for real:                          mongosh "<MONGO_URI>" --eval "var APPLY=true, CONFIRM_DB='<db>'" scripts/cleanup/remove-test-records.mongodb.js
 // Every match uses the exact id AND title/description, so a real record that reuses an id is untouched.
 const apply = typeof APPLY !== 'undefined' && APPLY === true;
+// Explicit target confirmation for a real run: --eval "var APPLY=true, CONFIRM_DB='<database name>'"
+if (apply && (typeof CONFIRM_DB === 'undefined' || CONFIRM_DB !== db.getName())) throw new Error(`Set CONFIRM_DB='${db.getName()}' to confirm the target database. Nothing was changed.`);
 const suffix = 'eb3a3dbced965dbd';
 const targets = db.universitycontents.find({ $or: [
   { id: 534314197, title: 'QR concurrency test', description: 'Synthetic SQL attendance ' + suffix },

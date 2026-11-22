@@ -67,7 +67,7 @@
     if (!preloadedDownloadPanels.has(mode)) {
       const promise = (async () => {
         const content = await template();
-        await ensureScript('mountReportDownloads', '/assets/js/pages/report-downloads.js?v=20261014progressive1', 'preloadedReportDownloads');
+        await ensureScript('mountReportDownloads', '/assets/js/pages/report-downloads.js?v=20261122empty1', 'preloadedReportDownloads');
         const root = document.createElement('div'); root.className = 'report-preloaded-controls'; root.hidden = true; root.innerHTML = content;
         const ready = window.mountReportDownloads(root, 'attendance', mode === 'open_attendance' ? 'all_students' : 'members');
         return { root, ready };

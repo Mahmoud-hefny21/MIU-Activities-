@@ -1273,7 +1273,13 @@ async function requireStudentAuth(req, res, next) {
   try {
     if (!mongoReady) return res.status(503).json({ message: 'Student sign-in is temporarily unavailable.' });
     const account = await getStudentAccountFromRequest(req, res);
-    if (!account) return res.status(401).json({ message: 'Sign in with your verified MIU account to check in.' });
+    if (!account) {
+      // A staff session signed in with a password has no verified student identity; say so instead of
+      // a generic "sign in", which reads as a login loop to someone who is already signed in.
+      if (await getClubAccountFromRequest(req, res)) return res.status(401).json({ code: 'STUDENT_SESSION_REQUIRED',
+        message: 'You are signed in to a staff account. To check in as a student, sign in with Google using your MIU email.' });
+      return res.status(401).json({ message: 'Sign in with your verified MIU account to check in.' });
+    }
     await reverseAttendanceService.bindDevice(account, req, res);
     req.studentAccount = account;
     next();
@@ -1302,6 +1308,14 @@ const SIGNED_IN_PAGES = new Set([
 app.use((req, res, next) => {
   if (req.method !== 'GET' || !SIGNED_IN_PAGES.has(req.path)) return next();
   if (/(?:^|;\s*)miu_(?:admin|club|student)=[^;]+/.test(req.headers.cookie || '')) return next();
+  // A link opened from another site (WhatsApp, email, a notification) arrives without the SameSite=Strict
+  // session cookies. Reload once from this site so the browser sends them; the check above then runs normally.
+  if (req.get('sec-fetch-site') === 'cross-site' && req.get('sec-fetch-mode') === 'navigate') {
+    res.setHeader('Cache-Control', 'no-store');
+    return res.type('html').send('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex">'
+      + '<title>Opening… · MIU Activities</title><script src="/assets/js/same-site-reload.js?v=20261122strict1"></script></head>'
+      + `<body><p><a href="${escapeHtml(req.originalUrl)}">Continue</a></p></body></html>`);
+  }
   // A student's attendance QR comes from their own account: send them to sign in and straight back.
   if (req.path === '/pages/attendance-qr.html') return res.redirect(302, '/pages/applicant-login.html?redirect=' + encodeURIComponent(req.originalUrl));
   return sendHttpErrorPage(res, 401, 'Sign in required', 'Sign in with your MIU account to open this page.');
@@ -2432,7 +2446,11 @@ app.get('/api/miu-hub', async (req, res) => {
     const type = ['event', 'announcement'].includes(req.query.type) ? req.query.type : '';
     const records = (await UniversityContent.find(type ? { type } : {}).select(fields).read('primary').readConcern('majority').lean()).map(toPublicUniversityContent);
     const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo' }).format(new Date());
-    const upcoming = item => item.type === 'event' && /^\d{4}-\d{2}-\d{2}$/.test(item.date || '') && item.date >= today;
+    // Same rule as the homepage: a real date from today up to one year ahead. Undated items and
+    // far-future placeholder dates (e.g. 2099) are listed but never promoted as upcoming.
+    const horizonDate = new Date(`${today}T12:00:00Z`); horizonDate.setUTCDate(horizonDate.getUTCDate() + 366);
+    const horizon = horizonDate.toISOString().slice(0, 10);
+    const upcoming = item => item.type === 'event' && /^\d{4}-\d{2}-\d{2}$/.test(item.date || '') && item.date >= today && item.date <= horizon;
     const stamp = item => new Date(item.createdAt || 0).getTime();
     records.sort((a, b) => (upcoming(b) - upcoming(a)) || (upcoming(a) ? a.date.localeCompare(b.date) || String(a.time).localeCompare(String(b.time)) : stamp(b) - stamp(a)));
     const pageSize = 12, total = records.length, totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -3010,7 +3028,7 @@ const reverseAttendanceService = require('./services/reverse-attendance').create
 });
 require('./services/interview-slots').registerInterviewSlotRoutes(app, { Club, Application, requireClubAuth, requireLiveDatabase, sameOrigin: isSameOriginRequest });
 require('./services/reverse-attendance-routes').registerReverseAttendance(app, {
-  service: reverseAttendanceService, requireStudentAuth, Club, UniversityContent, EventRegistration, ready: () => mongoReady, sameOrigin: isSameOriginRequest,
+  service: reverseAttendanceService, requireStudentAuth, Club, UniversityContent, EventRegistration, AttendanceRecord, ready: () => mongoReady, sameOrigin: isSameOriginRequest,
   actorFor: async (req, res) => { const staff = await getClubAccountFromRequest(req, res); if (staff) return staff; if (await isAdminSessionValid(req, res)) return { admin: true, role: 'admin', email: adminAuthState?.email || getConfiguredAdminEmail() }; return getStudentAccountFromRequest(req, res); }
 });
 // Existing all-student MIU registration keeps the public form, while member-only
@@ -4262,6 +4280,15 @@ async function attendanceClosureMapFor(records) {
   return new Map(closures.map((closure) => [attendanceActivityKey(closure), closure]));
 }
 
+// "IT", "IT Committee" and "it committee " name the same committee.
+function committeeKey(value) {
+  return String(value || '').toLowerCase().replace(/\bcommittee\b/g, '').replace(/[^a-z0-9؀-ۿ]+/g, '');
+}
+function sameCommittee(left, right) {
+  const key = committeeKey(left);
+  return Boolean(key) && key === committeeKey(right);
+}
+
 async function currentMemberAttendanceAssignment(email) {
   const assignments = await AttendanceAssignment.find({
     memberEmail: email, status: { $in: ['assigned', 'accepted'] }
@@ -4295,11 +4322,8 @@ app.get('/api/club/attendance-assignment-options', requireClubAuth, async (req, 
     ]);
     const membersByEmail = new Map();
     [...(ownClub?.memberRoster || []), ...acceptedMembers].forEach((member) => {
-      const memberCommittee = String(member.committee || '').trim().toLowerCase();
-      const belongsToEligibleCommittee = isPresident
-        ? /(^|[^a-z])it([^a-z]|$)/.test(memberCommittee) || memberCommittee.includes('information technology')
-        : memberCommittee === String(req.clubAccount.committee || '').trim().toLowerCase();
-      if (!belongsToEligibleCommittee) return;
+      // A president can assign any club member; a head assigns members of their own committee.
+      if (!isPresident && !sameCommittee(member.committee, req.clubAccount.committee)) return;
       const email = cleanText(member.email, 254).toLowerCase();
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
       membersByEmail.set(email, { name: cleanText(member.name || member.studentName, 160) || email.split('@')[0], email });
@@ -4325,7 +4349,7 @@ app.get('/api/club/attendance-assignment-options', requireClubAuth, async (req, 
     res.json({ members: [...membersByEmail.values()].sort((left, right) => left.name.localeCompare(right.name)), events });
   } catch (error) {
     console.error('Attendance delegation options could not be loaded:', error.name);
-    res.status(503).json({ message: 'Could not load eligible IT members and today’s events from the database.' });
+    res.status(503).json({ message: 'Could not load eligible members and today’s events from the database.' });
   }
 });
 
@@ -4350,12 +4374,7 @@ app.post('/api/club/attendance-assignments', requireClubAuth, async (req, res) =
       Application.findOne({ clubId: req.clubAccount.clubId, status: 'accepted', email: memberEmail })
         .select('studentName email committee').read('primary').readConcern('majority').lean()
     ]);
-    const matchesEligibleCommittee = (member) => {
-      const committee = String(member?.committee || '').trim().toLowerCase();
-      return isPresident
-        ? /(^|[^a-z])it([^a-z]|$)/.test(committee) || committee.includes('information technology')
-        : committee === String(req.clubAccount.committee || '').trim().toLowerCase();
-    };
+    const matchesEligibleCommittee = (member) => Boolean(member) && (isPresident || sameCommittee(member.committee, req.clubAccount.committee));
     const rosterMember = (memberClub?.memberRoster || []).find((member) => String(member.email || '').toLowerCase() === memberEmail
       && matchesEligibleCommittee(member));
     const member = rosterMember || (matchesEligibleCommittee(acceptedMember) ? acceptedMember : null);

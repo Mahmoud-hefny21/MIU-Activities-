@@ -88,7 +88,8 @@ test('event registration status accepts the existing Google multi-role cookie wi
   const source = fs.readFileSync(require.resolve('../server'), 'utf8');
   const start = source.indexOf('async function requireStudentAuth');
   const end = source.indexOf('async function getSpeakerRequester', start);
-  const context = { mongoReady: true, getStudentAccountFromRequest: state.get, reverseAttendanceService: { bindDevice: async () => {} }, console };
+  const context = { mongoReady: true, getStudentAccountFromRequest: state.get, reverseAttendanceService: { bindDevice: async () => {} }, console,
+    getClubAccountFromRequest: async req => (req.headers.cookie || '').includes('miu_club=password-staff') ? { email: 'staff@miuegypt.edu.eg' } : null };
   vm.createContext(context); vm.runInContext(source.slice(start, end), context);
   const app = express();
   registerStudentEvents(app, {
@@ -104,4 +105,8 @@ test('event registration status accepts the existing Google multi-role cookie wi
   assert.equal(response.status, 200);
   assert.equal((await response.json()).eligible, true);
   assert.equal((await fetch(url)).status, 401);
+  // A staff session without a Google-verified student identity is told exactly what is missing.
+  const staffOnly = await fetch(url, { headers: { cookie: 'miu_club=password-staff' } });
+  assert.equal(staffOnly.status, 401);
+  assert.equal((await staffOnly.json()).code, 'STUDENT_SESSION_REQUIRED');
 });

@@ -30,6 +30,11 @@
   };
   document.addEventListener('input', markFormDirty, true);
   document.addEventListener('change', markFormDirty, true);
+  // Forms reset after a successful save (or a discard) hold nothing unsaved; without this a refresh
+  // after "saved" still asked about unsaved changes.
+  document.addEventListener('reset', (event) => {
+    if (event.target instanceof HTMLFormElement) event.target.dataset.miuDirty = 'false';
+  }, true);
 
   async function refreshPage() {
     if (document.querySelector('form[data-miu-dirty="true"]')

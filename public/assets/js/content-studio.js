@@ -356,7 +356,7 @@ const ContentStudio = (() => {
         const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         const result = await res.json();
         if (!res.ok) throw new Error(result.message || 'Save failed');
-        formFeedback.textContent = !submit
+        const savedMessage = !submit
           ? 'Saved as draft.'
           : result.status === 'pending_supervisor'
             ? 'Submitted to your club supervisor for approval.'
@@ -370,6 +370,7 @@ const ContentStudio = (() => {
               ? 'Submitted to PR Department.'
               : 'Submitted for review.';
         resetForm();
+        formFeedback.textContent = savedMessage; // after resetForm, which clears the feedback line
         if (accountRole === 'head' && submit) {
           window.location.assign('/pages/club-content.html');
           return;

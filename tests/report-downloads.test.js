@@ -140,7 +140,7 @@ test('registered sheet contains registrations rather than check-ins and handles 
   assert.ok(!response.text.includes('Check-in name'));
   const empty = await harness(t, { EventRegistration: { find: () => q([]) } });
   const result = await empty.request('/event-sheet.csv?year=2026&clubId=1&eventKey=request:10&sheet=registered');
-  assert.equal(result.status, 404); assert.match(result.text, /No registrations/);
+  assert.equal(result.status, 200); assert.equal(result.headers.get('x-export-empty'), 'registered');
 });
 
 test('event sheets validate type, dates and database errors', async t => {
@@ -192,7 +192,7 @@ test('event sheets export scheduled times and requested identity columns without
   const missing = await request('/event-sheet.csv?clubId=1&period=all&eventKey=request:10&sheet=verified');
   assert.ok(missing.text.includes('"09:00","","event"'));
 });
-test('legacy check-ins without itemType are exported, and empty attendance returns a clear error', async t => {
+test('legacy check-ins without itemType are exported, and empty attendance still downloads an empty sheet', async t => {
   let filter;
   const legacy = await harness(t, { AttendanceRecord: { find(value) { filter = value; return q([{ eventRequestId: 10, name: 'Legacy Attendee', email: 'legacy@miuegypt.edu.eg' }]); } } });
   const result = await legacy.request('/event-sheet.csv?clubId=1&period=all&eventKey=request:10&sheet=verified');
@@ -200,8 +200,13 @@ test('legacy check-ins without itemType are exported, and empty attendance retur
   assert.deepEqual(filter.$or, [{ itemType: 'event' }, { itemType: { $exists: false } }]);
   const empty = await harness(t, { AttendanceRecord: { find: () => q([]) } });
   const response = await empty.request('/event-sheet.csv?clubId=1&period=all&eventKey=request:10&sheet=verified');
-  assert.equal(response.status, 404); assert.match(response.text, /No verified check-ins/);
-  assert.equal(response.headers.get('content-disposition'), null);
+  assert.equal(response.status, 200); assert.equal(response.headers.get('x-export-empty'), 'verified');
+  assert.match(response.headers.get('content-disposition'), /attachment; filename=".+\.csv"/);
+  assert.match(response.text, /"Club","Event"/); assert.equal(response.text.trim().split('\r\n').length, 1, 'only the heading row');
+  const workbook = await empty.request('/event-sheet.xlsx?clubId=1&period=all&eventKey=request:10&sheet=verified');
+  assert.equal(workbook.status, 200); assert.match(workbook.headers.get('content-type'), /spreadsheetml/);
+  const unknown = await empty.request('/event-sheet.xlsx?clubId=1&period=all&eventKey=request:999&sheet=verified');
+  assert.equal(unknown.status, 404, 'an unknown event is still a 404');
 });
 test('MIU events use existing university IDs and registrations with global-role access only', async t => {
   const { request } = await harness(t, {
