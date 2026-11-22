@@ -64,3 +64,13 @@ test('stage and preview deployments are not indexed; production stays indexable'
   assert.equal(production.robots, 'page', 'production does not serve the stage robots.txt');
   assert.equal(production.tag, null);
 });
+
+test('Vercel sends the same policy on static HTML pages, which bypass Express', () => {
+  const config = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'));
+  const html = config.headers.find(rule => rule.source === '/(.*\\.html)');
+  assert.ok(html, 'vercel.json has a header rule for .html files');
+  const value = key => html.headers.find(header => header.key === key)?.value;
+  assert.equal(value('Content-Security-Policy'), CONTENT_SECURITY_POLICY);
+  assert.equal(value('X-Frame-Options'), 'DENY');
+  assert.equal(value('X-Content-Type-Options'), 'nosniff');
+});
