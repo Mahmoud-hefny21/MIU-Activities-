@@ -9,7 +9,7 @@ module.exports = async (req, res) => {
   const publicShell = ['/', '/admin/login', '/club-login', '/club-dashboard', '/attendance', '/api/pwa/version'].includes(pathname)
     || /^\/(?:assets|components|push)\//.test(pathname)
     || /^\/(?:pages\/|dashboards\/)?[\w-]+\.html$/.test(pathname)
-    || ['/manifest.webmanifest', '/sw.js'].includes(pathname);
+    || ['/manifest.webmanifest', '/sw.js', '/robots.txt'].includes(pathname);
   if (!publicShell) await ensureReady();
   return app(req, res);
 };

@@ -293,7 +293,8 @@
             if (field.kind === 'speaker_files') {
               value = [];
               for (const file of control.files) { const upload = await request(`/api/workflow/requests/${kind}/${id}/upload`, { method: 'POST', body: JSON.stringify({ fileData: await fileData(file) }) }); value.push({ uploadId: upload.uploadId, name: file.name }); }
-            } else value = await fileData(control.files[0]);
+            } else if (field.kind === 'image' && window.uploadImageToCloudinary) value = (await window.uploadImageToCloudinary(control.files[0], 'feed')).url;
+            else value = await fileData(control.files[0]);
           } else value = field.kind === 'boolean' ? control.checked : field.kind === 'permit'
             ? [...control.querySelectorAll('.workflow-permit-row')].map(row => ({ quantity: Number($(row, '[data-permit-quantity]').value), number: $(row, '[data-permit-number]').value, details: $(row, '[data-permit-details]').value })) : control.value;
           if (JSON.stringify(value) !== JSON.stringify(data.values[field.id])) changes[field.id] = value;

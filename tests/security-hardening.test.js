@@ -40,7 +40,7 @@ test('unsafe requests require the exact origin; foreign CORS and page framing ar
   assert.equal(allowed.headers.get('x-frame-options'), 'DENY');
   assert.equal(allowed.headers.get('x-content-type-options'), 'nosniff');
   assert.match(allowed.headers.get('content-security-policy'), /frame-ancestors 'none'/);
-  assert.ok(allowed.headers.get('content-security-policy-report-only'));
+  assert.match(allowed.headers.get('content-security-policy'), /script-src 'self' /); // enforced, no longer report-only
   assert.equal(allowed.headers.get('x-powered-by'), null);
   const foreign = await fetch(origin + '/api/check', { headers: { Origin: 'https://attacker.example' } });
   assert.equal(foreign.headers.get('access-control-allow-origin'), null);

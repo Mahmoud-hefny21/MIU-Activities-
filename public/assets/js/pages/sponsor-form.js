@@ -3,10 +3,15 @@
       let currentAttachment = '';
       const logoInput = document.getElementById('sponsorLogoInput');
       const attachmentInput = document.getElementById('sponsorAttachmentInput');
-      logoInput.addEventListener('change', async (event) => {
-        const file = event.target.files[0];
-        if (file) currentLogo = await ContentStudio.fileToDataUrl(file);
-      });
+      // New logos go to Cloudinary; only the returned URL is saved with the request.
+      async function uploadSelectedLogo() {
+        const file = logoInput.files[0];
+        if (!file) return;
+        document.getElementById('formFeedback').textContent = 'Uploading logo…';
+        logoInput.disabled = true;
+        try { currentLogo = (await window.uploadImageToCloudinary(file, 'feed')).url; logoInput.value = ''; }
+        finally { logoInput.disabled = false; }
+      }
       attachmentInput.addEventListener('change', async (event) => {
         const file = event.target.files[0];
         if (file && file.size > 3 * 1024 * 1024) { attachmentInput.value = ''; document.getElementById('formFeedback').textContent = 'Choose an attachment up to 3 MB.'; return; }
@@ -17,7 +22,7 @@
         type: 'sponsor',
         pageTitle: 'Sponsor Studio',
         formTitle: 'New sponsor request',
-        collect: () => ({
+        collect: async () => (await uploadSelectedLogo(), {
           sponsorName: document.getElementById('sponsorNameInput').value,
           sponsorCompany: document.getElementById('sponsorCompanyInput').value,
           sponsorContact: document.getElementById('sponsorContactInput').value,

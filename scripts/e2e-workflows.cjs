@@ -17,6 +17,8 @@ const PASSWORD = 'QaE2e!2026-pass';
 const ADMIN = { email: process.env.E2E_ADMIN_EMAIL, password: process.env.E2E_ADMIN_PASSWORD };
 
 async function db() {
+  // Test records must never reach shared data (the local main database is synced to the live site).
+  require('../tests/helpers/isolated-test-database.cjs').assertIsolatedTestDatabase();
   await require('../database').connect();
   return require('../models');
 }

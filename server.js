@@ -114,6 +114,7 @@ const speakerUploadAttempts = new Map();
 app.use(compression({ threshold: 1024, level: 4 }));
 app.disable('x-powered-by');
 app.use(httpSecurity.securityHeaders);
+app.use(httpSecurity.stageIndexing());
 app.use(cors(httpSecurity.sameOriginCors));
 app.use('/api', httpSecurity.protectMutations);
 // Base64 expands binary images by roughly one third, so allow enough JSON
@@ -184,6 +185,15 @@ function signCloudinaryUpload(folder) {
     folder,
     publicId
   };
+}
+
+// Signed browser uploads return https://res.cloudinary.com/<cloud>/image/upload/... URLs.
+function isOwnCloudinaryImageUrl(value) {
+  try {
+    const url = new URL(value);
+    return Boolean(cloudinaryCredentials?.cloud_name) && url.protocol === 'https:' && url.hostname === 'res.cloudinary.com'
+      && url.pathname.startsWith(`/${cloudinaryCredentials.cloud_name}/image/upload/`);
+  } catch { return false; }
 }
 
 async function readCloudinaryAsset(url, publicId, expectedFolder) {
@@ -1528,7 +1538,8 @@ const dynamicWorkflowEngine = require('./services/workflow-engine').createWorkfl
     const { WorkflowError } = require('./services/workflow-policy');
     if (patch.image !== undefined) patch.image = await validateFeedMedia(record.type, { image: patch.image }, record.image || '', { cloudinary, cloudName: cloudinaryCredentials?.cloud_name });
     if (patch.sponsorAttachment !== undefined && !validSponsorAttachment(patch.sponsorAttachment)) throw new WorkflowError(422, 'Choose a valid supporting attachment.');
-    if (patch.sponsorLogo !== undefined && patch.sponsorLogo && !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=\r\n]+$/.test(patch.sponsorLogo)) throw new WorkflowError(422, 'Choose a valid company logo image.');
+    if (patch.sponsorLogo !== undefined && patch.sponsorLogo && !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=\r\n]+$/.test(patch.sponsorLogo)
+      && !isOwnCloudinaryImageUrl(patch.sponsorLogo)) throw new WorkflowError(422, 'Choose a valid company logo image.');
     if (!record.type) {
       const merged = { ...record, ...patch };
       if (record.requesterType === 'club') {
@@ -2329,11 +2340,13 @@ require('./services/public-data-stream').registerPublicDataStream(app, {
 // The public club list is the same for everyone: requests in the same 10 seconds share one database read
 // (Vercel's edge already caches it for 20 seconds; this keeps the local server fast under load too).
 // Any successful change request bumps globalThis.miuDataVersion, so edits show at once.
+// Embedded base64 media is always replaced by /api/public-club-media links, so the
+// list stays small; `?media=links` is still accepted for existing callers.
 app.get('/api/clubs', async (req, res) => {
   try {
     if (!mongoReady) await ensureReady();
     if (!requireLiveDatabase(res)) return;
-    const variant = req.query.media === 'links' ? 'links' : 'full';
+    const variant = 'links';
     const publicClubListCache = globalThis.miuPublicClubListCache ||= new Map();
     let entry = publicClubListCache.get(variant);
     if (!entry || entry.expires < Date.now() || entry.version !== globalThis.miuDataVersion) {
@@ -2351,11 +2364,8 @@ app.get('/api/clubs', async (req, res) => {
 async function readPublicClubList(req) {
   {
     const [clubsFromDatabase, acceptedMemberGroups] = await Promise.all([
-      req.query.media === 'links'
-        ? Club.aggregate([{ $match: { archivedAt: null } }, { $sort: { sortOrder: 1, id: 1 } },
-          { $project: publicClubProjection() }]).read('primary').readConcern('majority')
-        : Club.find({ archivedAt: null }).select(publicFields)
-          .read('primary').readConcern('majority').sort({ sortOrder: 1, id: 1 }).lean(),
+      Club.aggregate([{ $match: { archivedAt: null } }, { $sort: { sortOrder: 1, id: 1 } },
+        { $project: publicClubProjection() }]).read('primary').readConcern('majority'),
       Application.aggregate([
         { $match: { status: 'accepted' } },
         { $project: { clubId: 1, email: { $toLower: { $trim: { input: { $ifNull: ['$email', ''] } } } } } },
@@ -8620,7 +8630,7 @@ function escapeHtml(value) {
 let httpErrorPageTemplate;
 function sendHttpErrorPage(res, status, title, detail) {
   const retryButton = status >= 500
-    ? '<button class="retry-action" type="button" onclick="location.reload()">Try again</button>'
+    ? '<button class="retry-action" type="button" data-action="reload">Try again</button>'
     : '';
   httpErrorPageTemplate ??= fs.readFileSync(path.join(__dirname, 'private', 'error-page.html'), 'utf8');
   const html = httpErrorPageTemplate

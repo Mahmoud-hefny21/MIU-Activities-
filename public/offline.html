@@ -5,13 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#f8fafc">
   <title>You're offline | MIU Activities</title>
-  <script>
-    try {
-      const theme = localStorage.getItem('miu-site-theme') === 'dark' ? 'dark' : 'light';
-      document.documentElement.dataset.theme = theme;
-      document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#0b1220' : '#f8fafc';
-    } catch (_) {}
-  </script>
+  <script src="/assets/js/offline-theme.js?v=20261122csp1"></script>
   <style>
     :root {
       color-scheme: light;
@@ -105,13 +99,14 @@
     <link rel="apple-touch-icon" href="/assets/img/pics/pwa-icon-192.png?v=20261013favicon1">
     <meta name="apple-mobile-web-app-title" content="MIU Activities">
     <meta name="application-name" content="MIU Activities">
+  <script src="/assets/js/inline-actions.js?v=20261122csp1" defer></script>
 </head>
 <body>
   <main>
     <div class="offline-logo"><img src="/assets/img/pics/pwa-icon-192.png" alt="MIU 30th anniversary"></div>
     <h1>You're offline</h1>
     <p>This page needs an internet connection. Reconnect and try again. Forms and other changes cannot be saved while offline.</p>
-    <button type="button" onclick="location.reload()">Try again</button>
+    <button type="button" data-action="reload">Try again</button>
   </main>
 </body>
 </html>

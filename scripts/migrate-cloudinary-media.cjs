@@ -28,6 +28,8 @@ async function verifyBackup(file, database) {
 }
 async function main(args = process.argv.slice(2)) {
   const option = name => args.includes(name) ? args[args.indexOf(name) + 1] : undefined;
+  // Plan-only is the default; --dry-run states it explicitly and can never be combined with --apply.
+  if (args.includes('--dry-run') && args.includes('--apply')) throw new Error('Use either --dry-run or --apply, not both.');
   const config = sqlConfig();
   if (provider() !== 'sqlserver' || process.env.NODE_ENV === 'production' || process.env.VERCEL
     || option('--database') !== config.database || !['localhost', '127.0.0.1', '::1', os.hostname().toLowerCase()].includes(config.server.toLowerCase())) throw new Error('Pin this migration to the explicitly configured local SQL database.');

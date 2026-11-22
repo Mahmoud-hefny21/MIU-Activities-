@@ -10,16 +10,21 @@
       };
       registrationInput.addEventListener('change', updateAttendanceField);
       document.getElementById('contentForm').addEventListener('reset', () => setTimeout(updateAttendanceField, 0));
-      imageInput.addEventListener('change', async (event) => {
-        const file = event.target.files[0];
-        if (file) currentImage = await ContentStudio.fileToDataUrl(file);
-      });
+      // New images go to Cloudinary; only the returned URL is saved with the event.
+      async function uploadSelectedImage() {
+        const file = imageInput.files[0];
+        if (!file) return;
+        document.getElementById('formFeedback').textContent = 'Uploading image…';
+        imageInput.disabled = true;
+        try { currentImage = (await window.uploadImageToCloudinary(file, 'feed')).url; imageInput.value = ''; }
+        finally { imageInput.disabled = false; }
+      }
 
       ContentStudio.init({
         type: 'event',
         pageTitle: 'Event Studio',
         formTitle: 'New event',
-        collect: () => ({
+        collect: async () => (await uploadSelectedImage(), {
           title: document.getElementById('titleInput').value,
           date: document.getElementById('dateInput').value,
           time: document.getElementById('timeInput').value,

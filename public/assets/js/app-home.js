@@ -1402,6 +1402,17 @@ function syncSlideTimer() {
 
 document.addEventListener('visibilitychange', syncSlideTimer);
 
+// MIU events appear in "Upcoming" only with a real date from today up to one year ahead;
+// undated items and far-future placeholder dates (for example 2099) stay out.
+const UPCOMING_HORIZON_DAYS = 366;
+function isUpcomingUniversityEvent(item, today = startOfLocalDay(new Date())) {
+  if (item.contentType !== 'event' || !/^\d{4}-\d{2}-\d{2}$/.test(String(item.date || '').trim())) return false;
+  const date = parseEventDate(item.date);
+  const horizon = new Date(today);
+  horizon.setDate(horizon.getDate() + UPCOMING_HORIZON_DAYS);
+  return Boolean(date) && date >= today && date <= horizon;
+}
+
 function renderEventsSlideshow() {
   const track = document.getElementById('eventsSlideshowTrack');
   const dots = document.getElementById('eventsSlideshowDots');
@@ -1443,7 +1454,7 @@ function renderEventsSlideshow() {
   const items = getAllEvents().filter((event) => !event.university)
     .map((event) => ({ ...event, contentType: 'event', index: event.eventIndex, parsedDate: parseEventDate(event.date) }))
     .filter((event) => event.parsedDate && event.parsedDate >= todayStart)
-    .concat(universityItems.filter((item) => item.contentType === 'event' && item.parsedDate && item.parsedDate >= todayStart))
+    .concat(universityItems.filter(isUpcomingUniversityEvent))
     .sort((left, right) => {
       const leftEvent = left.contentType === 'event';
       const rightEvent = right.contentType === 'event';

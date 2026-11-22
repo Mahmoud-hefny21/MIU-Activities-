@@ -7,6 +7,7 @@
   <title>{{TITLE}} · MIU Activities</title>
   <link rel="stylesheet" href="/assets/css/pages/error-page.css?v=20261119ui1">
   <link rel="stylesheet" href="/assets/css/dark.css?v=20261120menus2">
+  <script src="/assets/js/inline-actions.js?v=20261122csp1" defer></script>
 </head>
 <body>
   <main class="error-card" aria-labelledby="error-title">
@@ -20,7 +21,7 @@
     <p class="error-help">Your work and account are safe. You can go back and try again, or return to the portal home page.</p>
     <div class="error-actions">
       <a class="home-action" href="/">Go to home</a>
-      <button class="back-action" type="button" onclick="history.length > 1 ? history.back() : location.assign('/')">Go back</button>
+      <button class="back-action" type="button" data-action="history-back">Go back</button>
       {{RETRY_BUTTON}}
     </div>
     <p class="error-reference">If this keeps happening, contact MIU support and mention error {{STATUS}}.</p>

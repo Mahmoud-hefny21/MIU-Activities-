@@ -7,7 +7,8 @@
     <script src="/assets/js/shared.js?v=20261120ids1"></script>
   <script src="/assets/js/site-loading.js?v=20261014promptqueue1"></script>
     <title>Dean Dashboard · MIU Activities</title>
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" data-async-style />
+    <script src="/assets/js/inline-actions.js?v=20261122csp1" defer></script>
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" /></noscript>
     <link rel="stylesheet" href="/assets/css/base.css?v=20261120qb2" />
     <link rel="stylesheet" href="/assets/css/responsive.css?v=20261120qb1" />
@@ -98,7 +99,7 @@
       </div>
     </dialog>
     <dialog id="attachmentPreviewDialog" class="attachment-preview-dialog" aria-label="Attachment preview">
-      <div class="attachment-preview-panel"><button type="button" class="attachment-preview-close" aria-label="Close attachment preview" onclick="this.closest('dialog').close()">&times;</button><img id="attachmentPreviewImage" alt="Request attachment"></div>
+      <div class="attachment-preview-panel"><button type="button" class="attachment-preview-close" aria-label="Close attachment preview" data-close-dialog>&times;</button><img id="attachmentPreviewImage" alt="Request attachment"></div>
     </dialog>
     <dialog id="statusOverviewDialog" class="status-overview-dialog" aria-labelledby="statusOverviewTitle">
       <div class="status-overview-inner">
@@ -108,7 +109,7 @@
     </dialog>
     <dialog id="reviewHistoryDialog" class="review-history-dialog" aria-labelledby="reviewHistoryTitle">
       <div class="review-history-inner">
-        <div class="request-dialog-head review-history-head"><div><div class="committee-label">FULL REVIEW AUDIT</div><h2 id="reviewHistoryTitle">Review All Edits</h2></div><button type="button" id="closeReviewHistoryXBtn" class="request-dialog-close" aria-label="Close review history" onclick="document.getElementById('reviewHistoryDialog').close()">&times;</button></div>
+        <div class="request-dialog-head review-history-head"><div><div class="committee-label">FULL REVIEW AUDIT</div><h2 id="reviewHistoryTitle">Review All Edits</h2></div><button type="button" id="closeReviewHistoryXBtn" class="request-dialog-close" aria-label="Close review history" data-close-dialog="reviewHistoryDialog">&times;</button></div>
         <div id="reviewHistoryList" class="review-history-list" aria-live="polite"></div>
         <section id="historyReturnPanel" class="history-return-panel" hidden>
           <h3 id="historyReturnTitle">Return event to committee</h3>

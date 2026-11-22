@@ -3,6 +3,10 @@ test('real SQL reverse attendance: encrypted QR, concurrent duplicate, shared de
   skip:process.env.SQLSERVER_INTEGRATION_TESTS!=='true'?'Requires the explicitly gated local SQL development target and migration 009.':false
 },async()=>{
   require('../scripts/sqlserver-migrate.cjs').targetGate();
+  // Only a local *_test database; check the cleanup credentials before any row is written,
+  // so a missing credential can no longer leave synthetic rows behind.
+  require('./helpers/isolated-test-database.cjs').assertIsolatedTestDatabase();
+  {const {sqlPrefix}=require('../database/config'),prefix=sqlPrefix();assert.ok(process.env[prefix+'_OPERATIONS_USER']&&process.env[prefix+'_OPERATIONS_PASSWORD'],'The cleanup needs the protected operations credentials.');}
   const database=require('../database'),models=require('../models'),{AttendanceDeviceBinding}=require('../services/attendance-device-model');
   const {createReverseAttendance}=require('../services/reverse-attendance'),{localInstant}=require('../services/event-attendance-context');
   const runtime=require('../database/runtime');await runtime.connect();

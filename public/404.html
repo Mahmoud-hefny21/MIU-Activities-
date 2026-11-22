@@ -14,6 +14,7 @@
     <link rel="apple-touch-icon" href="/assets/img/pics/pwa-icon-192.png?v=20261013favicon1">
     <meta name="apple-mobile-web-app-title" content="MIU Activities">
     <meta name="application-name" content="MIU Activities">
+  <script src="/assets/js/inline-actions.js?v=20261122csp1" defer></script>
 </head>
 <body>
   <main class="error-card" aria-labelledby="error-title">
@@ -22,7 +23,7 @@
     <h1 id="error-title">We couldn’t find that page</h1>
     <p class="error-detail">The address may be incorrect, or the page may have moved.</p>
     <p class="error-help">Your account and saved work are safe. Check the link, or return to the portal home page.</p>
-    <div class="error-actions"><a class="home-action" href="/">Go to home</a><button class="back-action" type="button" onclick="history.length > 1 ? history.back() : location.assign('/')">Go back</button></div>
+    <div class="error-actions"><a class="home-action" href="/">Go to home</a><button class="back-action" type="button" data-action="history-back">Go back</button></div>
     <p class="error-reference">If you followed a link on MIU Activities, contact support and mention error 404.</p>
   </main>
   <script src="/assets/js/theme.js?v=20261120done1" defer></script>
