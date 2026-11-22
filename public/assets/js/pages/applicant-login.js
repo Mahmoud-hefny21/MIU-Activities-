@@ -37,7 +37,13 @@
             : '/';
         } catch { return '/'; }
       };
+      // Browsers that cannot open Google's popup: in-app browsers (Facebook, Instagram, WhatsApp, LINE,
+      // Android WebView) and the installed app. They use Google's full-page sign-in instead.
+      const googleNeedsRedirect = () => /FBAN|FBAV|Instagram|WhatsApp|\bLine\/|; wv\)/.test(navigator.userAgent)
+        || Boolean(window.matchMedia?.('(display-mode: standalone)').matches) || navigator.standalone === true;
+
       async function configureGoogleSignIn() {
+        const redirectMode = googleNeedsRedirect();
         const area = document.getElementById('googleLoginArea');
         const fallbackButton = document.getElementById('googleUnavailableButton');
         const hint = document.getElementById('googleLoginHint');
@@ -52,7 +58,7 @@
         googleScript.catch(() => {});
         try {
           const [configResponse, sessionResponse] = await Promise.all([
-            fetch('/api/student-auth/google-config', { cache: 'no-store' }),
+            fetch(redirectMode ? `/api/student-auth/google-config?${new URLSearchParams({ ux: 'redirect', returnTo: studentReturnTarget() })}` : '/api/student-auth/google-config', { cache: 'no-store' }),
             fetch('/api/student-auth/session?optional=1', { cache: 'no-store' })
           ]);
           const config = await configResponse.json();
@@ -90,6 +96,8 @@
                 client_id: googleConfig.clientId,
                 nonce: googleConfig.nonce,
                 hd: 'miuegypt.edu.eg',
+                // Linking an existing account stays popup-only: it needs this page's signed-in session.
+                ...(redirectMode && !linkExistingAccount ? { ux_mode: 'redirect', login_uri: `${window.location.origin}/api/student-auth/google/redirect` } : {}),
                 ...(studentSession?.email ? { login_hint: studentSession.email } : {}),
                 error_callback: () => {
                   const feedback = document.getElementById('googleLoginFeedback');
@@ -146,7 +154,24 @@
           fallbackButton.hidden = false;
         }
       }
-      configureGoogleSignIn();
+      // Back from Google's full-page sign-in (see /api/student-auth/google/redirect).
+      const pageParams = new URLSearchParams(window.location.search);
+      if (pageParams.get('google') === 'signed-in') {
+        window.location.replace(studentReturnTarget());
+      } else {
+        if (pageParams.has('google_error')) {
+          const stored = document.cookie.split(';').map((part) => part.trim()).find((part) => part.startsWith('miu_google_error='));
+          let message = 'Google sign-in did not finish. Try again or use your email and password.';
+          try { if (stored) message = decodeURIComponent(stored.slice('miu_google_error='.length)) || message; } catch (_) {}
+          document.cookie = 'miu_google_error=; Max-Age=0; Path=/; SameSite=Lax';
+          const feedback = document.getElementById('googleLoginFeedback');
+          feedback.textContent = message;
+          feedback.classList.add('is-error');
+          pageParams.delete('google_error');
+          history.replaceState(null, '', `${window.location.pathname}${pageParams.size ? `?${pageParams}` : ''}`);
+        }
+        configureGoogleSignIn();
+      }
       document.getElementById('googleUnavailableButton').addEventListener('click', () => {
         const feedback = document.getElementById('googleLoginFeedback');
         feedback.textContent = 'Google sign-in is not configured yet. Ask the site administrator to enable it.';

@@ -23,7 +23,7 @@ const cloudinary = new Proxy({}, {
 });
 const { verifyPublicCloudinaryImage, verifyCloudinaryUploadResponse } = require('./services/cloudinary-image-validation');
 const { validateFeedMedia, MAX_FEED_VIDEO_BYTES, FEED_MEDIA_FOLDER } = require('./services/feed-video');
-const { verifyGoogleStudentCredential, decideGoogleAccount, decideGoogleLink } = require('./services/google-auth');
+const { verifyGoogleStudentCredential, decideGoogleAccount, decideGoogleLink, googleCsrfMatches, safeReturnPath } = require('./services/google-auth');
 const { createAskAiRouter } = require('./services/ask-ai');
 const { describeVisitorDevice, createVisitorDeviceCode } = require('./services/visitor-device');
 const { getVisitorIpAddress } = require('./services/visitor-network');
@@ -2019,8 +2019,15 @@ function isSameOriginRequest(req) {
   return httpSecurity.sameOrigin(req);
 }
 
-async function verifyGoogleRequest(req, res) {
-  const nonce = requestCookie(req, 'miu_google_nonce');
+// Full-page sign-in: Google posts back from its own site, so these cookies are SameSite=None and only sent to that one route.
+const GOOGLE_REDIRECT_COOKIE_SCOPE = 'HttpOnly; SameSite=None; Secure; Path=/api/student-auth/google/redirect';
+
+function clearGoogleRedirectCookies(res) {
+  for (const name of ['miu_google_nonce_x', 'miu_google_return']) res.append('Set-Cookie', `${name}=; Max-Age=0; ${GOOGLE_REDIRECT_COOKIE_SCOPE}`);
+}
+
+async function verifyGoogleRequest(req, res, nonceCookie = 'miu_google_nonce') {
+  const nonce = requestCookie(req, nonceCookie);
   clearGoogleNonceCookie(req, res);
   if (!nonce || !/^[A-Za-z0-9_-]{32}$/.test(nonce)) throw Object.assign(new Error('GOOGLE_CREDENTIAL_INVALID'), { reason: 'nonce_missing' });
   const clientId = String(process.env.GOOGLE_CLIENT_ID || '').trim();
@@ -6149,18 +6156,60 @@ app.get('/api/student-auth/google-config', (req, res) => {
   if (!clientId) return res.json({ enabled: false });
   const nonce = crypto.randomBytes(24).toString('base64url');
   const secure = secureCookieSuffix(req);
-  res.setHeader('Set-Cookie', `miu_google_nonce=${nonce}; Max-Age=600; HttpOnly; SameSite=Strict; Path=/;${secure}`);
+  const cookies = [`miu_google_nonce=${nonce}; Max-Age=600; HttpOnly; SameSite=Strict; Path=/;${secure}`];
+  if (req.query.ux === 'redirect') {
+    const returnTo = encodeURIComponent(safeReturnPath(String(req.query.returnTo || '/')));
+    cookies.push(`miu_google_nonce_x=${nonce}; Max-Age=600; ${GOOGLE_REDIRECT_COOKIE_SCOPE}`, `miu_google_return=${returnTo}; Max-Age=600; ${GOOGLE_REDIRECT_COOKIE_SCOPE}`);
+  }
+  res.setHeader('Set-Cookie', cookies);
   res.json({ enabled: true, clientId, nonce });
 });
 
 app.post('/api/student-auth/google', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   if (!isSameOriginRequest(req)) return res.status(403).json({ message: 'Google sign-in request was blocked. Reload this page and try again.' });
+  await completeGoogleSignIn(req, res, () => verifyGoogleRequest(req, res));
+});
+
+// Google's full-page sign-in, for browsers that cannot open its popup (in-app browsers, the installed app).
+// Google posts this form from accounts.google.com, so instead of the origin check the request must carry
+// Google's matching g_csrf_token cookie and field, and the ID token must match the nonce cookie set for it.
+app.post('/api/student-auth/google/redirect', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  let returnTo = '/';
+  try { returnTo = safeReturnPath(decodeURIComponent(requestCookie(req, 'miu_google_return'))); } catch {}
+  clearGoogleRedirectCookies(res);
+  const loginPage = (params) => `/pages/applicant-login.html?${new URLSearchParams({ ...params, ...(returnTo !== '/' ? { redirect: returnTo } : {}) })}`;
+  // The message goes in a short-lived cookie, not the URL, so a link cannot put its own text on the login page.
+  const fail = (message) => {
+    const text = encodeURIComponent(String(message || 'Google sign-in failed. Try again or use your email and password.').slice(0, 300));
+    res.append('Set-Cookie', `miu_google_error=${text}; Max-Age=120; SameSite=Lax; Path=/;${secureCookieSuffix(req)}`);
+    return res.redirect(303, loginPage({ google_error: '1' }));
+  };
+  const origin = req.get('origin');
+  if (origin && origin !== 'https://accounts.google.com' && !isSameOriginRequest(req)) return fail('Google sign-in request was blocked. Reload this page and try again.');
+  if (!googleCsrfMatches(requestCookie(req, 'g_csrf_token'), req.body?.g_csrf_token)) {
+    return fail('Google sign-in could not be verified. Reload this page and try again.');
+  }
+  // Same sign-in as the popup; its JSON answers become page redirects. Success goes through the login page,
+  // which moves on to the return target itself, so the browser sends the new SameSite=Strict session cookie.
+  const pageRes = new Proxy(res, {
+    get(target, prop) {
+      if (prop === 'status') return () => pageRes;
+      if (prop === 'json') return (body) => body?.authenticated === true ? target.redirect(303, loginPage({ google: 'signed-in' })) : fail(body?.message);
+      const value = Reflect.get(target, prop);
+      return typeof value === 'function' ? value.bind(target) : value;
+    }
+  });
+  await completeGoogleSignIn(req, pageRes, () => verifyGoogleRequest(req, pageRes, 'miu_google_nonce_x'));
+});
+
+async function completeGoogleSignIn(req, res, verifyIdentity) {
   if (await checkLoginSourceLock(req, res)) return;
   if (!mongoReady) await ensureReady();
   if (!mongoReady) return res.status(503).json({ message: 'Sign-in is temporarily unavailable because the database could not be reached. Please try again shortly.' });
   try {
-    const identity = await verifyGoogleRequest(req, res);
+    const identity = await verifyIdentity();
     if (identity.email === getConfiguredAdminEmail()) {
       adminAuthState = await require('./services/staff-google-auth').resolveAdminGoogleAccount({
         AdminAuthState, identity, configuredEmail: getConfiguredAdminEmail(),
@@ -6249,7 +6298,7 @@ app.post('/api/student-auth/google', async (req, res) => {
     };
     res.status(401).json({ message: messages[error.reason] || 'Use a verified Google account from the MIU university domain.' });
   }
-});
+}
 
 app.post('/api/student-auth/google/link', requireStudentAuth, async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');

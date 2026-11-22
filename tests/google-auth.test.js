@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { verifyGoogleStudentCredential, decideGoogleAccount, decideGoogleLink } = require('../services/google-auth');
+const { verifyGoogleStudentCredential, decideGoogleAccount, decideGoogleLink, googleCsrfMatches, safeReturnPath } = require('../services/google-auth');
 
 const baseClaims = {
   sub: 'google-subject-123',
@@ -66,4 +66,19 @@ test('linking requires a signed-in matching email and rejects subject collisions
   assert.equal(decideGoogleLink({ ...base, subjectOwnerEmail: 'other@miuegypt.edu.eg' }), 'subject_in_use');
   assert.equal(decideGoogleLink({ ...base, currentGoogleSub: 'subject-b' }), 'different_google_account_linked');
   assert.equal(decideGoogleLink({ ...base, currentGoogleSub: 'subject-a', subjectOwnerEmail: base.accountEmail }), 'link');
+});
+
+test('full-page Google sign-in needs the g_csrf_token cookie and field to match', () => {
+  assert.equal(googleCsrfMatches('abc123', 'abc123'), true);
+  for (const [cookie, body] of [['abc123', 'abc124'], ['', ''], ['abc123', ''], ['', 'abc123'], [undefined, 'abc123'], ['abc123', ['abc123']], ['x'.repeat(600), 'x'.repeat(600)]]) {
+    assert.equal(googleCsrfMatches(cookie, body), false);
+  }
+});
+
+test('the return target after Google sign-in stays on this site', () => {
+  assert.equal(safeReturnPath('/pages/events.html?id=4#top'), '/pages/events.html?id=4#top');
+  assert.equal(safeReturnPath('/'), '/');
+  for (const target of ['https://attacker.example/', '//attacker.example/x', '/\\attacker.example', 'javascript:alert(1)', 'pages/events.html', '/a\nb', '', undefined, '/' + 'a'.repeat(600)]) {
+    assert.equal(safeReturnPath(target), '/', String(target));
+  }
 });

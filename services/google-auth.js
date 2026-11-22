@@ -1,3 +1,4 @@
+const crypto = require('node:crypto');
 const { OAuth2Client } = require('google-auth-library');
 
 const googleClient = new OAuth2Client();
@@ -44,4 +45,24 @@ function decideGoogleLink({ accountEmail, googleEmail, currentGoogleSub, request
   return 'link';
 }
 
-module.exports = { verifyGoogleStudentCredential, decideGoogleAccount, decideGoogleLink };
+// Google's redirect mode sets a g_csrf_token cookie on our site and posts the same value; both must match.
+function googleCsrfMatches(cookieValue, bodyValue) {
+  if (typeof cookieValue !== 'string' || typeof bodyValue !== 'string' || !cookieValue || cookieValue.length > 512) return false;
+  const cookie = Buffer.from(cookieValue);
+  const body = Buffer.from(bodyValue);
+  return cookie.length === body.length && crypto.timingSafeEqual(cookie, body);
+}
+
+// A path on this site to return to after sign-in; anything else becomes '/'.
+function safeReturnPath(value) {
+  const target = typeof value === 'string' ? value : '';
+  if (!target.startsWith('/') || target.startsWith('//') || target.startsWith('/\\') || target.length > 512 || /[\u0000-\u001f\u007f]/.test(target)) return '/';
+  try {
+    const parsed = new URL(target, 'https://miu.invalid');
+    return parsed.origin === 'https://miu.invalid' ? `${parsed.pathname}${parsed.search}${parsed.hash}` : '/';
+  } catch {
+    return '/';
+  }
+}
+
+module.exports = { verifyGoogleStudentCredential, decideGoogleAccount, decideGoogleLink, googleCsrfMatches, safeReturnPath };

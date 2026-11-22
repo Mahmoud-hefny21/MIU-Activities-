@@ -29,8 +29,12 @@ function securityHeaders(req, res, next) {
   if (production(process.env)) res.setHeader('Strict-Transport-Security', 'max-age=31536000');
   next();
 }
+// Google's full-page sign-in posts here from accounts.google.com; that route checks Google's
+// g_csrf_token double-submit cookie and the sign-in nonce instead of the origin.
+const CROSS_SITE_POSTS = new Set(['/student-auth/google/redirect']);
 function protectMutations(req, res, next) {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+  if (req.method === 'POST' && CROSS_SITE_POSTS.has(req.path)) return next();
   if (!sameOrigin(req) || req.get('sec-fetch-site') === 'cross-site') return res.status(403).json({ message: 'This request could not be verified. Reload the website and try again.' });
   next();
 }

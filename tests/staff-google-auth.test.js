@@ -63,7 +63,7 @@ test('Google sign-in endpoint verifies the credential before assigning the store
   const end = source.indexOf("app.post('/api/student-auth/google/link'", start);
   let handler; let invalidCredential = false; let createdStudent = 0; let staffCookie = null;
   const context = { reverseAttendanceService: { bindDevice: async () => {} },
-    app: { post: (path, callback) => { handler = callback; } },
+    app: { post: (path, callback) => { if (path === '/api/student-auth/google') handler = callback; } },
     isSameOriginRequest: () => true, checkLoginSourceLock: async () => false, mongoReady: true,
     verifyGoogleRequest: async () => { if (invalidCredential) throw new Error('GOOGLE_ACCOUNT_NOT_ALLOWED'); return identity; },
     getConfiguredAdminEmail: () => null,
@@ -91,7 +91,7 @@ test('Google sign-in retries database readiness and fails closed while it is sti
   for (const recovers of [true, false]) {
     let handler, attempts = 0, credentialChecks = 0;
     const context = { reverseAttendanceService: { bindDevice: async () => {} },
-      app: { post: (_path, callback) => { handler = callback; } },
+      app: { post: (path, callback) => { if (path === '/api/student-auth/google') handler = callback; } },
       isSameOriginRequest: () => true, checkLoginSourceLock: async () => false, mongoReady: false,
       ensureReady: async () => { attempts++; context.mongoReady = recovers; },
       verifyGoogleRequest: async () => { credentialChecks++; throw new Error('GOOGLE_ACCOUNT_NOT_ALLOWED'); },
@@ -133,7 +133,7 @@ test('configured MIU administrator signs in through the verified Google endpoint
   let handler; let cookieRole; let body; const cleared = [];
   const account = { _id: 'admin', email: identity.email, sessionVersion: 7, googleSub: identity.googleSub };
   const context = { reverseAttendanceService: { bindDevice: async () => {} },
-    app: { post: (path, callback) => { handler = callback; } }, console,
+    app: { post: (path, callback) => { if (path === '/api/student-auth/google') handler = callback; } }, console,
     isSameOriginRequest: () => true, checkLoginSourceLock: async () => false, mongoReady: true,
     verifyGoogleRequest: async () => identity, getConfiguredAdminEmail: () => identity.email,
     require: () => ({ resolveAdminGoogleAccount }),

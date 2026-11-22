@@ -28,6 +28,13 @@ test('unsafe requests require the exact origin; foreign CORS and page framing ar
     assert.equal((await fetch(origin + '/api/check', { method: 'POST', headers })).status, 403);
   }
   assert.equal(writes, 0);
+  // Only Google's full-page sign-in route accepts a cross-site POST; the route checks its own CSRF token.
+  app.post('/api/student-auth/google/redirect', (req, res) => res.json({ ok: true }));
+  app.put('/api/student-auth/google/redirect', (req, res) => res.json({ ok: true }));
+  const google = { Origin: 'https://accounts.google.com', 'Sec-Fetch-Site': 'cross-site' };
+  assert.equal((await fetch(origin + '/api/student-auth/google/redirect', { method: 'POST', headers: google })).status, 200);
+  assert.equal((await fetch(origin + '/api/student-auth/google/redirect', { method: 'PUT', headers: google })).status, 403);
+  assert.equal((await fetch(origin + '/api/student-auth/google/redirect/x', { method: 'POST', headers: google })).status, 403);
   const allowed = await fetch(origin + '/api/check', { method: 'POST', headers: { Origin: origin } });
   assert.equal(allowed.status, 200); assert.equal(writes, 1);
   assert.equal(allowed.headers.get('x-frame-options'), 'DENY');

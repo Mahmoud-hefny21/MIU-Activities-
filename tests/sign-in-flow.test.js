@@ -44,7 +44,7 @@ test('security: redirect never leaves the site (open redirect)', () => {
 
 test('every sign-in path uses the safe return target', () => {
   assert.doesNotMatch(loginScript, /result\.redirect/, 'server-supplied redirect is not followed');
-  assert.equal((loginScript.match(/window\.location\.replace\(studentReturnTarget\(\)\)/g) || []).length, 3);
+  assert.equal((loginScript.match(/window\.location\.replace\(studentReturnTarget\(\)\)/g) || []).length, 4);
 });
 
 test('header says Sign In the first time and Login after a previous sign-in', () => {
