@@ -119,10 +119,21 @@ async function configureAdminGoogleSignIn() {
       },
     });
 
-    host.replaceChildren();
-    window.google.accounts.id.renderButton(host, {
-      theme: 'outline', size: 'large', text: 'signin_with', shape: 'rectangular', width: Math.min(400, Math.max(220, Math.floor(host.getBoundingClientRect().width || 396))),
-    });
+    // Full box width, redrawn when the box really changes size (phone rotation, window resize).
+    let renderedWidth = 0;
+    let resizeFrame = 0;
+    const renderGoogleButton = () => {
+      const availableWidth = host.getBoundingClientRect().width;
+      if (availableWidth < 120) return;
+      const width = Math.min(400, Math.floor(availableWidth));
+      if (renderedWidth && Math.abs(width - renderedWidth) < 12) return;
+      renderedWidth = width;
+      host.replaceChildren();
+      // locale 'en' as on the student page: without it Google would not draw the button narrower than 209px.
+      window.google.accounts.id.renderButton(host, { theme: 'outline', size: 'large', text: 'signin_with', shape: 'rectangular', locale: 'en', width });
+    };
+    renderGoogleButton();
+    if ('ResizeObserver' in window) new ResizeObserver(() => { cancelAnimationFrame(resizeFrame); resizeFrame = requestAnimationFrame(renderGoogleButton); }).observe(host);
     feedback.textContent = '';
   } catch (error) {
     feedback.textContent = error.message || 'Google sign-in is temporarily unavailable.';

@@ -74,8 +74,8 @@
             const renderGoogleButton = () => {
               const availableWidth = buttonHost.getBoundingClientRect().width;
               if (availableWidth < 120) return;
-              // A few px narrower than the box so Google's frame margin never gets clipped.
-              const width = Math.min(400, Math.floor(availableWidth) - 4);
+              // Full box width, so it lines up with the Sign In button; Google's frame overhang sits in the card padding.
+              const width = Math.min(400, Math.floor(availableWidth));
               // Redraw only for a real size change (small changes made the Google frame flicker and reload).
               if (renderedWidth && Math.abs(width - renderedWidth) < 12) return;
               renderedWidth = width;

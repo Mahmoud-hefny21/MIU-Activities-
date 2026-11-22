@@ -13,7 +13,9 @@
       .login-divider::before, .login-divider::after { content: ''; flex: 1; height: 1px; background: var(--border-color); }
       #googleLoginArea, #googleLoginButton { box-sizing: border-box; width: 100%; min-width: 0; }
       #googleLoginButton { display: flex; justify-content: center; max-width: 400px; margin-inline: auto; }
-      #googleLoginButton > div, #googleLoginButton iframe { max-width: 100%; }
+      #googleLoginButton > div { max-width: 100%; }
+      /* Google's frame is 20px wider than its button and hangs 10px past each side; capping its width cut off the right edge. */
+      #googleLoginButton iframe { max-width: none !important; }
       .google-btn { box-sizing: border-box; width: 100%; min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 10px; background: var(--bg-panel); border: 1px solid var(--border-color); padding: 12px; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; color: var(--text-main); transition: all var(--transition-fast); }
       .google-btn[hidden] { display: none !important; }
       .google-btn:hover { background: var(--slate-100); }

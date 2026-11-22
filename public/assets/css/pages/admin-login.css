@@ -17,5 +17,7 @@
 .admin-signin .admin-feedback { font-size: .86rem; overflow-wrap: anywhere; }
 .admin-signin .admin-feedback:empty { display: none; }
 .admin-signin #adminLoginForgotWrap { text-align: right; margin: 10px 0; font-size: .86rem; }
-.admin-signin #adminGoogleButton { width: 100%; min-width: 0; max-width: 400px; margin-inline: auto; overflow: hidden; }
-.admin-signin #adminGoogleButton > div, .admin-signin #adminGoogleButton iframe { box-sizing: border-box; width: 100% !important; max-width: 100% !important; }
+.admin-signin #adminGoogleButton { box-sizing: border-box; display: flex; justify-content: center; width: 100%; min-width: 0; max-width: 400px; margin-inline: auto; }
+.admin-signin #adminGoogleButton > div { max-width: 100%; }
+/* Google's frame is 20px wider than its button and hangs 10px past each side; capping its width cut off the right edge. */
+.admin-signin #adminGoogleButton iframe { max-width: none !important; }
