@@ -8,7 +8,7 @@ Date: 23 Nov 2026 · Scope: this repository (server.js, services/, database/, pu
 
 - **Route map.** All 259 routes in `server.js` and `services/*.js` were extracted with a script and each was classified by its auth check: route middleware, a check inside the handler, a guarded router (`router.use`), or the global `app.use('/api/admin', requireAdmin)` at `server.js:6897`. Every admin router (`staff-account-admin`, `supervisor-admin`, `admin-member-import`, `drive-logo`, `report-downloads`, `event-reports`, …) is registered **after** line 6897, so the global guard covers it. The routes left without auth are public by design: club lists, MIU Hub, sign-in, logout, the speaker-invite token, the attendance QR token, interview slots, public media and the view counters.
 - **XSS.** All 154 `innerHTML` / `insertAdjacentHTML` sinks in `public/assets/js` were scanned for values inserted without escaping. Every candidate was traced, and all of them either go through escaping helpers or are fixed strings, numbers, server-validated identifiers, or URLs built by the server.
-- **Local run.** A full local server with a seeded database (2 clubs, 2 presidents, 1 head, 2 students, 1 admin) was **not** started. The project's local database is a SQL Server instance with real data copied in, and no isolated MongoDB was available. Instead, the tests load the real route and middleware code with in-memory data, which is the pattern this project's test suite already uses. That proves each check exists and behaves as tested. It does not exercise the whole app end to end.
+- **Local run (Step 3, done).** `tests/local-security-e2e.cjs` starts a throwaway in-memory MongoDB replica set (`mongodb-memory-server`) and seeds test data only: 2 clubs, 2 presidents, 2 committee heads, 2 students, 1 admin, 5 applications, one content draft and one attendance task. It then starts the real `server.js` on `localhost:4321` from a temporary folder, so the project `.env` is never read, and blanks every production key (database, Cloudinary, OneSignal, Google, SMTP). It signs in with each test account and runs the high-risk cases over real HTTP. **Result: 24/24 pass** (table below). No request goes to production.
 
 ## 1. Summary
 
@@ -45,6 +45,35 @@ Date: 23 Nov 2026 · Scope: this repository (server.js, services/, database/, pu
 | HDR-01 HSTS without `includeSubDomains` | **Fixed** (F4) | Low | `services/http-security.js:44` |
 | HDR-02 CSP `style-src 'unsafe-inline'` | **Partly fixed** (F5: the app has no inline styles; the policy stays for third-party scripts) | Low | `services/http-security.js:25` |
 | DATA-01 `[TEST]` events visible publicly | **Fixed** (F6: removed, backup in database-backup/) | Info | live data (12 test events created 23 Nov for attendance testing) |
+
+### End-to-end results (local server, seeded test database)
+
+| ID | What was tried | Result |
+|---|---|---|
+| IDOR-01 | President A changes a Club B application | 403 ✅ |
+| IDOR-02 | IT head changes a Media committee application | 403 ✅ |
+| IDOR-03 | President A lists Club B applications | 403 ✅ |
+| IDOR-04 | President A edits Club B content | 404 ✅ |
+| IDOR-05 | President A deletes a Club B application | 403 ✅ |
+| IDOR-06 | Student B uses Student A's My Forms code; no code while signed out | 403 / 404 ✅ |
+| IDOR-07 | Student B accepts Student A's attendance task | 409 ✅ |
+| IDOR-08 | President A lists heads, sees only Club A | 200, 2 heads ✅ |
+| PRIV-01 | Student opens club applications | 401 ✅ |
+| PRIV-02 | Committee head adds a head (president only) | 403 ✅ |
+| PRIV-03 | President calls an admin API; admin calls it | 401 / 200 ✅ |
+| PRIV-04 | President A switches to Club B president | 403 ✅ |
+| XSS-01 | Home page CSP: no `unsafe-inline` for scripts, `nosniff` set | ✅ |
+| XSS-02 | `javascript:` club link removed from public data | ✅ |
+| XSS-03 | Question identifier containing markup | 400 ✅ |
+| XSS-04 | `<script>` in the URL isn't reflected | 404 JSON ✅ |
+| XSS-05 | Attendance CSV with a student name starting `=HYPERLINK(` | written as `'=HYPERLINK(` ✅ |
+| ATT-01 | Scanning a QR older than 15 s | 410 EXPIRED_QR ✅ |
+| ATT-02 | Scan body with a forged name | recorded with the account's own name ✅ |
+| ATT-03 | Second scan of the same student | duplicate, nothing saved ✅ |
+| ATT-04 | Non-member QR for a members-only event | 403 NOT_ELIGIBLE ✅ |
+| ATT-05 | Accepting someone else's attendance task | 409 ✅ |
+| BL-01 | Two parallel bookings of a 1-seat interview time | 200 + 409, 1 booking in the database ✅ |
+| AUTH-07 | Another session of the same account after logout | 200 before, 401 after ✅ |
 
 ## 2. Findings
 
@@ -185,11 +214,14 @@ The reply message is the same, but for existing accounts the server also sends a
 
 **Existing tests that cover the rest:** `reverse-attendance.test.js` (QR expiry, replay, device binding, duplicates, self-scan, members-only, open-entry), `interview-slots.test.js` (parallel booking), `my-forms-token-binding.test.js` (application code bound to application and account), `application-club-status.test.js` (Full and Closed clubs), `quiz-analytics.test.js`, `view-dedupe.test.js`, `staff-google-auth.test.js`, `account-password-lifecycle.test.js`, `security-hardening.test.js`, `content-security-policy.test.js`.
 
+**End-to-end:** `tests/local-security-e2e.cjs`, 24 cases on the real server with a seeded in-memory database (results above).
+
 **Run:**
 
 ```
-node --test tests/security-review.test.js     # this review only
+node --test tests/security-review.test.js     # this review only (no database needed)
+npm run test:security-local                   # end-to-end on localhost with an in-memory MongoDB (24 cases)
 node --test tests/*.test.js                   # full suite: 626 tests, 623 passed, 3 skipped, 0 failed
 ```
 
-The tests need no database, network or credentials.
+The unit tests need no database, network or credentials. The end-to-end run downloads a MongoDB binary on first use and uses only local test data.

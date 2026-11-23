@@ -31,7 +31,8 @@
     "vercel-build": "node scripts/stamp-sw.cjs",
     "db:sync:preview": "node scripts/sync-databases.cjs",
     "db:sync": "node scripts/sync-databases.cjs --apply",
-    "test:e2e": "node scripts/e2e-workflows.cjs setup && echo Restart the test server WITHOUT push (set ONESIGNAL_APP_ID= empty), then run: node scripts/e2e-workflows.cjs run, then: node scripts/e2e-workflows.cjs cleanup"
+    "test:e2e": "node scripts/e2e-workflows.cjs setup && echo Restart the test server WITHOUT push (set ONESIGNAL_APP_ID= empty), then run: node scripts/e2e-workflows.cjs run, then: node scripts/e2e-workflows.cjs cleanup",
+    "test:security-local": "node tests/local-security-e2e.cjs"
   },
   "dependencies": {
     "cloudinary": "^2.11.0",
@@ -50,5 +51,8 @@
     "exceljs": {
       "uuid": "11.1.1"
     }
+  },
+  "devDependencies": {
+    "mongodb-memory-server": "^10.4.3"
   }
 }
