@@ -2237,6 +2237,25 @@ function studentApplicationOwnerFilter(account) {
   ] };
 }
 
+// My Forms code access (BL-10). The code is looked up in the database together with the application id,
+// so it opens only the application it was issued for (on every server instance, not only the one that
+// created it). When the application belongs to a student account, the code also needs that same account
+// to be signed in; applications sent without signing in are opened by their code alone.
+async function findMyFormByToken(req, res, token, id = null) {
+  if (!mongoReady) return { status: 503, message: 'This form is temporarily unavailable.' };
+  const application = await Application.findOne({ managementTokenHash: hashMyFormToken(token), ...(id === null ? {} : { id }) })
+    .read('primary').readConcern('majority').lean();
+  if (!application || !canManageMyForm(application, token)) return { status: 404, message: id === null ? 'That My Forms code was not found.' : 'This form could not be found.' };
+  if (application.studentAccountId) {
+    let student = req.studentAccount || null;
+    if (!student) { try { student = await getStudentAccountFromRequest(req, res); } catch { return { status: 503, message: 'Your sign-in could not be checked. Please try again.' }; } }
+    if (!student || String(student._id) !== String(application.studentAccountId)) {
+      return { status: 403, message: 'Sign in with the MIU account that submitted this application to open it.' };
+    }
+  }
+  return { application };
+}
+
 async function initializeMongoData() {
   // Index builds and one-time data migrations run once per deployment, not on every
   // serverless cold start. Local and non-Vercel runs keep running them each start.
@@ -8192,10 +8211,14 @@ app.get('/api/student/my-clubs', requireStudentAuth, async (req, res) => {
   }
 });
 
-app.post('/api/my-forms/access', limitMyFormAccessAttempts, (req, res) => {
+app.post('/api/my-forms/access', limitMyFormAccessAttempts, async (req, res) => {
   const token = getMyFormToken(req);
-  const application = applications.find((item) => canManageMyForm(item, token));
-  if (!application) return res.status(404).json({ message: 'That My Forms code was not found.' });
+  if (!token) return res.status(404).json({ message: 'That My Forms code was not found.' });
+  let found;
+  try { found = await findMyFormByToken(req, res, token); }
+  catch (error) { console.error('My Forms code lookup failed:', error.name); return res.status(503).json({ message: 'This form is temporarily unavailable.' }); }
+  if (!found.application) return res.status(found.status).json({ message: found.message });
+  const { application } = found;
   res.json({ application: toApiRecord(application), canEdit: !application.interviewed && application.status === 'pending' });
 });
 
@@ -8204,7 +8227,11 @@ app.get('/api/my-forms/:id', limitMyFormAccessAttempts, async (req, res) => {
   const account = token ? null : req.studentAccount;
   let application;
   if (token) {
-    application = applications.find((item) => item.id === Number(req.params.id) && canManageMyForm(item, token));
+    let found;
+    try { found = await findMyFormByToken(req, res, token, Number(req.params.id)); }
+    catch (error) { console.error('My Forms code lookup failed:', error.name); return res.status(503).json({ message: 'This form is temporarily unavailable.' }); }
+    if (!found.application) return res.status(found.status).json({ message: found.message });
+    application = found.application;
   } else if (account) {
     try {
       application = await Application.findOne({ id: Number(req.params.id), ...studentApplicationOwnerFilter(account) })
@@ -8223,7 +8250,11 @@ app.patch('/api/my-forms/:id', limitMyFormAccessAttempts, async (req, res) => {
   const account = token ? null : req.studentAccount;
   let application;
   if (token) {
-    application = applications.find((item) => item.id === Number(req.params.id) && canManageMyForm(item, token));
+    let found;
+    try { found = await findMyFormByToken(req, res, token, Number(req.params.id)); }
+    catch (error) { console.error('My Forms code lookup failed:', error.name); return res.status(503).json({ message: 'This form is temporarily unavailable.' }); }
+    if (!found.application) return res.status(found.status).json({ message: found.message });
+    application = found.application;
   } else if (account) {
     try {
       application = await Application.findOne({ id: Number(req.params.id), ...studentApplicationOwnerFilter(account) })
@@ -8334,6 +8365,8 @@ app.patch('/api/my-forms/:id', limitMyFormAccessAttempts, async (req, res) => {
       await removeApplicantPhoto(application.photoPublicId);
     }
     Object.assign(application, updates);
+    const cached = applications.find((item) => item.id === application.id);
+    if (cached && cached !== application) Object.assign(cached, updates);
     return res.json(toApiRecord(updated));
   } catch (error) {
     if (error.status) return res.status(error.status).json({ message: error.message });
@@ -8345,8 +8378,14 @@ app.patch('/api/my-forms/:id', limitMyFormAccessAttempts, async (req, res) => {
 app.delete('/api/my-forms/:id', limitMyFormAccessAttempts, async (req, res) => {
   const token = getMyFormToken(req);
   const account = token ? null : req.studentAccount;
-  const applicationIndex = applications.findIndex((item) => item.id === Number(req.params.id) && canManageMyForm(item, token));
-  let application = token ? applications[applicationIndex] : null;
+  let application = null;
+  if (token) {
+    let found;
+    try { found = await findMyFormByToken(req, res, token, Number(req.params.id)); }
+    catch (error) { console.error('My Forms code lookup failed:', error.name); return res.status(503).json({ message: 'This form is temporarily unavailable.' }); }
+    if (!found.application) return res.status(found.status).json({ message: found.message });
+    application = found.application;
+  }
   if (!token && account) {
     try {
       application = await Application.findOne({ id: Number(req.params.id), ...studentApplicationOwnerFilter(account) })
@@ -8373,6 +8412,7 @@ app.delete('/api/my-forms/:id', limitMyFormAccessAttempts, async (req, res) => {
     });
     if (!result.deletedCount) return res.status(409).json({ message: 'This form can no longer be removed because its interview process has started.' });
     await removeApplicantPhoto(application.photoPublicId);
+    const applicationIndex = applications.findIndex((item) => item.id === application.id);
     if (applicationIndex >= 0) applications.splice(applicationIndex, 1);
     res.status(204).end();
   } catch (error) {

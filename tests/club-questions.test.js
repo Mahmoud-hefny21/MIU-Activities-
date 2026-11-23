@@ -124,6 +124,7 @@ test('editing a pending application retains removed answers and snapshots the or
     require: () => require('../services/club-questions'),
     app: { patch(_path, _guard, callback) { handler = callback; } }, limitMyFormAccessAttempts() {},
     getMyFormToken: () => 'test-token', canManageMyForm: () => true, applications: [record],
+    findMyFormByToken: async () => ({ application: record }),
     mongoReady: true, Club: { findOne: () => query({ applicationFields: [q('why', 'Edited text')] }) },
     Application: { findOneAndUpdate(_filter, { $set }) { Object.assign(record, $set); return query(record); } },
     hashMyFormToken: () => 'test-hash', requireLiveDatabase: () => true, toApiRecord: value => value,
