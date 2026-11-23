@@ -76,6 +76,24 @@ async function resolveBooking({ Application, club, slotId, ownSlotId = '', now =
   return { interviewSlotId: slot.id, slot: slotLabel(slot) };
 }
 
+// Takes a seat atomically: the club record is locked inside a transaction, the slot's active bookings are counted
+// and the application is written in that same transaction, so parallel requests can never overbook a time.
+// `write(session, seatFree)` saves the application; `excludeId` leaves the applicant's own booking out of the count.
+async function bookWithLock({ database, Club, Application, clubId, slotId, capacity, excludeId = null, write }) {
+  const session = await database.startSession();
+  try {
+    let result;
+    await session.withTransaction(async () => {
+      if (!database.isSqlProvider) await Club.updateOne({ id: clubId, archivedAt: null }, { $inc: { registrationRevision: 1 } }, { session });
+      const filter = { clubId, interviewSlotId: slotId, status: { $in: ACTIVE_STATUSES } };
+      if (excludeId !== null) filter.id = { $ne: excludeId };
+      const booked = await Application.countDocuments(filter).session(session);
+      result = await write(session, booked < capacity);
+    }, { writeConcern: { w: 'majority' } });
+    return result;
+  } finally { await session.endSession(); }
+}
+
 function registerInterviewSlotRoutes(app, { Club, Application, requireClubAuth, requireLiveDatabase, sameOrigin }) {
   // Applicants: the club's upcoming interview times with seats left.
   app.get('/api/clubs/:clubId/interview-slots', async (req, res) => {
@@ -154,4 +172,4 @@ function registerInterviewSlotRoutes(app, { Club, Application, requireClubAuth, 
   });
 }
 
-module.exports = { registerInterviewSlotRoutes, resolveBooking, publicSlots, slotLabel, cleanSlot, isPast, cairoNow };
+module.exports = { registerInterviewSlotRoutes, resolveBooking, publicSlots, slotLabel, cleanSlot, isPast, cairoNow, bookWithLock };

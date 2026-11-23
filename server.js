@@ -2488,10 +2488,15 @@ app.get('/api/university-content', async (req, res) => {
 require('./services/university-content').registerPublicUniversityContentDetail(app, { UniversityContent, ensureReady, requireLiveDatabase });
 
 // Track a club view (called when a user opens a club's detail view).
+// Views count once per visitor per club or event every 30 minutes (services/view-dedupe.js).
+const isFirstView = require('./services/view-dedupe').createViewDeduper({ secret: sessionSecret });
+const firstViewOf = (req, target) => isFirstView(target, httpSecurity.trustedClientIp(req), req.get('user-agent'));
+
 app.post('/api/clubs/:id/view', (req, res) => {
   const clubId = Number(req.params.id);
   const club = clubs.find((item) => Number(item.id) === clubId);
   if (!club) return res.status(404).json({ message: 'Club not found.' });
+  if (!firstViewOf(req, `club:${clubId}`)) return res.json({ clubId, views: Number(clubViews[String(clubId)] || 0), counted: false });
   clubViews[String(clubId)] = Number(clubViews[String(clubId)] || 0) + 1;
   try {
     writeJsonFile(clubViewsFile, clubViews);
@@ -2857,6 +2862,9 @@ app.post('/api/events/:clubId/:eventIndex/view', async (req, res) => {
     if (!club?.events?.[eventIndex]) return res.status(404).json({ message: 'This event could not be found.' });
     const eventRequestId = Number(club.events[eventIndex]?.requestId);
     const key = eventRequestId > 0 ? `${clubId}:request:${eventRequestId}` : `${clubId}:${eventIndex}`;
+    res.setHeader('Cache-Control', 'no-store');
+    // A repeat view within the window changes neither the counter nor the student's interest score.
+    if (!firstViewOf(req, `event:${key}`)) return res.json({ views: Number(eventViews[key] || 0), counted: false });
     eventViews[key] = Number(eventViews[key] || 0) + 1;
     writeJsonFile(eventViewsFile, eventViews);
     const student = await getStudentAccountFromRequest(req, res);
@@ -8118,17 +8126,20 @@ app.post('/api/applications', async (req, res) => {
         { $unset: { studentClubKey: 1 } }
       );
     }
-    await Application.create(newApplication);
-    // Two students can take the last seat at the same moment: recount after saving and release the extra booking.
+    // Two students can take the last seat at the same moment: the seat count and the save happen together
+    // under a club lock, so the slot is never overbooked. If it filled up, the application is still saved without a time.
     let slotNotice = '';
     if (newApplication.interviewSlotId) {
-      const capacity = Number((selectedClub.interviewSlots || []).find((slot) => slot?.id === newApplication.interviewSlotId)?.capacity) || 0;
-      const booked = await Application.countDocuments({ clubId, interviewSlotId: newApplication.interviewSlotId, status: { $in: ['pending', 'accepted'] } });
-      if (booked > capacity) {
-        await Application.updateOne({ id: newApplication.id }, { $set: { slot: '', interviewSlotId: '' } });
-        newApplication.slot = ''; newApplication.interviewSlotId = '';
-        slotNotice = 'That interview time filled up a moment ago. Your application was saved; choose another interview time from My Forms.';
-      }
+      const bookedSlot = { slot: newApplication.slot, interviewSlotId: newApplication.interviewSlotId };
+      const capacity = Number((selectedClub.interviewSlots || []).find((slot) => slot?.id === bookedSlot.interviewSlotId)?.capacity) || 0;
+      await interviewSlots.bookWithLock({ database: mongoose, Club, Application, clubId, slotId: bookedSlot.interviewSlotId, capacity,
+        write: async (session, seatFree) => {
+          Object.assign(newApplication, seatFree ? bookedSlot : { slot: '', interviewSlotId: '' });
+          slotNotice = seatFree ? '' : 'That interview time filled up a moment ago. Your application was saved; choose another interview time from My Forms.';
+          await Application.create([newApplication], { session });
+        } });
+    } else {
+      await Application.create(newApplication);
     }
     applications.unshift(newApplication);
     res.status(201).json({ application: toApiRecord(newApplication), managementToken, ...(slotNotice ? { slotNotice } : {}) });
@@ -8300,11 +8311,24 @@ app.patch('/api/my-forms/:id', limitMyFormAccessAttempts, async (req, res) => {
     const ownerFilter = token
       ? { managementTokenHash: hashMyFormToken(token) }
       : studentApplicationOwnerFilter(account);
-    const updated = await Application.findOneAndUpdate(
-      { id: application.id, ...ownerFilter, interviewed: { $ne: true }, status: 'pending' },
-      { $set: updates },
-      { new: true }
-    ).lean();
+    const saveUpdates = (session) => {
+      const query = Application.findOneAndUpdate(
+        { id: application.id, ...ownerFilter, interviewed: { $ne: true }, status: 'pending' },
+        { $set: updates },
+        { new: true, ...(session ? { session } : {}) }
+      );
+      return query.lean();
+    };
+    // A new interview time is booked under the club lock, so two students cannot both take its last seat.
+    const newSlotId = updates.interviewSlotId;
+    const updated = newSlotId
+      ? await require('./services/interview-slots').bookWithLock({ database: mongoose, Club, Application, clubId: application.clubId, slotId: newSlotId,
+        capacity: Number((selectedClub.interviewSlots || []).find((slot) => slot?.id === newSlotId)?.capacity) || 0, excludeId: application.id,
+        write: async (session, seatFree) => {
+          if (!seatFree) throw Object.assign(new Error('This interview time is full. Choose another time.'), { status: 409 });
+          return saveUpdates(session);
+        } })
+      : await saveUpdates(null);
     if (!updated) return res.status(409).json({ message: 'This form can no longer be edited because its interview process has started.' });
     if (updates.photoPublicId && updates.photoPublicId !== application.photoPublicId) {
       await removeApplicantPhoto(application.photoPublicId);
@@ -8312,6 +8336,7 @@ app.patch('/api/my-forms/:id', limitMyFormAccessAttempts, async (req, res) => {
     Object.assign(application, updates);
     return res.json(toApiRecord(updated));
   } catch (error) {
+    if (error.status) return res.status(error.status).json({ message: error.message });
     console.error('Database operation failed:', error.name);
     res.status(503).json({ message: 'The data store is temporarily unavailable.' });
   }

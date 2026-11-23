@@ -63,3 +63,28 @@ test('presidents cannot remove a booked time, cut its seats below bookings or mo
   assert.equal(ok.code, 200); assert.equal(saved.length, 2); assert.equal(saved[0].capacity, 5);
   assert.match((await call([{ date: '2030-01-10', start: '14:00', end: '14:15', capacity: 1 }, { date: '2030-01-10', start: '14:00', end: '14:30', capacity: 1 }, stored.interviewSlots[0]])).body.message, /same moment/);
 });
+
+test('BL-08: parallel bookings never overbook a time; the club lock comes before the seat count', async () => {
+  const { bookWithLock } = require('../services/interview-slots');
+  const rows = [], calls = [];
+  let queue = Promise.resolve();
+  // Like MongoDB, transactions that write the same club record run one after another.
+  const database = { isSqlProvider: false, startSession: async () => ({
+    withTransaction: fn => { const run = queue.then(() => fn()); queue = run.catch(() => {}); return run; }, endSession: async () => {} }) };
+  const Club = { updateOne: async (filter, update) => { calls.push(['lock', filter.id, update.$inc.registrationRevision]); } };
+  const Application = { countDocuments: filter => ({ session: async () => {
+    calls.push(['count']);
+    return rows.filter(row => row.clubId === filter.clubId && row.interviewSlotId === filter.interviewSlotId
+      && filter.status.$in.includes(row.status) && (!filter.id || row.id !== filter.id.$ne)).length;
+  } }) };
+  const results = await Promise.all([1, 2, 3, 4, 5].map(id => bookWithLock({ database, Club, Application, clubId: 7, slotId: 'aaaaaaaaaaaaaaaa', capacity: 1,
+    write: async (session, seatFree) => { rows.push({ id, clubId: 7, status: 'pending', interviewSlotId: seatFree ? 'aaaaaaaaaaaaaaaa' : '' }); return seatFree; } })));
+  assert.equal(results.filter(Boolean).length, 1, 'exactly one of five parallel requests gets the last seat');
+  assert.equal(rows.filter(row => row.interviewSlotId).length, 1);
+  assert.equal(rows.length, 5, 'the others are still saved, without a time');
+  assert.deepEqual(calls.slice(0, 2), [['lock', 7, 1], ['count']]);
+  // Re-saving your own booking does not count against you.
+  const own = await bookWithLock({ database, Club, Application, clubId: 7, slotId: 'aaaaaaaaaaaaaaaa', capacity: 1, excludeId: rows.find(row => row.interviewSlotId).id,
+    write: async (session, seatFree) => seatFree });
+  assert.equal(own, true);
+});

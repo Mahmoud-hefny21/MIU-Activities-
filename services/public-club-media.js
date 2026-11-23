@@ -6,12 +6,18 @@ const publicFields = 'id sortOrder name committee category tagline image imagePu
 const publicContentFields = 'requestId contentType title date time location description image createdAt publishedAt registrationEnabled attendanceEnabled attendanceAudience author text type category kind sponsorName sponsorCompany sponsorDescription sponsorLogo boothName boothDescription boothLocation boothOpenDate boothCloseDate interaction question options'.split(' ');
 function sanitizePublicClub(record) {
   const { memberRoster, archivedAt, interviewForms, questionHistory, officers, profile, ...result } = record;
+  // Clubs have no application seat limit; older records still hold seed seat numbers, which
+  // contradicted "Unlimited" on the club page and the club's status. null = unlimited.
+  result.seats = null;
   // Only the club's public social links leave the internal profile (from the clubs Excel import).
   result.socialLinks = (Array.isArray(profile?.socialLinks) ? profile.socialLinks : [])
     .filter(link => typeof link === 'string' && /^https:\/\/[^\s<>"']{3,300}$/i.test(link)).slice(0, 6);
   for (const collection of collections) if (Array.isArray(result[collection])) result[collection] = result[collection].map(item => {
     if (!item || typeof item !== 'object') return item;
-    return Object.fromEntries(publicContentFields.filter(key => Object.hasOwn(item, key)).map(key => [key, item[key]]));
+    const publicItem = Object.fromEntries(publicContentFields.filter(key => Object.hasOwn(item, key)).map(key => [key, item[key]]));
+    // Whether the server accepts registrations right now (closed once the event has started or passed).
+    if (collection === 'events') publicItem.registrationOpen = item.registrationEnabled !== false && !require('./student-event-registration').eventRules(item);
+    return publicItem;
   });
   return result;
 }

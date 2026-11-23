@@ -614,7 +614,7 @@ function openClubDetail(clubId) {
 
     <div class="detail-info detail-stats" role="list" aria-label="${escapeHtml(club.name)} in numbers">
       <div class="detail-box" role="listitem"><strong>${Number(club.members) || 0}</strong><p>Members</p></div>
-      <div class="detail-box" role="listitem"><strong>Unlimited</strong><p>Seats</p></div>
+      <div class="detail-box" role="listitem"><strong>${Number.isInteger(club.seats) && club.seats > 0 ? club.seats : 'Unlimited'}</strong><p>Seats</p></div>
       <div class="detail-box" role="listitem"><strong>${Number(club.applicants) || 0}</strong><p>Applicants</p></div>
     </div>
 

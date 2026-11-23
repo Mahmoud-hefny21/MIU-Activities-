@@ -12,6 +12,9 @@ function toPublicUniversityContent(record) {
   const result = Object.fromEntries(publicFields.split(' ').filter(key => Object.hasOwn(record, key)).map(key => [key, record[key]]));
   result.interaction = record.interaction || 'none'; result.question = record.question || ''; result.options = record.options || [];
   result.registrationEnabled = record.type === 'event' && record.registrationEnabled === true;
+  // registrationEnabled is the event's setting; registrationOpen is whether the server accepts registrations now
+  // (it closes once the event has started or its date has passed).
+  result.registrationOpen = result.registrationEnabled && !require('./student-event-registration').eventRules(record);
   result.attendanceEnabled = result.registrationEnabled ? (typeof record.attendanceEnabled === 'boolean' ? record.attendanceEnabled : null) : false;
   result.attendanceAudience = record.type === 'event' ? (record.attendanceAudience === 'members' ? 'members' : 'all_students') : undefined;
   result.organization = publisherFor(record);
