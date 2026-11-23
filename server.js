@@ -901,6 +901,14 @@ function clubPasswordMatches(password, account) {
   return expectedHash.length === providedHash.length && crypto.timingSafeEqual(expectedHash, providedHash);
 }
 
+// Committee heads sign in with MIU Google only. The legacy credential columns are
+// still required, so they get an undisclosed random secret nobody can type.
+const MIU_GOOGLE_EMAIL = /^[a-z0-9._%+-]+@miuegypt\.edu\.eg$/i;
+function googleOnlyCredentials() {
+  const salt = crypto.randomBytes(16).toString('hex');
+  return { salt, passwordHash: crypto.scryptSync(crypto.randomBytes(48).toString('base64url'), salt, 64).toString('hex') };
+}
+
 function createClubSession(account, assignment = null) {
   const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
   const encodedEmail = Buffer.from(account.email).toString('base64url');
@@ -4897,14 +4905,10 @@ require('./services/club-questions').registerClubQuestions(app, {
 app.post('/api/club/heads', requireClubAuth, requireClubPresident, async (req, res) => {
   const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
   const committee = cleanText(req.body.committee, 100);
-  const password = req.body.password;
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return res.status(400).json({ message: 'Enter a valid head email address.' });
+  if (email.length > 254 || !MIU_GOOGLE_EMAIL.test(email)) {
+    return res.status(400).json({ message: 'Enter the head\'s MIU Google email (@miuegypt.edu.eg).' });
   }
   if (!committee) return res.status(400).json({ message: 'Enter the committee this head will manage.' });
-  if (typeof password !== 'string' || password.length < 12 || password.length > 200) {
-    return res.status(400).json({ message: 'Use a password between 12 and 200 characters.' });
-  }
   if (clubAccounts.some((account) => account.email === email)) {
     return res.status(409).json({ message: 'That email already has a club portal account.' });
   }
@@ -4913,12 +4917,10 @@ app.post('/api/club/heads', requireClubAuth, requireClubPresident, async (req, r
     return res.status(409).json({ message: 'This committee already has a head.' });
   }
 
-  const salt = crypto.randomBytes(16).toString('hex');
   const account = {
     clubId: req.clubAccount.clubId,
     email,
-    salt,
-    passwordHash: crypto.scryptSync(password, salt, 64).toString('hex'),
+    ...googleOnlyCredentials(),
     role: 'head',
     committee
   };
@@ -4927,8 +4929,7 @@ app.post('/api/club/heads', requireClubAuth, requireClubPresident, async (req, r
     await ClubAccount.create({ ...account });
     clubAccounts.push(account);
     writePrivateClubAccountsFile();
-    // The password is shown exactly once here and never stored again.
-    res.status(201).json({ email, committee, role: 'head', temporaryPassword: password });
+    res.status(201).json({ email, committee, role: 'head' });
   } catch (error) {
     console.error('Database operation failed:', error.name);
     res.status(error.code === 11000 ? 409 : 503).json({
@@ -4941,18 +4942,13 @@ app.patch('/api/club/heads/:email', requireClubAuth, requireClubPresident, async
   const oldEmail = String(req.params.email || '').trim().toLowerCase();
   const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
   const committee = cleanText(req.body.committee, 100);
-  const password = req.body.password;
   const accountIndex = clubAccounts.findIndex((account) => account.clubId === req.clubAccount.clubId
     && account.role === 'head' && account.email === oldEmail);
   if (accountIndex < 0) return res.status(404).json({ message: 'Committee head not found.' });
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return res.status(400).json({ message: 'Enter a valid head email address.' });
+  if (email !== oldEmail && (email.length > 254 || !MIU_GOOGLE_EMAIL.test(email))) {
+    return res.status(400).json({ message: 'Enter the head\'s MIU Google email (@miuegypt.edu.eg).' });
   }
   if (!committee) return res.status(400).json({ message: 'Enter the committee this head will manage.' });
-  if (password !== undefined && password !== ''
-    && (typeof password !== 'string' || password.length < 12 || password.length > 200)) {
-    return res.status(400).json({ message: 'Use a password between 12 and 200 characters, or leave it blank to keep the current password.' });
-  }
   if (clubAccounts.some((account, index) => index !== accountIndex && account.email === email)) {
     return res.status(409).json({ message: 'That email already has a club portal account.' });
   }
@@ -4965,10 +4961,8 @@ app.patch('/api/club/heads/:email', requireClubAuth, requireClubPresident, async
   const currentAccount = clubAccounts[accountIndex];
   const oldCommittee = currentAccount.committee;
   const updates = { email, committee };
-  if (typeof password === 'string' && password.length) {
-    updates.salt = crypto.randomBytes(16).toString('hex');
-    updates.passwordHash = crypto.scryptSync(password, updates.salt, 64).toString('hex');
-  }
+  // A new email is a different Google user: drop the old Google link and sign out old sessions.
+  const relink = email !== oldEmail ? { $unset: { googleSub: '' }, $inc: { sessionVersion: 1 } } : {};
 
   try {
     if (!requireLiveDatabase(res)) return;
@@ -4984,7 +4978,7 @@ app.patch('/api/club/heads/:email', requireClubAuth, requireClubPresident, async
       }
       const updatedAccount = await ClubAccount.findOneAndUpdate(
         { clubId: currentAccount.clubId, email: oldEmail, role: 'head' },
-        { $set: Object.fromEntries(Object.entries(updates).filter(([key]) => key !== 'password')) },
+        { $set: updates, ...relink },
         { new: true, runValidators: true, session }
       );
       if (!updatedAccount) throw new Error('HEAD_NOT_FOUND');
@@ -7762,13 +7756,9 @@ app.post('/api/admin/club-heads', async (req, res) => {
   const club = clubs.find((item) => item.id === clubId);
   const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
   const committee = cleanText(req.body.committee, 100);
-  const password = req.body.password;
   if (!club) return res.status(404).json({ message: 'Club not found.' });
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ message: 'Enter a valid head email address.' });
+  if (email.length > 254 || !MIU_GOOGLE_EMAIL.test(email)) return res.status(400).json({ message: 'Enter the head\'s MIU Google email (@miuegypt.edu.eg).' });
   if (!committee) return res.status(400).json({ message: 'Enter the committee this head will manage.' });
-  if (typeof password !== 'string' || password.length < 12 || password.length > 200) {
-    return res.status(400).json({ message: 'Use a password between 12 and 200 characters.' });
-  }
   if (clubAccounts.some((account) => account.email === email)) {
     return res.status(409).json({ message: 'That email already has a club portal account.' });
   }
@@ -7777,12 +7767,10 @@ app.post('/api/admin/club-heads', async (req, res) => {
     return res.status(409).json({ message: 'This committee already has a head.' });
   }
 
-  const salt = crypto.randomBytes(16).toString('hex');
   const account = {
     clubId,
     email,
-    salt,
-    passwordHash: crypto.scryptSync(password, salt, 64).toString('hex'),
+    ...googleOnlyCredentials(),
     role: 'head',
     committee
   };
@@ -7791,8 +7779,7 @@ app.post('/api/admin/club-heads', async (req, res) => {
     await ClubAccount.create({ ...account });
     clubAccounts.push(account);
     writePrivateClubAccountsFile();
-    // The password is shown exactly once here and never stored again.
-    res.status(201).json({ clubId, clubName: club.name, email, committee, role: 'head', temporaryPassword: password });
+    res.status(201).json({ clubId, clubName: club.name, email, committee, role: 'head' });
   } catch (error) {
     console.error('Database operation failed:', error.name);
     res.status(error.code === 11000 ? 409 : 503).json({
@@ -7805,15 +7792,12 @@ app.patch('/api/admin/club-heads/:email', async (req, res) => {
   const oldEmail = String(req.params.email || '').trim().toLowerCase();
   const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
   const committee = cleanText(req.body.committee, 100);
-  const password = req.body.password;
   const accountIndex = clubAccounts.findIndex((account) => account.role === 'head' && account.email === oldEmail);
   if (accountIndex < 0) return res.status(404).json({ message: 'Committee head not found.' });
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ message: 'Enter a valid head email address.' });
-  if (!committee) return res.status(400).json({ message: 'Enter the committee this head will manage.' });
-  if (password !== undefined && password !== ''
-    && (typeof password !== 'string' || password.length < 12 || password.length > 200)) {
-    return res.status(400).json({ message: 'Use a password between 12 and 200 characters, or leave it blank to keep the current password.' });
+  if (email !== oldEmail && (email.length > 254 || !MIU_GOOGLE_EMAIL.test(email))) {
+    return res.status(400).json({ message: 'Enter the head\'s MIU Google email (@miuegypt.edu.eg).' });
   }
+  if (!committee) return res.status(400).json({ message: 'Enter the committee this head will manage.' });
   if (clubAccounts.some((account, index) => index !== accountIndex && account.email === email)) {
     return res.status(409).json({ message: 'That email already has a club portal account.' });
   }
@@ -7824,10 +7808,8 @@ app.patch('/api/admin/club-heads/:email', async (req, res) => {
   }
   const oldCommittee = currentAccount.committee;
   const updates = { email, committee };
-  if (typeof password === 'string' && password.length) {
-    updates.salt = crypto.randomBytes(16).toString('hex');
-    updates.passwordHash = crypto.scryptSync(password, updates.salt, 64).toString('hex');
-  }
+  // A new email is a different Google user: drop the old Google link and sign out old sessions.
+  const relink = email !== oldEmail ? { $unset: { googleSub: '' }, $inc: { sessionVersion: 1 } } : {};
 
   try {
     if (!requireLiveDatabase(res)) return;
@@ -7843,7 +7825,7 @@ app.patch('/api/admin/club-heads/:email', async (req, res) => {
       }
       const updated = await ClubAccount.findOneAndUpdate(
         { clubId: currentAccount.clubId, email: oldEmail, role: 'head' },
-        { $set: Object.fromEntries(Object.entries(updates).filter(([key]) => key !== 'password')) },
+        { $set: updates, ...relink },
         { new: true, runValidators: true, session }
       );
       if (!updated) throw new Error('HEAD_NOT_FOUND');

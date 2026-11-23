@@ -240,7 +240,7 @@ async function main(directory) {
     await call('Head cannot delete content', 'DELETE', endpoint, 403, undefined, sessions.head);
     await call('President delete draft', 'DELETE', endpoint, 204, undefined, sessions.president);
     await call('Deleted content unavailable', 'PUT', endpoint, 404, { title: 'Gone' }, sessions.president);
-    const headEmail = 'qa-crud-' + suffix + '@example.test', committee = 'QA CRUD ' + suffix;
+    const headEmail = 'qa-crud-' + suffix + '@miuegypt.edu.eg', committee = 'QA CRUD ' + suffix;
     await call('Admin create head', 'POST', '/api/admin/club-heads', 201, { clubId: club.id, email: headEmail, committee, password }, sessions.admin);
     await call('Duplicate head rejected', 'POST', '/api/admin/club-heads', 409, { clubId: club.id, email: headEmail, committee, password }, sessions.admin);
     await call('Admin edit head', 'PATCH', '/api/admin/club-heads/' + encodeURIComponent(headEmail), 200, { email: headEmail, committee: committee + ' edited' }, sessions.admin);

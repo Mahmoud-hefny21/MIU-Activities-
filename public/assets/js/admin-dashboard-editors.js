@@ -114,18 +114,17 @@
     if (selected !== 'new' && !current) throw new Error('Committee head not found.');
     root().innerHTML = `<form id="headEditorForm" class="v2-form">
       <label>Club<select name="clubId" required ${current ? 'disabled' : ''}>${clubs.map(club => `<option value="${escape(club.id)}" ${club.id === current?.clubId ? 'selected' : ''}>${escape(club.name)}</option>`).join('')}</select></label>
-      ${field(escape, 'email', 'Head email', current?.email, 'email', true, 'maxlength="254"')}
+      ${field(escape, 'email', 'Head MIU Google email', current?.email, 'email', true, 'maxlength="254" pattern="[a-zA-Z0-9._%+-]+@miuegypt[.]edu[.]eg" autocapitalize="none" spellcheck="false"')}
       ${field(escape, 'committee', 'Committee', current?.committee, 'text', true, 'maxlength="100"')}
-      ${field(escape, 'password', current ? 'New password (leave empty to keep existing)' : 'Initial password', '', 'password', !current, 'minlength="12" maxlength="200" autocomplete="new-password"')}
-      <button class="v2-action" type="submit">Save head account</button></form>`;
+      <p class="v2-panel-note">The head signs in with this MIU Google account. No password is needed.</p>
+      <button class="v2-action" type="submit">Save head</button></form>`;
     document.getElementById('headEditorForm').addEventListener('submit', event => saveForm(event, async form => {
       const payload = Object.fromEntries(new FormData(form));
       await request(current ? '/api/admin/club-heads/' + encodeURIComponent(current.email) : '/api/admin/club-heads', { method: current ? 'PATCH' : 'POST', body: JSON.stringify(payload) });
       current = { email: payload.email, committee: payload.committee };
       const url = new URL(location.href); url.searchParams.set('email', payload.email); history.replaceState(history.state, '', url);
-      form.elements.password.value = ''; form.elements.password.required = false;
       form.elements.clubId.disabled = true;
-      return 'Head account saved.';
+      return 'Head saved. They can sign in with Google now.';
     }));
   };
 })();

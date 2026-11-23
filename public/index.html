@@ -410,14 +410,11 @@
                   <input id="committeeHeadName" name="committee" maxlength="100" required />
                 </div>
                 <div class="field-group">
-                  <label for="committeeHeadEmail">Head email</label>
-                  <input id="committeeHeadEmail" name="email" type="email" autocomplete="username" required />
+                  <label for="committeeHeadEmail">Head MIU Google email</label>
+                  <input id="committeeHeadEmail" name="email" type="email" maxlength="254" pattern="[a-zA-Z0-9._%+-]+@miuegypt[.]edu[.]eg" autocomplete="off" autocapitalize="none" spellcheck="false" required />
+                  <small>The head signs in with this MIU Google account. No password is needed.</small>
                 </div>
-                <div class="field-group">
-                  <label for="committeeHeadPassword">Temporary password (12+ characters)</label>
-                  <input id="committeeHeadPassword" name="password" type="password" minlength="12" autocomplete="new-password" required />
-                </div>
-                <button class="primary-btn" type="submit">Create head account</button>
+                <button class="primary-btn" type="submit">Add committee head</button>
               </form>
               <p id="committeeHeadFeedback" class="admin-feedback" aria-live="polite"></p>
               <div id="committeeHeadList" class="committee-head-list"></div>

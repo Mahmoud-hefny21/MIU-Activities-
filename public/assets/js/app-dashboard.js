@@ -789,8 +789,7 @@ function editCommitteeHead(head, row) {
   form.className = 'committee-head-edit-form';
   const fields = [
     { label: 'Committee', name: 'committee', type: 'text', value: head.committee },
-    { label: 'Head email', name: 'email', type: 'email', value: head.email },
-    { label: 'New password (optional)', name: 'password', type: 'password', value: '' }
+    { label: 'Head MIU Google email', name: 'email', type: 'email', value: head.email }
   ];
   for (const field of fields) {
     const label = document.createElement('label');
@@ -800,12 +799,8 @@ function editCommitteeHead(head, row) {
     input.type = field.type;
     input.value = field.value;
     if (field.name === 'committee') input.maxLength = 100;
-    if (field.name === 'password') {
-      input.minLength = 12;
-      input.autocomplete = 'new-password';
-      input.placeholder = 'Leave blank to keep password';
-    }
-    if (field.name !== 'password') input.required = true;
+    if (field.name === 'email') input.maxLength = 254;
+    input.required = true;
     label.append(input);
     form.append(label);
   }
@@ -831,8 +826,7 @@ function editCommitteeHead(head, row) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           committee: formData.get('committee'),
-          email: formData.get('email'),
-          password: formData.get('password')
+          email: formData.get('email')
         })
       });
       const result = response.status === 204 ? {} : await response.json();
@@ -1130,14 +1124,13 @@ document.getElementById('createCommitteeHeadForm').addEventListener('submit', as
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         committee: formData.get('committee'),
-        email: formData.get('email'),
-        password: formData.get('password')
+        email: formData.get('email')
       })
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.message || 'Could not create this committee head.');
     form.reset();
-    committeeHeadFeedback.textContent = `Head account created for ${result.committee}. Share the email and password with the head.`;
+    committeeHeadFeedback.textContent = `Head added for ${result.committee}. They can sign in with their MIU Google account now.`;
     await loadCommitteeHeads();
   } catch (error) {
     committeeHeadFeedback.textContent = error.message;
