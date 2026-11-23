@@ -1413,9 +1413,9 @@ function isUpcomingUniversityEvent(item, today = startOfLocalDay(new Date())) {
   return Boolean(date) && date >= today && date <= horizon;
 }
 
-// MIU and faculty announcements and polls also appear in "Upcoming": the newest ones from the last 90 days,
-// shown after the events.
-const SLIDESHOW_ANNOUNCEMENT_DAYS = 90;
+// MIU and faculty announcements and polls also appear in "Upcoming", but only while they are new: the newest
+// ones from the last 7 days, shown after the events.
+const SLIDESHOW_ANNOUNCEMENT_DAYS = 7;
 const SLIDESHOW_ANNOUNCEMENT_LIMIT = 6;
 function recentUniversityAnnouncements(items, today = startOfLocalDay(new Date())) {
   const since = new Date(today);
@@ -1425,6 +1425,17 @@ function recentUniversityAnnouncements(items, today = startOfLocalDay(new Date()
     .filter((item) => item.parsedDate && item.parsedDate >= since)
     .sort((left, right) => right.parsedDate - left.parsedDate)
     .slice(0, SLIDESHOW_ANNOUNCEMENT_LIMIT);
+}
+
+// An event leaves "Upcoming" once it is over: at its end time when one is set, otherwise at the end of its day.
+function eventIsOver(item, now = new Date()) {
+  const day = parseEventDate(item.date);
+  if (!day) return false;
+  const end = new Date(day);
+  const endTime = /^([01]\d|2[0-3]):[0-5]\d$/.test(String(item.endTime || '')) ? item.endTime : '';
+  if (endTime) end.setHours(Number(endTime.slice(0, 2)), Number(endTime.slice(3, 5)), 0, 0);
+  else end.setDate(end.getDate() + 1);
+  return now >= end;
 }
 
 function renderEventsSlideshow() {
@@ -1467,8 +1478,8 @@ function renderEventsSlideshow() {
   }));
   const items = getAllEvents().filter((event) => !event.university)
     .map((event) => ({ ...event, contentType: 'event', index: event.eventIndex, parsedDate: parseEventDate(event.date) }))
-    .filter((event) => event.parsedDate && event.parsedDate >= todayStart)
-    .concat(universityItems.filter(isUpcomingUniversityEvent))
+    .filter((event) => event.parsedDate && event.parsedDate >= todayStart && !eventIsOver(event))
+    .concat(universityItems.filter((item) => isUpcomingUniversityEvent(item) && !eventIsOver(item)))
     .concat(recentUniversityAnnouncements(universityItems, todayStart))
     .sort((left, right) => {
       const leftEvent = left.contentType === 'event';

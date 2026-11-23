@@ -17,6 +17,8 @@ function sanitizePublicClub(record) {
     const publicItem = Object.fromEntries(publicContentFields.filter(key => Object.hasOwn(item, key)).map(key => [key, item[key]]));
     // Whether the server accepts registrations right now (closed once the event has started or passed).
     if (collection === 'events') publicItem.registrationOpen = item.registrationEnabled !== false && !require('./student-event-registration').eventRules(item);
+    // When the event ends (HH:MM, empty when not set), so lists can drop it once it is over.
+    if (collection === 'events') publicItem.endTime = (/^([01]\d|2[0-3]):[0-5]\d$/.test(String(item?.attendanceSettings?.endTime || '')) ? item.attendanceSettings.endTime : '');
     return publicItem;
   });
   return result;

@@ -17,6 +17,8 @@ function toPublicUniversityContent(record) {
   result.registrationOpen = result.registrationEnabled && !require('./student-event-registration').eventRules(record);
   // Attendance can be taken without registration (any student in the audience checks in), so it is shown as stored.
   result.attendanceEnabled = result.registrationEnabled ? (typeof record.attendanceEnabled === 'boolean' ? record.attendanceEnabled : null) : record.type === 'event' && record.attendanceEnabled === true;
+  // When the event ends (HH:MM, empty when not set), so lists can drop it once it is over.
+  if (record.type === 'event') result.endTime = (/^([01]\d|2[0-3]):[0-5]\d$/.test(String(record?.attendanceSettings?.endTime || '')) ? record.attendanceSettings.endTime : '');
   result.attendanceAudience = record.type === 'event' ? (record.attendanceAudience === 'members' ? 'members' : 'all_students') : undefined;
   result.organization = publisherFor(record);
   result.publisherType = result.organization.type === 'faculty' ? 'faculty' : 'miu';
