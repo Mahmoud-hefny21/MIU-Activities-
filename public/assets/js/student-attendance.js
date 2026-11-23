@@ -54,7 +54,8 @@
         + tile('Average per student', t.average, 'Events each');
       const max = Math.max(1, ...Object.values(report.levels));
       $('[data-sa-levels]').innerHTML = '<h3>Students by number of events</h3>' + Object.entries(report.levels).map(([range, count]) =>
-        `<div class="sa-level"><span>${range} event${range === '1' ? '' : 's'}</span><span class="sa-bar"><i style="width:${Math.round(count / max * 100)}%"></i></span><b>${count}</b></div>`).join('');
+        `<div class="sa-level"><span>${range} event${range === '1' ? '' : 's'}</span><span class="sa-bar"><i data-pct="${Math.round(count / max * 100)}"></i></span><b>${count}</b></div>`).join('');
+      $('[data-sa-levels]').querySelectorAll('[data-pct]').forEach((bar) => { bar.style.width = bar.dataset.pct + '%'; });
     }
 
     function filtered() {
@@ -76,11 +77,12 @@
         <details><summary>
           <span class="sa-rank${rank.get(s.email) <= 3 ? ' is-top' : ''}">${rank.get(s.email)}</span>
           <span class="sa-who"><strong>${esc(s.name)}</strong><small>${esc(s.account)}${s.enrollmentYear ? ` · <span class="sa-chip">Class of ${esc(s.enrollmentYear)}</span>` : ''}${s.universityId ? ` · ID ${esc(s.universityId)}` : ''}${s.major ? ` · ${esc(s.major)}` : ''}</small></span>
-          <span class="sa-count"><strong>${s.attended}</strong><small>event${s.attended === 1 ? '' : 's'}</small><span class="sa-bar"><i style="width:${Math.round(s.attended / max * 100)}%"></i></span></span>
+          <span class="sa-count"><strong>${s.attended}</strong><small>event${s.attended === 1 ? '' : 's'}</small><span class="sa-bar"><i data-pct="${Math.round(s.attended / max * 100)}"></i></span></span>
         </summary>
         <div class="sa-events"><p class="sa-note">${s.approved} approved · ${s.waiting} waiting for review · Clubs: ${esc(s.clubs.join(', '))}</p>
           <ul>${s.events.map(e => `<li><strong>${esc(e.title)}</strong><span>${esc(e.club)} · ${esc(e.date || 'No date')} · ${esc(e.role)}</span><em class="sa-status ${e.status === 'Approved' ? 'ok' : 'wait'}">${esc(e.status)}</em></li>`).join('')}</ul></div>
         </details></li>`).join('');
+      $('[data-sa-list]').querySelectorAll('[data-pct]').forEach((bar) => { bar.style.width = bar.dataset.pct + '%'; });
       $('[data-sa-more]').hidden = rows.length <= shown;
     }
 

@@ -208,3 +208,17 @@ test('Publishing: attendance can be turned on without registration (any student 
   assert.doesNotMatch(fs.readFileSync(require.resolve('../public/pages/event-form.html'), 'utf8'), /id="attendanceEnabledField" hidden/);
   assert.match(fs.readFileSync(require.resolve('../public/assets/js/miu-events-dashboard.js'), 'utf8'), /attendanceEnabled: isEvent && \$\('universityPostAttendance'\)\.value === 'true'/);
 });
+
+test('F5: the app itself uses no inline styles (only third-party scripts still need style-src unsafe-inline)', () => {
+  const path = require('node:path');
+  const files = dir => fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => entry.isDirectory() ? (/vendor/.test(entry.name) ? [] : files(path.join(dir, entry.name))) : [path.join(dir, entry.name)]);
+  const all = files(path.join(__dirname, '..', 'public'));
+  for (const file of all.filter(name => name.endsWith('.html'))) {
+    const html = fs.readFileSync(file, 'utf8');
+    assert.doesNotMatch(html, / style="/, file); assert.doesNotMatch(html, /<style[\s>]/, file);
+  }
+  for (const file of all.filter(name => name.endsWith('.js') && name.includes(path.join('assets', 'js')))) {
+    assert.doesNotMatch(fs.readFileSync(file, 'utf8'), /style="/, file);
+  }
+  assert.match(fs.readFileSync(path.join(__dirname, '..', 'public', 'sw.js'), 'utf8'), /'\/assets\/css\/offline\.css\?v=/, 'offline styles are cached for offline use');
+});

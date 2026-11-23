@@ -3666,3 +3666,14 @@ body:has(.page-load-error-wrap) { padding-bottom: 0 !important; }
 
 /* Attendance task links show only for students who have an assigned task. */
 [data-task-entry][hidden] { display: none !important; }
+
+/* Utility classes that replace inline style attributes (keeps the pages free of inline styles). */
+.u-block { width: 100%; }
+.u-end-note { text-align: right; margin-top: 10px; }
+.u-icon-16 { width: 16px; height: 16px; }
+.u-gap-below { margin: 0 0 12px; }
+.u-gap-above { margin-top: 10px; }
+.u-comment-text { margin: 5px 0; white-space: pre-wrap; }
+.ra-dot-green { background: #15803d; }
+.ra-dot-yellow { background: #a16207; }
+.ra-dot-red { background: #b91c1c; }

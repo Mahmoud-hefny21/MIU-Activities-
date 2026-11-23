@@ -106,11 +106,12 @@
     const q = QUESTIONS[step];
     dialog.innerHTML = `<div class="fq-card">
       <header class="fq-head"><span class="fq-step">Question ${step + 1} of ${QUESTIONS.length}</span><button type="button" class="fq-close" data-fq-close aria-label="Close quiz">&times;</button></header>
-      <div class="fq-progress" aria-hidden="true"><i style="width:${Math.round(step / QUESTIONS.length * 100)}%"></i></div>
+      <div class="fq-progress" aria-hidden="true"><i data-pct="${Math.round(step / QUESTIONS.length * 100)}"></i></div>
       <h2 id="fqTitle" class="fq-question">${esc(q.text)}</h2>
       <div class="fq-options">${q.options.map(o => `<button type="button" class="fq-option${answers[q.id] === o.id ? ' is-picked' : ''}" data-fq-option="${o.id}"><span class="fq-icon" aria-hidden="true">${o.icon}</span><span>${esc(o.label)}</span></button>`).join('')}</div>
       <footer class="fq-foot">${step ? '<button type="button" class="fq-link" data-fq-back>← Back</button>' : '<span></span>'}<span class="fq-hint">Tap an answer</span></footer>
     </div>`;
+    dialog.querySelectorAll('[data-pct]').forEach((bar) => { bar.style.width = bar.dataset.pct + '%'; });
     dialog.querySelector('.fq-option')?.focus({ preventScroll: true });
   }
 

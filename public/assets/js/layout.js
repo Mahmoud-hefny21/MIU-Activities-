@@ -705,7 +705,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // "Find Your Club" quiz: the launcher icon is drawn here immediately; the quiz itself
   // (questions, matching, dialog) loads in the background and only runs when opened.
-  const quizSrc = '/assets/js/quiz.js?v=20261120quiz2';
+  const quizSrc = '/assets/js/quiz.js?v=20261123csp1';
   // Only on pages students and visitors use (home + student dashboard, hub, feed, events, ...),
   // never on staff dashboards, studios, scanners or sign-in/error screens.
   const studentQuizPages = new Set(['/', '/index.html', '/pages/miu-hub.html', '/pages/feed.html', '/pages/events.html',

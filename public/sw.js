@@ -1,4 +1,4 @@
-const CACHE_NAME = 'miu-clubs-static-v45';
+const CACHE_NAME = 'miu-clubs-static-v46';
 const OFFLINE_URL = '/offline.html';
 const MAIN_PAGES = ['/', '/index.html', '/pages/feed.html', '/pages/events.html', '/pages/sponsors.html', '/pages/booths.html'];
 const PRECACHE_URLS = [
@@ -6,6 +6,7 @@ const PRECACHE_URLS = [
   '/components/site-header.html?v=20261019hideAskAi1',
   '/components/site-footer.html',
   OFFLINE_URL,
+  '/assets/css/offline.css?v=20261123csp1',
   '/manifest.webmanifest',
   '/assets/css/base.css',
   '/assets/css/responsive.css',

@@ -2,7 +2,7 @@
 
 Date: 23 Nov 2026 · Scope: this repository (server.js, services/, database/, public/assets/js/) · Method: static code review plus automated tests that run the real route code locally with in-memory data. **No requests were sent to production.**
 
-**Update (fixes applied, approved by the owner):** F1, F2, F3, F4 and F7 are fixed and tested (`tests/security-review.test.js`, 22 tests). F5 is accepted as a known risk (reason below). F6 is waiting until the test events finish. Full suite: 624 tests, 621 passed, 3 skipped, 0 failed.
+**Update (fixes applied, approved by the owner):** F1, F2, F3, F4 and F7 are fixed and tested (`tests/security-review.test.js`, 22 tests). F5 is accepted as a known risk (reason below). F6 is done (the 12 test events were removed with a backup). F5: the app's own inline styles are removed. Full suite: 624 tests, 621 passed, 3 skipped, 0 failed.
 
 ## How this review was run
 
@@ -43,8 +43,8 @@ Date: 23 Nov 2026 · Scope: this repository (server.js, services/, database/, pu
 | GEN-04 Personal data in public endpoints and the stream | Pass | — | `services/public-data-stream.js:46` (sends only `{ keys }`), `public-club-media.js` (member list and profile removed) |
 | GEN-05 Service worker caching private API replies | Pass | — | `public/sw.js:135` (`/api/` never cached) |
 | HDR-01 HSTS without `includeSubDomains` | **Fixed** (F4) | Low | `services/http-security.js:44` |
-| HDR-02 CSP `style-src 'unsafe-inline'` | **Accepted risk** (F5) | Low | `services/http-security.js:25` |
-| DATA-01 `[TEST]` events visible publicly | **Open until testing ends** (F6) | Info | live data (12 test events created 23 Nov for attendance testing) |
+| HDR-02 CSP `style-src 'unsafe-inline'` | **Partly fixed** (F5: the app has no inline styles; the policy stays for third-party scripts) | Low | `services/http-security.js:25` |
+| DATA-01 `[TEST]` events visible publicly | **Fixed** (F6: removed, backup in database-backup/) | Info | live data (12 test events created 23 Nov for attendance testing) |
 
 ## 2. Findings
 
@@ -136,11 +136,13 @@ Also run a scheduled clean-up for unused files in the `applicant` folder.
 
 **Applied:** `services/http-security.js` and the static-page header block in `vercel.json` both send `max-age=31536000; includeSubDomains`. Test: F4.
 
-### F5 — HDR-02: CSP allows inline styles (Low) — ACCEPTED RISK
+### F5 — HDR-02: CSP allows inline styles (Low) — APP CLEANED UP, POLICY KEPT FOR THIRD PARTIES
 
 `services/http-security.js:25` allows `style-src 'unsafe-inline'`. Scripts are strict (no inline scripts, confirmed by `tests/verify-structure.js`), so the risk is limited to CSS injection, for example hiding or overlaying page content. Fix over time: move inline `style=` attributes into CSS classes, then drop `'unsafe-inline'`, or use `'unsafe-hashes'` with hashes.
 
 **Decision:** not changed. The app's own inline styles are few: 9 `style=` attributes in HTML, 5 in JS templates and one `<style>` block in `offline.html`. Styles set from JS through `element.style` are allowed without `'unsafe-inline'`. But Google Sign-In and OneSignal insert inline styles of their own, so removing `'unsafe-inline'` would break the sign-in button and the push-notification prompts. This can't be checked without a browser test. Scripts stay strict, so the remaining risk is CSS-only. Revisit if those providers support a style nonce.
+
+**Applied:** the app no longer uses any inline styles. The 9 HTML `style=` attributes became CSS classes (`u-*`, `ra-dot-*` in `base.css`), and the 2 in `content-studio.js` likewise. The progress bars in `quiz.js` and `student-attendance.js` now use `data-pct` plus `element.style.width`, which is allowed under a strict policy. The `offline.html` `<style>` block moved to `/assets/css/offline.css`, which the service worker now pre-caches (cache `v46`). A test keeps every page and script free of inline styles. `'unsafe-inline'` stays in the policy only for Google Sign-In and OneSignal. Once those can be verified in a browser test, it can be removed.
 
 ### F6 — DATA-01: `[TEST]` events on the live site (Info) — WAITING FOR TESTING TO FINISH
 
@@ -160,7 +162,7 @@ The reply message is the same, but for existing accounts the server also sends a
 
 ## 3. Tests
 
-**New:** `tests/security-review.test.js`, 22 tests (16 review tests plus 6 tests for the fixes). All pass.
+**New:** `tests/security-review.test.js`, 24 tests (16 review tests, 6 for the fixes, 1 for attendance without registration, 1 for no inline styles). All pass.
 
 | Test | Covers |
 |---|---|
@@ -187,7 +189,7 @@ The reply message is the same, but for existing accounts the server also sends a
 
 ```
 node --test tests/security-review.test.js     # this review only
-node --test tests/*.test.js                   # full suite: 624 tests, 621 passed, 3 skipped, 0 failed
+node --test tests/*.test.js                   # full suite: 626 tests, 623 passed, 3 skipped, 0 failed
 ```
 
 The tests need no database, network or credentials.

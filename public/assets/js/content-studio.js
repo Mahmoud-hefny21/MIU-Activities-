@@ -69,7 +69,7 @@ const ContentStudio = (() => {
         ${renderPermitItems(item)}
         <div><span class="status-badge status-${escapeHtml(item.status)}" title="Request status">${escapeHtml((window.MiuUI?.plainWords || (value => String(value || '').replaceAll('_', ' ')))(item.status))}</span></div>
         ${item.clubNotice ? `<details class="content-review-update"><summary title="Open the full review update">Review update</summary><p>${escapeHtml(item.clubNotice)}</p></details>` : ''}
-        ${activeComment ? `<section class="review-comments" style="margin-top:10px"><strong>Active comment</strong><p class="meta" style="margin:5px 0;white-space:pre-wrap"><strong>${reviewerNames[activeComment.role]}:</strong> ${escapeHtml(activeComment.text)}</p></section>` : ''}
+        ${activeComment ? `<section class="review-comments u-gap-above"><strong>Active comment</strong><p class="meta" class="u-comment-text"><strong>${reviewerNames[activeComment.role]}:</strong> ${escapeHtml(activeComment.text)}</p></section>` : ''}
         <div class="content-task-actions">
           ${item.workflow ? '' : accountRole === 'head'
             ? `<a class="mini-btn" href="/pages/${escapeHtml(item.type.replace('_', '-'))}-form.html?edit=${Number(item.id)}">Open assigned task</a>`
