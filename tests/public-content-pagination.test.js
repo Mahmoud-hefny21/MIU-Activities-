@@ -67,7 +67,10 @@ test('public output strips private fields and preserves original indexes for med
   const uni = P.serialize({ university: true, clubId: 0, collection: 'events', index: 99,
     item: { id: 99, type: 'event', registrationEnabled: false, attendanceEnabled: true, publishedBy: 'private' } });
   assert.equal(uni.club.name, 'Misr International University');
-  assert.equal(uni.item.attendanceEnabled, false); assert.equal(uni.item.publishedBy, undefined);
+  // Attendance can be taken without registration, so the stored setting is shown as is.
+  assert.equal(uni.item.attendanceEnabled, true); assert.equal(uni.item.publishedBy, undefined);
+  const off = P.serialize({ university: true, clubId: 0, collection: 'events', index: 98, item: { id: 98, type: 'event', registrationEnabled: false, attendanceEnabled: false } });
+  assert.equal(off.item.attendanceEnabled, false);
 });
 test('SQL Extended JSON dates decode exactly like database model reads', () => {
   const createdAt = new Date('2026-10-19T09:00:00Z');
@@ -138,4 +141,15 @@ test('HTTP route validates section, normalizes parameters and returns briefly ed
   const result = await response.json(); assert.equal(result.pagination.totalPages, 3); assert.equal(result.items.length, 5);
   assert.equal(captured.filter, 'events'); assert.equal(captured.q, 'club');
   assert.equal((await fetch(`${base}/api/public-content/unknown`)).status, 404);
+});
+
+test('the Events timeline includes MIU and faculty events; a single club page and the Feed stay club-only', () => {
+  const P = require('../services/public-content-pagination');
+  const union = opts => P.mongoPipeline({ collection: { name: 'clubs' } }, { collection: { name: 'universitycontent' } }, P.options(opts.section, opts.query || {}))
+    .some(stage => stage.$unionWith);
+  assert.equal(union({ section: 'events' }), true);
+  assert.equal(union({ section: 'events', query: { club: '2' } }), P.options('events', { club: '2' }).clubId ? false : true);
+  assert.equal(union({ section: 'feed' }), false);
+  const sql = fs.readFileSync(require.resolve('../database/public-content-pagination'), 'utf8');
+  assert.match(sql, /\['updates', 'events'\]\.includes\(o\.section\) && !o\.clubId/);
 });
