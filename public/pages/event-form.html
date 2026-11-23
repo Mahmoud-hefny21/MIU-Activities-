@@ -71,13 +71,13 @@
                 <option value="members">Members of this club only</option>
               </select>
               <small class="meta">This controls who can register and whose university account can check in using the event QR code.</small>
-              <div id="attendanceEnabledField" hidden>
+              <div id="attendanceEnabledField">
                 <label for="attendanceEnabledInput">Will attendance be recorded?</label>
                 <select id="attendanceEnabledInput">
                   <option value="false" selected>No, attendance will not be recorded</option>
                   <option value="true">Yes, attendance will be recorded</option>
                 </select>
-                <small class="meta">Students will see this information with the event.</small>
+                <small class="meta">With registration, only registered students can check in. Without registration, any student in the audience can check in.</small>
               </div>
               <label>Budget</label>
               <input id="budgetInput" type="text" placeholder="Optional" />
@@ -105,7 +105,7 @@
     <script src="/assets/js/content-studio.js?v=20261122saved1"></script>
     <script src="/assets/js/date-time-picker.js?v=20261010pickers1"></script>
     <script src="/assets/js/cloudinary-upload.js?v=20261123formats1"></script>
-    <script src="/assets/js/pages/event-form.js?v=20261122cloudinary1"></script>
+    <script src="/assets/js/pages/event-form.js?v=20261123attn1"></script>
     <script src="/assets/js/layout.js?v=20261123task1" defer></script>
     <script src="/assets/js/theme.js?v=20261120done1" defer></script>
   </body>

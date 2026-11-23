@@ -5297,7 +5297,8 @@ function buildPublishedItem(record, club) {
       item.capacity = record.attendanceSettings.registrationCapacity ?? null;
     }
     item.registrationEnabled = record.registrationEnabled !== false;
-    item.attendanceEnabled = record.registrationEnabled !== false && record.attendanceEnabled === true;
+    // Attendance does not need registration: without it, any student in the audience can check in.
+    item.attendanceEnabled = record.attendanceEnabled === true;
     item.attendanceAudience = record.attendanceAudience === 'members' ? 'members' : 'all_students';
   }
   if (record.type === 'sponsor') {
@@ -5564,7 +5565,7 @@ async function createContentRequest(req, res, type) {
       time: cleanText(req.body.time, 40),
       ...(type === 'event' ? {
         registrationEnabled: req.body.registrationEnabled === undefined ? true : req.body.registrationEnabled === true,
-        attendanceEnabled: req.body.registrationEnabled !== false && req.body.attendanceEnabled === true,
+        attendanceEnabled: req.body.attendanceEnabled === true,
         attendanceAudience: req.body.attendanceAudience === 'members' ? 'members' : req.body.attendanceAudience === 'all_students' ? 'all_students' : undefined
       } : {}),
       location: type === 'booth' ? (cleanText(req.body.boothLocation, 140) || cleanText(req.body.location, 120)) : cleanText(req.body.location, 120),
@@ -5633,7 +5634,7 @@ app.put('/api/club/content/:id', requireClubAuth, async (req, res) => {
       if (!record.registrationEnabled) record.attendanceEnabled = false;
     }
     if (type === 'event' && req.body.attendanceEnabled !== undefined) {
-      record.attendanceEnabled = record.registrationEnabled && req.body.attendanceEnabled === true;
+      record.attendanceEnabled = req.body.attendanceEnabled === true;
     }
     if (type === 'event' && req.body.attendanceAudience !== undefined) {
       record.attendanceAudience = req.body.attendanceAudience;

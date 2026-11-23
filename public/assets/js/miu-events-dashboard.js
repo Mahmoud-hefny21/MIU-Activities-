@@ -24,7 +24,7 @@
     $('universityEventFields').hidden = !isEvent;
     $('universityAudienceField').hidden = !isEvent;
     $('universityPostAudience').required = isEvent;
-    const attendance = isEvent && $('universityPostRegistration').value === 'true';
+    const attendance = isEvent; // attendance can be taken with or without registration
     $('universityAttendanceField').hidden = !attendance;
     if (!attendance) $('universityPostAttendance').value = 'false';
     $('universityQuestionField').hidden = $('universityInteraction').value === 'none';
@@ -157,7 +157,7 @@
       const isEvent = $('universityPostType').value === 'event', registrationEnabled = isEvent && $('universityPostRegistration').value === 'true';
       const imageChoice = form.elements.imageChoice.value, file = imageInput.files?.[0];
       if (imageChoice === 'custom' && !file && !editing?.image) throw new Error('Choose an image to upload, or select the MIU logo.');
-      const payload = { type: $('universityPostType').value, interaction: $('universityInteraction').value, question: $('universityQuestion').value.trim(), options: $('universityOptions').value.split('\n').map(x => x.trim()).filter(Boolean), title: $('universityPostTitle').value.trim(), description: $('universityPostDescription').value.trim(), date: $('universityPostDate').value, time: $('universityPostTime').value, location: $('universityPostLocation').value.trim(), registrationEnabled, attendanceEnabled: registrationEnabled && $('universityPostAttendance').value === 'true', attendanceAudience: $('universityPostAudience').value, imageChoice, publishedAs: $('universityPublishedAs').value };
+      const payload = { type: $('universityPostType').value, interaction: $('universityInteraction').value, question: $('universityQuestion').value.trim(), options: $('universityOptions').value.split('\n').map(x => x.trim()).filter(Boolean), title: $('universityPostTitle').value.trim(), description: $('universityPostDescription').value.trim(), date: $('universityPostDate').value, time: $('universityPostTime').value, location: $('universityPostLocation').value.trim(), registrationEnabled, attendanceEnabled: isEvent && $('universityPostAttendance').value === 'true', attendanceAudience: $('universityPostAudience').value, imageChoice, publishedAs: $('universityPublishedAs').value };
       if (imageChoice === 'custom' && file) {
         if (typeof window.uploadImageToCloudinary !== 'function') throw new Error('Image upload is not available right now.');
         if (uploadedFile !== file) { uploadedImage = await window.uploadImageToCloudinary(file, 'university'); uploadedFile = file; }

@@ -201,3 +201,10 @@ test('F7 / AUTH-04: password recovery replies take at least 1.5 s whether or not
   const route = staticRoute("app.post('/api/password-reset/request'");
   assert.equal((route.match(/await padPasswordRecoveryResponse\(recoveryStartedAt\)/g) || []).length, 2, 'both the unknown-email and the sent-email replies are padded');
 });
+
+test('Publishing: attendance can be turned on without registration (any student in the audience checks in)', () => {
+  assert.match(staticRoute('function buildPublishedItem'), /item\.attendanceEnabled = record\.attendanceEnabled === true;/);
+  assert.match(fs.readFileSync(require.resolve('../services/university-content-admin'), 'utf8'), /attendanceEnabled: type === 'event' && body\.attendanceEnabled === true,/);
+  assert.doesNotMatch(fs.readFileSync(require.resolve('../public/pages/event-form.html'), 'utf8'), /id="attendanceEnabledField" hidden/);
+  assert.match(fs.readFileSync(require.resolve('../public/assets/js/miu-events-dashboard.js'), 'utf8'), /attendanceEnabled: isEvent && \$\('universityPostAttendance'\)\.value === 'true'/);
+});

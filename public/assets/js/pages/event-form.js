@@ -4,10 +4,8 @@
       const registrationInput = document.getElementById('registrationEnabledInput');
       const attendanceField = document.getElementById('attendanceEnabledField');
       const attendanceInput = document.getElementById('attendanceEnabledInput');
-      const updateAttendanceField = () => {
-        attendanceField.hidden = registrationInput.value !== 'true';
-        if (attendanceField.hidden) attendanceInput.value = 'false';
-      };
+      // Attendance can be taken with or without registration (without it, any student in the audience checks in).
+      const updateAttendanceField = () => { attendanceField.hidden = false; };
       registrationInput.addEventListener('change', updateAttendanceField);
       document.getElementById('contentForm').addEventListener('reset', () => setTimeout(updateAttendanceField, 0));
       // New images go to Cloudinary; only the returned URL is saved with the event.

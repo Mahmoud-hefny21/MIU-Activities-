@@ -32,7 +32,8 @@ function createUniversityPublisher(deps) {
     }
     return { ...interaction, type, title, description, date, time, location: cleanText(body.location, 160), image, imagePublicId, publisherType, publisherKey,
       registrationEnabled: type === 'event' && body.registrationEnabled === true,
-      attendanceEnabled: type === 'event' && body.registrationEnabled === true && body.attendanceEnabled === true,
+      // Attendance does not need registration: without it, any student in the audience can check in.
+      attendanceEnabled: type === 'event' && body.attendanceEnabled === true,
       attendanceAudience: type === 'event' ? body.attendanceAudience : undefined };
   }
   async function notify(record) {
