@@ -53,10 +53,14 @@ window.MiuAttendanceLabel = (event) => {
     if (result.result === 'verification_required' || !stream) return;
     resumeTimer = setTimeout(() => { if (!stream || scanning || verificationToken) return; paused = false; $('[data-ra-next]').hidden = true; status.textContent = 'Ready for the next student.'; }, result.color === 'green' ? 1200 : 2200);
   }
-  async function submitToken(token, verified = false) {
-    if (!verified && token === lastCode && Date.now() - lastCodeAt < 4000) return;
+  // Returns true when the server answered (green, yellow or red), false when nothing was sent or it failed.
+  async function submitToken(token, verified = false, manual = false) {
+    // The camera reads the same QR many times a second; a typed or pasted code is always sent.
+    if (!verified && !manual && token === lastCode && Date.now() - lastCodeAt < 4000) return false;
     if (!verified) { lastCode = token; lastCodeAt = Date.now(); }
-    if (scanning || !ref()) return; scanning = true; paused = true; $('[data-ra-next]').disabled = true;
+    if (!ref()) { showResult({ color: 'red', message: select.options.length ? 'Choose the assigned event first, then validate the code.' : 'No events are assigned to your account, so codes cannot be validated here.' }); status.textContent = 'Choose an assigned event first.'; return false; }
+    if (scanning) { status.textContent = 'Still validating the previous code…'; return false; }
+    scanning = true; paused = true; $('[data-ra-next]').disabled = true;
     const ticket = generation; status.textContent = 'Validating with the server…';
     try {
       const result = await write(endpoint('/scan'), verified ? { verificationToken, verifiedIdentity: $('[data-ra-verify] [name=verified]').checked, verificationNote: $('[data-ra-verify] [name=note]').value } : { token });
@@ -66,7 +70,8 @@ window.MiuAttendanceLabel = (event) => {
       showResult(result); status.textContent = result.message;
       if (result.result === 'recorded') void loadOverview();
       autoResume(result);
-    } catch (error) { if (ticket === generation) { showResult({ color: 'red', message: error.message }); status.textContent = error.message; } if ([401,403].includes(error.status)) stopCamera(); }
+      return true;
+    } catch (error) { if (ticket === generation) { showResult({ color: 'red', message: error.message }); status.textContent = error.message; } if ([401,403].includes(error.status)) stopCamera(); return Boolean(error.status); }
     finally { scanning = false; $('[data-ra-next]').disabled = false; }
   }
   async function loadQr() {
@@ -131,7 +136,17 @@ window.MiuAttendanceLabel = (event) => {
   if (!student) {
     $('[data-ra-camera]').onclick = openCamera; $('[data-ra-close]').onclick = stopCamera;
     $('[data-ra-next]').onclick = () => { paused = false; verificationToken = null; $('[data-ra-result]').hidden = true; $('[data-ra-verify]').hidden = true; $('[data-ra-next]').hidden = true; status.textContent = stream ? 'Ready for the next student.' : 'Open the scanner for the next student.'; };
-    $('[data-ra-manual]').onsubmit = event => { event.preventDefault(); void submitToken(event.target.elements.token.value.trim()); event.target.reset(); };
+    $('[data-ra-manual]').onsubmit = async event => {
+      event.preventDefault();
+      const form = event.target, button = form.querySelector('button[type=submit]'), label = button.textContent;
+      // Scanned text can arrive wrapped across lines or with spaces; an attendance code never contains any.
+      const token = form.elements.token.value.replace(/\s+/g, '');
+      if (!token) { showResult({ color: 'red', message: 'Paste the scanned attendance code first.' }); return; }
+      if (button.disabled) return;
+      button.disabled = true; button.textContent = 'Validating…'; form.setAttribute('aria-busy', 'true');
+      try { if (await submitToken(token, false, true)) form.reset(); }
+      finally { button.disabled = false; button.textContent = label; form.removeAttribute('aria-busy'); }
+    };
     $('[data-ra-verify]').onsubmit = event => { event.preventDefault(); void submitToken('',true); };
     $('[data-ra-file]').onchange = async event => { const file=event.target.files?.[0]; if(!file)return; try { if(file.size>10*1024*1024)throw new Error('Choose an attendance code image up to 10 MB.'); const bitmap=await createImageBitmap(file); let code;try{code=await decode(bitmap,bitmap.width,bitmap.height,{search:true});}finally{bitmap.close();}if(!code)throw new Error('No attendance code was found in this image.');await submitToken(code); }catch(error){status.textContent=error.message;}finally{event.target.value='';} };
     $('[data-ra-settings]').onsubmit = async event => { event.preventDefault(); const form=event.target,button=form.querySelector('button'),feedback=form.querySelector('[data-ra-settings-feedback]');button.disabled=true;try{const result=await write(endpoint('/settings'),{capacity:form.elements.capacity.value===''?null:Number(form.elements.capacity.value),timeZone:form.elements.timeZone.value,endTime:form.elements.endTime.value,cancellationEnabled:form.elements.cancellationEnabled.checked},'PUT');if(result.savedToDatabase!==true)throw new Error('The settings were not confirmed.');await loadOverview();feedback.textContent=result.message;}catch(error){feedback.textContent=error.message;}finally{button.disabled=false;} };
