@@ -168,10 +168,12 @@ app.get('/api/pwa/version', (req, res) => {
     || localVersion });
 });
 
-function signCloudinaryUpload(folder) {
+// allowed_formats is part of the signature, so Cloudinary itself refuses any other file type.
+function signCloudinaryUpload(folder, allowedFormats = 'jpg,png,webp') {
   const timestamp = Math.floor(Date.now() / 1000);
   const publicId = `${folder}-${crypto.randomUUID()}`;
   const params = {
+    allowed_formats: allowedFormats,
     folder,
     timestamp,
     public_id: publicId,
@@ -183,7 +185,8 @@ function signCloudinaryUpload(folder) {
     signature: cloudinary.utils.api_sign_request(params, cloudinaryCredentials.api_secret),
     timestamp,
     folder,
-    publicId
+    publicId,
+    allowedFormats
   };
 }
 
@@ -275,7 +278,8 @@ app.post('/api/uploads/cloudinary-signature', async (req, res) => {
         return res.status(403).json({ message: 'This account cannot upload club images.' });
       }
     }
-    return res.json({ ...signCloudinaryUpload(cloudinaryFolders[purpose]), maxBytes: purpose === 'feed' && req.body.mediaType === 'video' ? MAX_FEED_VIDEO_BYTES : MAX_IMAGE_UPLOAD_BYTES });
+    const video = purpose === 'feed' && req.body.mediaType === 'video';
+    return res.json({ ...signCloudinaryUpload(cloudinaryFolders[purpose], video ? 'mp4,webm' : 'jpg,png,webp'), maxBytes: video ? MAX_FEED_VIDEO_BYTES : MAX_IMAGE_UPLOAD_BYTES });
   } catch (error) {
     console.error('Cloudinary signature generation failed:', error.name);
     return res.status(503).json({ message: 'Could not prepare the image upload. Please try again.' });
@@ -2355,6 +2359,12 @@ function requireClubPresident(req, res, next) {
   next();
 }
 
+// Database filter for the applications a club account may review: its own club, and for a committee head
+// only its own committee. Writes use it so the permission is re-checked in the database itself.
+function reviewableApplicationFilter(account, id) {
+  return { id, clubId: account.clubId, ...(account.role === 'head' ? { committee: account.committee } : {}) };
+}
+
 function accountCanReviewApplication(account, application) {
   return ['president', 'vice_president', 'head'].includes(account.role) && application.clubId === account.clubId
     && (account.role !== 'head' || application.committee === account.committee);
@@ -2985,7 +2995,33 @@ app.post('/api/club-auth/switch-dashboard', async (req, res) => {
   }
 });
 
-app.post('/api/club-auth/logout', (req, res) => {
+// Logout ends the session on the server, not only in this browser: every session cookie carries its
+// account's sessionVersion, so increasing it makes any copy of the cookie stop working.
+async function revokeSessionsOnLogout(req) {
+  const results = await Promise.allSettled([
+    (async () => {
+      const staff = await getClubAccountFromRequest(req);
+      if (staff?.email) await ClubAccount.updateOne({ email: staff.email }, { $inc: { sessionVersion: 1 } });
+    })(),
+    (async () => {
+      const student = await getStudentAccountFromRequest(req);
+      if (student?.email) await StudentAccount.updateOne({ email: student.email }, { $inc: { sessionVersion: 1 } });
+    })(),
+    (async () => {
+      // Check the admin cookie on its own, so a developer (staff) session never ends the admin's sessions.
+      const adminCookie = String(req.headers.cookie || '').split(';').map(part => part.trim()).find(part => part.startsWith('miu_admin='));
+      if (!adminCookie || !await isAdminSessionValid({ headers: { cookie: adminCookie } })) return;
+      const email = getConfiguredAdminEmail();
+      if (!email) return;
+      await AdminAuthState.updateOne({ email }, { $inc: { sessionVersion: 1 }, $setOnInsert: { email } }, { upsert: true });
+      await loadAdminAuthState(email);
+    })()
+  ]);
+  for (const result of results) if (result.status === 'rejected') console.error('Logout session revocation failed:', result.reason?.name);
+}
+
+app.post('/api/club-auth/logout', async (req, res) => {
+  if (mongoReady) await revokeSessionsOnLogout(req);
   res.setHeader('Set-Cookie', [
     `miu_student=; Max-Age=0; HttpOnly; SameSite=Strict; Path=/;${secureCookieSuffix(req)}`,
     `miu_club=; Max-Age=0; HttpOnly; SameSite=Strict; Path=/;${secureCookieSuffix(req)}`,
@@ -6592,8 +6628,10 @@ app.post('/api/admin/login', async (req, res) => {
   res.json({ authenticated: true });
 });
 
-app.post('/api/admin/logout', (req, res) => {
-  res.setHeader('Set-Cookie', ['miu_admin=; Max-Age=0; HttpOnly; SameSite=Strict; Path=/', 'miu_club=; Max-Age=0; HttpOnly; SameSite=Strict; Path=/', 'miu_student=; Max-Age=0; HttpOnly; SameSite=Strict; Path=/']);
+app.post('/api/admin/logout', async (req, res) => {
+  if (mongoReady) await revokeSessionsOnLogout(req);
+  const secure = secureCookieSuffix(req);
+  res.setHeader('Set-Cookie', ['miu_admin', 'miu_club', 'miu_student'].map(name => `${name}=; Max-Age=0; HttpOnly; SameSite=Strict; Path=/;${secure}`));
   res.status(204).end();
 });
 
@@ -6739,7 +6777,16 @@ async function requestClubPasswordReset(email) {
   return { status: 'sent', email };
 }
 
+// Recovery answers take about the same time whether or not the email has an account (sending the email
+// is slow), so response time does not reveal which emails exist.
+const PASSWORD_RECOVERY_MIN_RESPONSE_MS = 1500;
+async function padPasswordRecoveryResponse(startedAt) {
+  const wait = startedAt + PASSWORD_RECOVERY_MIN_RESPONSE_MS + crypto.randomInt(500) - Date.now();
+  if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
+}
+
 app.post('/api/password-reset/request', limitPasswordResetRequests, async (req, res) => {
+  const recoveryStartedAt = Date.now();
   res.setHeader('Cache-Control', 'no-store');
   const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
   if (!email) return res.status(400).json({ message: 'Enter your email address.' });
@@ -6756,7 +6803,7 @@ app.post('/api/password-reset/request', limitPasswordResetRequests, async (req, 
   let accountType;
   try {
     accountType = await findRecoverableAccount(email);
-    if (!accountType) return res.json({ message: PASSWORD_RECOVERY_MESSAGE });
+    if (!accountType) { await padPasswordRecoveryResponse(recoveryStartedAt); return res.json({ message: PASSWORD_RECOVERY_MESSAGE }); }
 
     const token = crypto.randomBytes(32).toString('base64url');
     const tokenHash = hashResetToken(token);
@@ -6802,6 +6849,7 @@ app.post('/api/password-reset/request', limitPasswordResetRequests, async (req, 
       return res.status(503).json({ message: 'Password recovery is temporarily unavailable. Please try again later.' });
     }
 
+    await padPasswordRecoveryResponse(recoveryStartedAt);
     return res.json({ message: PASSWORD_RECOVERY_MESSAGE });
   } catch (error) {
     console.error('Password recovery request failed:', error.name);
@@ -8467,9 +8515,10 @@ app.patch('/api/applications/:id/status', requireClubAuth, async (req, res) => {
       updates.interviewed = true;
     }
     if (!requireLiveDatabase(res)) return;
-    const previousApplication = await Application.findOne({ id: appId }).select('status').lean();
+    const scope = reviewableApplicationFilter(req.clubAccount, appId);
+    const previousApplication = await Application.findOne(scope).select('status').lean();
     if (!previousApplication) return res.status(404).json({ message: 'Application not found.' });
-    const updatedApplication = await Application.findOneAndUpdate({ id: appId }, { $set: updates }, { new: true }).lean();
+    const updatedApplication = await Application.findOneAndUpdate(scope, { $set: updates }, { new: true }).lean();
     if (!updatedApplication) return res.status(404).json({ message: 'Application not found.' });
     if (updates.photoPublicId && updates.photoPublicId !== app.photoPublicId) {
       await removeApplicantPhoto(app.photoPublicId);
@@ -8495,7 +8544,7 @@ app.delete('/api/applications/:id', requireClubAuth, async (req, res) => {
 
   try {
     if (!requireLiveDatabase(res)) return;
-    const result = await Application.deleteOne({ id: appId });
+    const result = await Application.deleteOne(reviewableApplicationFilter(req.clubAccount, appId));
     if (!result.deletedCount) return res.status(404).json({ message: 'Application not found.' });
     await removeApplicantPhoto(applications[applicationIndex].photoPublicId);
     applications.splice(applicationIndex, 1);

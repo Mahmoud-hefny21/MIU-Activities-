@@ -41,7 +41,7 @@ function securityHeaders(req, res, next) {
   res.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()');
   // Enforced. Pages carry no inline <script> or on*= handlers (see assets/js/inline-actions.js).
   res.setHeader('Content-Security-Policy', CONTENT_SECURITY_POLICY);
-  if (production(process.env)) res.setHeader('Strict-Transport-Security', 'max-age=31536000');
+  if (production(process.env)) res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   next();
 }
 // Preview/stage deployments must not be indexed; only Vercel production stays indexable.

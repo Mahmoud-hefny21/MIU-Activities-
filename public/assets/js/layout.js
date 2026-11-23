@@ -388,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (!window.uploadImageToCloudinary) await new Promise((resolve, reject) => {
           const script = document.createElement('script');
-          script.src = '/assets/js/cloudinary-upload.js?v=2';
+          script.src = '/assets/js/cloudinary-upload.js?v=20261123formats1';
           script.onload = resolve;
           script.onerror = () => reject(new Error('Could not load photo upload. Please retry.'));
           document.head.append(script);

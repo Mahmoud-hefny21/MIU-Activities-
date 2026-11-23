@@ -23,6 +23,7 @@
     form.append('folder', signature.folder);
     form.append('public_id', signature.publicId);
     form.append('overwrite', 'false');
+    if (signature.allowedFormats) form.append('allowed_formats', signature.allowedFormats);
     form.append('signature', signature.signature);
 
     const response = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(signature.cloudName)}/image/upload`, {
@@ -44,7 +45,7 @@
     if (!prepared.ok) throw new Error(signature.message || 'Could not prepare the video upload.');
     const body = new FormData();
     body.append('file', file);
-    for (const [key, value] of Object.entries({ api_key: signature.apiKey, timestamp: signature.timestamp, folder: signature.folder, public_id: signature.publicId, overwrite: 'false', signature: signature.signature })) body.append(key, String(value));
+    for (const [key, value] of Object.entries({ api_key: signature.apiKey, timestamp: signature.timestamp, folder: signature.folder, public_id: signature.publicId, overwrite: 'false', ...(signature.allowedFormats ? { allowed_formats: signature.allowedFormats } : {}), signature: signature.signature })) body.append(key, String(value));
     const response = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(signature.cloudName)}/video/upload`, { method: 'POST', body });
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.secure_url || !result.public_id) throw new Error(result.error?.message || 'The video could not be uploaded.');

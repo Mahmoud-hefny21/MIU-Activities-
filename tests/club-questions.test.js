@@ -151,6 +151,7 @@ test('interview save rejects invalid choices and preserves removed questions and
   vm.runInNewContext(source.slice(begin, end), {
     require: () => require('../services/club-questions'), app: { patch(_path, _guard, callback) { handler = callback; } }, requireClubAuth() {},
     applications: [record], accountCanReviewApplication: () => true, mongoReady: true,
+    reviewableApplicationFilter: (account, id) => ({ id }),
     Club: { findOne: () => query({ interviewForms: [] }) }, getInterviewFormScope: () => 'IT', getInterviewFormSections: () => [{ questions: [question] }],
     requireLiveDatabase: () => true, Application: { findOne: () => query({ status: 'pending' }), findOneAndUpdate(_filter, { $set }) { Object.assign(record, $set); return query(record); } },
     cleanText: value => String(value || '').trim(), toApiRecord: value => value, console
