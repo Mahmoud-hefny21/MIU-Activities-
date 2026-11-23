@@ -241,12 +241,10 @@ async function main(directory) {
     await call('President delete draft', 'DELETE', endpoint, 204, undefined, sessions.president);
     await call('Deleted content unavailable', 'PUT', endpoint, 404, { title: 'Gone' }, sessions.president);
     const headEmail = 'qa-crud-' + suffix + '@miuegypt.edu.eg', committee = 'QA CRUD ' + suffix;
-    await call('Admin create head', 'POST', '/api/admin/club-heads', 201, { clubId: club.id, email: headEmail, committee, password }, sessions.admin);
-    await call('Duplicate head rejected', 'POST', '/api/admin/club-heads', 409, { clubId: club.id, email: headEmail, committee, password }, sessions.admin);
-    await call('Admin edit head', 'PATCH', '/api/admin/club-heads/' + encodeURIComponent(headEmail), 200, { email: headEmail, committee: committee + ' edited' }, sessions.admin);
-    await call('Created head can log in', 'POST', '/api/auth/login', 200, { email: headEmail, password });
-    await call('Admin delete head', 'DELETE', '/api/admin/club-heads/' + encodeURIComponent(headEmail), 204, undefined, sessions.admin);
-    await call('Deleted head cannot log in', 'POST', '/api/auth/login', 401, { email: headEmail, password });
+    await call('Admin create head', 'POST', '/api/admin/club-heads', 201, { clubId: club.id, email: headEmail, committee }, sessions.admin);
+    await call('Duplicate head rejected', 'POST', '/api/admin/club-heads', 409, { clubId: club.id, email: headEmail, committee }, sessions.admin);
+    await call('Admin edit head', 'PATCH', '/api/admin/club-heads/' + encodeURIComponent(headEmail), 200, { clubId: club.id, email: headEmail, committee: committee + ' edited' }, sessions.admin);
+    await call('Admin delete head', 'DELETE', '/api/admin/club-heads/' + encodeURIComponent(headEmail) + '?clubId=' + club.id, 204, undefined, sessions.admin);
     const published = await call('Admin publish announcement', 'POST', '/api/admin/university-content', 201, { type: 'announcement', title: 'QA announcement', description: 'Isolated restore verification' }, sessions.admin);
     await call('Admin delete announcement', 'DELETE', '/api/admin/university-content/' + published.data.id, 204, undefined, sessions.admin);
     await call('Student profile update', 'PUT', '/api/student-auth/profile', 200, { name: 'QA Edited', universityId: '00012', major: 'QA', age: '20' }, sessions.student);

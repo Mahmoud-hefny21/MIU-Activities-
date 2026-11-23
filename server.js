@@ -4197,10 +4197,7 @@ app.get('/api/club/event-registrations', requireClubAuth, async (req, res) => {
 app.get('/api/clubs/:id/committees', (req, res) => {
   const clubId = Number(req.params.id);
   if (!clubs.some((club) => club.id === clubId)) return res.status(404).json({ message: 'Club not found.' });
-  const committees = [...new Set(clubAccounts
-    .filter((account) => account.clubId === clubId && account.role === 'head' && account.committee)
-    .map((account) => account.committee))];
-  res.json(committees);
+  res.json(getManagedCommittees(clubId));
 });
 
 function getManagedCommittees(clubId) {
@@ -4695,8 +4692,7 @@ app.delete('/api/club/year-plan', requireClubAuth, requireClubPresident, async (
 app.get('/api/club/heads', requireClubAuth, requireClubPresident, async (req, res) => {
   if (!mongoReady) return res.status(503).json({ message: 'Committee head records need the database.' });
   try {
-    const heads = await ClubAccount.find({ clubId: req.clubAccount.clubId, role: 'head' })
-      .select('email committee').read('primary').lean();
+    const heads = await committeeHeads.listHeads(ClubAccount, req.clubAccount.clubId);
     res.json(heads.map(({ email, committee }) => ({ email, committee })));
   } catch (error) {
     console.error('Committee head lookup failed:', error.name);
@@ -4759,9 +4755,7 @@ app.get('/api/club/members', requireClubAuth, async (req, res) => {
         .read('primary').readConcern('majority').sort({ updatedAt: -1 }).lean()
     ]);
     if (!club) return res.status(404).json({ message: 'Club not found.' });
-    const committees = [...new Set(clubAccounts
-      .filter((account) => account.clubId === req.clubAccount.clubId && account.role === 'head' && account.committee)
-      .map((account) => account.committee))];
+    const committees = getManagedCommittees(req.clubAccount.clubId);
     const listing = buildClubMemberListing(club, acceptedApplications);
     const isHead = req.clubAccount.role === 'head';
     const visibleMembers = isHead
@@ -4853,9 +4847,7 @@ async function getClubMemberDirectory() {
 }
 
 app.post('/api/club/members', requireClubAuth, requireClubPresident, async (req, res) => {
-  const committees = [...new Set(clubAccounts.filter((account) => account.clubId === req.clubAccount.clubId
-    && account.role === 'head' && account.committee)
-    .map((account) => account.committee.trim()))];
+  const committees = [...new Set(getManagedCommittees(req.clubAccount.clubId).map((committee) => committee.trim()))];
   const club = clubs.find((item) => item.id === req.clubAccount.clubId);
   if (!club) return res.status(404).json({ message: 'Club not found.' });
   try {
@@ -4902,86 +4894,36 @@ require('./services/club-questions').registerClubQuestions(app, {
   Club, ClubAccount, requireClubAuth, requireLiveDatabase, getInterviewFormScope, getInterviewFormSections, clubs
 });
 
-app.post('/api/club/heads', requireClubAuth, requireClubPresident, async (req, res) => {
-  const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
-  const committee = cleanText(req.body.committee, 100);
-  if (email.length > 254 || !MIU_GOOGLE_EMAIL.test(email)) {
-    return res.status(400).json({ message: 'Enter the head\'s MIU Google email (@miuegypt.edu.eg).' });
-  }
-  if (!committee) return res.status(400).json({ message: 'Enter the committee this head will manage.' });
-  if (clubAccounts.some((account) => account.email === email)) {
-    return res.status(409).json({ message: 'That email already has a club portal account.' });
-  }
-  if (clubAccounts.some((account) => account.clubId === req.clubAccount.clubId
-    && account.role === 'head' && account.committee.toLowerCase() === committee.toLowerCase())) {
-    return res.status(409).json({ message: 'This committee already has a head.' });
-  }
+const committeeHeads = require('./services/committee-heads');
 
-  const account = {
-    clubId: req.clubAccount.clubId,
-    email,
-    ...googleOnlyCredentials(),
-    role: 'head',
-    committee
-  };
-  try {
-    if (!requireLiveDatabase(res)) return;
-    await ClubAccount.create({ ...account });
-    clubAccounts.push(account);
-    writePrivateClubAccountsFile();
-    res.status(201).json({ email, committee, role: 'head' });
-  } catch (error) {
-    console.error('Database operation failed:', error.name);
-    res.status(error.code === 11000 ? 409 : 503).json({
-      message: error.code === 11000 ? 'That email already has a club portal account.' : 'Could not create this committee head.'
-    });
-  }
-});
-
-app.patch('/api/club/heads/:email', requireClubAuth, requireClubPresident, async (req, res) => {
+// Shared by the president and admin head routes. Head roles are per-club role
+// assignments, so one MIU Google account can head committees in several clubs.
+async function changeCommitteeHead(req, res, { clubId, mode, clubName }) {
   const oldEmail = String(req.params.email || '').trim().toLowerCase();
-  const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
-  const committee = cleanText(req.body.committee, 100);
-  const accountIndex = clubAccounts.findIndex((account) => account.clubId === req.clubAccount.clubId
-    && account.role === 'head' && account.email === oldEmail);
-  if (accountIndex < 0) return res.status(404).json({ message: 'Committee head not found.' });
-  if (email !== oldEmail && (email.length > 254 || !MIU_GOOGLE_EMAIL.test(email))) {
-    return res.status(400).json({ message: 'Enter the head\'s MIU Google email (@miuegypt.edu.eg).' });
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : oldEmail;
+  const committee = cleanText(req.body?.committee, 100);
+  if (mode !== 'remove') {
+    if ((mode === 'add' || email !== oldEmail) && (email.length > 254 || !MIU_GOOGLE_EMAIL.test(email))) {
+      return res.status(400).json({ message: 'Enter the head\'s MIU Google email (@miuegypt.edu.eg).' });
+    }
+    if (!committee) return res.status(400).json({ message: 'Enter the committee this head will manage.' });
   }
-  if (!committee) return res.status(400).json({ message: 'Enter the committee this head will manage.' });
-  if (clubAccounts.some((account, index) => index !== accountIndex && account.email === email)) {
-    return res.status(409).json({ message: 'That email already has a club portal account.' });
-  }
-  if (clubAccounts.some((account, index) => index !== accountIndex
-    && account.clubId === req.clubAccount.clubId && account.role === 'head'
-    && account.committee.toLowerCase() === committee.toLowerCase())) {
-    return res.status(409).json({ message: 'Another head already manages this committee.' });
-  }
-
-  const currentAccount = clubAccounts[accountIndex];
-  const oldCommittee = currentAccount.committee;
-  const updates = { email, committee };
-  // A new email is a different Google user: drop the old Google link and sign out old sessions.
-  const relink = email !== oldEmail ? { $unset: { googleSub: '' }, $inc: { sessionVersion: 1 } } : {};
-
+  if (!requireLiveDatabase(res)) return;
+  let oldCommittee = '';
   try {
-    if (!requireLiveDatabase(res)) return;
     const session = await mongoose.startSession();
     try {
       session.startTransaction();
-      if (oldCommittee !== committee) {
-        await Application.updateMany(
-          { clubId: currentAccount.clubId, committee: oldCommittee },
-          { $set: { committee } },
-          { session }
-        );
+      const args = { ClubAccount, session, clubId, committee, blockedEmail: emailMatches };
+      if (mode === 'add') await committeeHeads.addHead({ ...args, email });
+      else if (mode === 'remove') await committeeHeads.removeHead({ ...args, email: oldEmail });
+      else {
+        oldCommittee = (await committeeHeads.listHeads(ClubAccount, clubId)).find((head) => head.email === oldEmail)?.committee || '';
+        await committeeHeads.updateHead({ ...args, oldEmail, email });
+        if (oldCommittee && oldCommittee !== committee) {
+          await Application.updateMany({ clubId, committee: oldCommittee }, { $set: { committee } }, { session });
+        }
       }
-      const updatedAccount = await ClubAccount.findOneAndUpdate(
-        { clubId: currentAccount.clubId, email: oldEmail, role: 'head' },
-        { $set: updates, ...relink },
-        { new: true, runValidators: true, session }
-      );
-      if (!updatedAccount) throw new Error('HEAD_NOT_FOUND');
       await session.commitTransaction();
     } catch (error) {
       await session.abortTransaction().catch(() => {});
@@ -4989,43 +4931,38 @@ app.patch('/api/club/heads/:email', requireClubAuth, requireClubPresident, async
     } finally {
       await session.endSession();
     }
-    Object.assign(currentAccount, updates);
-    if (oldCommittee !== committee) {
-      for (const application of applications) {
-        if (application.clubId === currentAccount.clubId && application.committee === oldCommittee) {
-          application.committee = committee;
-        }
-      }
-    }
-    writePrivateClubAccountsFile();
-    res.json({ email, committee, role: 'head' });
   } catch (error) {
-    if (error.message === 'HEAD_NOT_FOUND') return res.status(404).json({ message: 'Committee head not found.' });
-    console.error('Database operation failed:', error.name);
-    res.status(error.code === 11000 ? 409 : 503).json({
-      message: error.code === 11000 ? 'That email already has a club portal account.' : 'Could not update this committee head.'
+    if (error.status) return res.status(error.status).json({ message: error.message });
+    console.error('Committee head change failed:', error.name);
+    return res.status(error.code === 11000 ? 409 : 503).json({
+      message: error.code === 11000 ? 'That email changed at the same time. Refresh and try again.' : 'Could not save this committee head.'
     });
   }
-});
-
-app.delete('/api/club/heads/:email', requireClubAuth, requireClubPresident, async (req, res) => {
-  const email = String(req.params.email || '').trim().toLowerCase();
-  const accountIndex = clubAccounts.findIndex((account) => account.clubId === req.clubAccount.clubId
-    && account.role === 'head' && account.email === email);
-  if (accountIndex < 0) return res.status(404).json({ message: 'Committee head not found.' });
-
-  try {
-    if (!requireLiveDatabase(res)) return;
-    const result = await ClubAccount.deleteOne({ clubId: req.clubAccount.clubId, email, role: 'head' });
-    if (!result.deletedCount) return res.status(404).json({ message: 'Committee head not found.' });
-    clubAccounts.splice(accountIndex, 1);
-    writePrivateClubAccountsFile();
-    res.status(204).end();
-  } catch (error) {
-    console.error('Database operation failed:', error.name);
-    res.status(503).json({ message: 'Could not delete this committee head.' });
+  if (oldCommittee && oldCommittee !== committee) {
+    for (const application of applications) {
+      if (application.clubId === clubId && application.committee === oldCommittee) application.committee = committee;
+    }
   }
-});
+  for (const changedEmail of new Set([oldEmail, email].filter(Boolean))) {
+    const account = await ClubAccount.findOne({ email: changedEmail }).read('primary').lean().catch(() => undefined);
+    if (account === undefined) continue;
+    const index = clubAccounts.findIndex((item) => item.email === changedEmail);
+    if (account) { if (index >= 0) clubAccounts[index] = account; else clubAccounts.push(account); }
+    else if (index >= 0) clubAccounts.splice(index, 1);
+  }
+  try { writePrivateClubAccountsFile(); } catch (error) { console.error('Club credential cache update failed:', error.name); }
+  if (mode === 'remove') return res.status(204).end();
+  res.status(mode === 'add' ? 201 : 200).json({ clubId, ...(clubName ? { clubName } : {}), email, committee, role: 'head' });
+}
+
+app.post('/api/club/heads', requireClubAuth, requireClubPresident, (req, res) =>
+  changeCommitteeHead(req, res, { clubId: req.clubAccount.clubId, mode: 'add' }));
+
+app.patch('/api/club/heads/:email', requireClubAuth, requireClubPresident, (req, res) =>
+  changeCommitteeHead(req, res, { clubId: req.clubAccount.clubId, mode: 'update' }));
+
+app.delete('/api/club/heads/:email', requireClubAuth, requireClubPresident, (req, res) =>
+  changeCommitteeHead(req, res, { clubId: req.clubAccount.clubId, mode: 'remove' }));
 
 function requireCommitteeRole(req, res, next) {
   const role = req.clubAccount?.role;
@@ -5447,7 +5384,8 @@ app.patch('/api/club/content/:id/assignment', requireClubAuth, async (req, res) 
     const record = await ContentRequest.findOne({ id: Number(req.params.id), clubId: req.clubAccount.clubId });
     if (!record) return res.status(404).json({ message: 'Content not found.' });
     if (email) {
-      const head = await ClubAccount.findOne({ clubId: req.clubAccount.clubId, role: 'head', email }).select('_id').lean();
+      const head = await ClubAccount.findOne({ email, $or: [{ clubId: req.clubAccount.clubId, role: 'head' },
+        { roleAssignments: { $elemMatch: { clubId: req.clubAccount.clubId, role: 'head' } } }] }).select('_id').lean();
       if (!head) return res.status(400).json({ message: 'Choose a committee head from this club.' });
       if (record.type === 'entry_permit') return res.status(403).json({ message: 'Entry Permits can only be managed by the club president.' });
       if (!['draft', 'changes_requested', 'rejected'].includes(record.status)) {
@@ -7739,136 +7677,33 @@ app.delete('/api/admin/applications/:id', async (req, res) => {
   }
 });
 
-app.get('/api/admin/club-heads', (req, res) => {
+app.get('/api/admin/club-heads', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-  res.json(clubAccounts
-    .filter((account) => account.role === 'head')
-    .map(({ clubId, email, committee }) => ({
-      clubId,
-      clubName: clubs.find((club) => club.id === clubId)?.name || `Club ${clubId}`,
-      email,
-      committee
-    })));
+  try {
+    const heads = mongoReady ? await committeeHeads.listHeads(ClubAccount) : committeeHeads.headsOf(clubAccounts);
+    res.json(heads.map((head) => ({ ...head, clubName: clubs.find((club) => club.id === head.clubId)?.name || `Club ${head.clubId}` })));
+  } catch (error) {
+    console.error('Committee head lookup failed:', error.name);
+    res.status(503).json({ message: 'Could not load committee heads.' });
+  }
 });
 
 app.post('/api/admin/club-heads', async (req, res) => {
-  const clubId = Number(req.body.clubId);
-  const club = clubs.find((item) => item.id === clubId);
-  const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
-  const committee = cleanText(req.body.committee, 100);
+  const club = clubs.find((item) => item.id === Number(req.body.clubId));
   if (!club) return res.status(404).json({ message: 'Club not found.' });
-  if (email.length > 254 || !MIU_GOOGLE_EMAIL.test(email)) return res.status(400).json({ message: 'Enter the head\'s MIU Google email (@miuegypt.edu.eg).' });
-  if (!committee) return res.status(400).json({ message: 'Enter the committee this head will manage.' });
-  if (clubAccounts.some((account) => account.email === email)) {
-    return res.status(409).json({ message: 'That email already has a club portal account.' });
-  }
-  if (clubAccounts.some((account) => account.clubId === clubId && account.role === 'head'
-    && account.committee.toLowerCase() === committee.toLowerCase())) {
-    return res.status(409).json({ message: 'This committee already has a head.' });
-  }
-
-  const account = {
-    clubId,
-    email,
-    ...googleOnlyCredentials(),
-    role: 'head',
-    committee
-  };
-  try {
-    if (!requireLiveDatabase(res)) return;
-    await ClubAccount.create({ ...account });
-    clubAccounts.push(account);
-    writePrivateClubAccountsFile();
-    res.status(201).json({ clubId, clubName: club.name, email, committee, role: 'head' });
-  } catch (error) {
-    console.error('Database operation failed:', error.name);
-    res.status(error.code === 11000 ? 409 : 503).json({
-      message: error.code === 11000 ? 'That email already has a club portal account.' : 'Could not create this committee head.'
-    });
-  }
+  await changeCommitteeHead(req, res, { clubId: club.id, mode: 'add', clubName: club.name });
 });
 
 app.patch('/api/admin/club-heads/:email', async (req, res) => {
-  const oldEmail = String(req.params.email || '').trim().toLowerCase();
-  const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
-  const committee = cleanText(req.body.committee, 100);
-  const accountIndex = clubAccounts.findIndex((account) => account.role === 'head' && account.email === oldEmail);
-  if (accountIndex < 0) return res.status(404).json({ message: 'Committee head not found.' });
-  if (email !== oldEmail && (email.length > 254 || !MIU_GOOGLE_EMAIL.test(email))) {
-    return res.status(400).json({ message: 'Enter the head\'s MIU Google email (@miuegypt.edu.eg).' });
-  }
-  if (!committee) return res.status(400).json({ message: 'Enter the committee this head will manage.' });
-  if (clubAccounts.some((account, index) => index !== accountIndex && account.email === email)) {
-    return res.status(409).json({ message: 'That email already has a club portal account.' });
-  }
-  const currentAccount = clubAccounts[accountIndex];
-  if (clubAccounts.some((account, index) => index !== accountIndex && account.clubId === currentAccount.clubId
-    && account.role === 'head' && account.committee.toLowerCase() === committee.toLowerCase())) {
-    return res.status(409).json({ message: 'Another head already manages this committee.' });
-  }
-  const oldCommittee = currentAccount.committee;
-  const updates = { email, committee };
-  // A new email is a different Google user: drop the old Google link and sign out old sessions.
-  const relink = email !== oldEmail ? { $unset: { googleSub: '' }, $inc: { sessionVersion: 1 } } : {};
-
-  try {
-    if (!requireLiveDatabase(res)) return;
-    const session = await mongoose.startSession();
-    try {
-      session.startTransaction();
-      if (oldCommittee !== committee) {
-        await Application.updateMany(
-          { clubId: currentAccount.clubId, committee: oldCommittee },
-          { $set: { committee } },
-          { session }
-        );
-      }
-      const updated = await ClubAccount.findOneAndUpdate(
-        { clubId: currentAccount.clubId, email: oldEmail, role: 'head' },
-        { $set: updates, ...relink },
-        { new: true, runValidators: true, session }
-      );
-      if (!updated) throw new Error('HEAD_NOT_FOUND');
-      await session.commitTransaction();
-    } catch (error) {
-      await session.abortTransaction().catch(() => {});
-      throw error;
-    } finally {
-      await session.endSession();
-    }
-    Object.assign(currentAccount, updates);
-    if (oldCommittee !== committee) {
-      for (const application of applications) {
-        if (application.clubId === currentAccount.clubId && application.committee === oldCommittee) application.committee = committee;
-      }
-    }
-    writePrivateClubAccountsFile();
-    res.json({ clubId: currentAccount.clubId, email, committee, role: 'head' });
-  } catch (error) {
-    if (error.message === 'HEAD_NOT_FOUND') return res.status(404).json({ message: 'Committee head not found.' });
-    console.error('Database operation failed:', error.name);
-    res.status(error.code === 11000 ? 409 : 503).json({
-      message: error.code === 11000 ? 'That email already has a club portal account.' : 'Could not update this committee head.'
-    });
-  }
+  const clubId = Number(req.body.clubId);
+  if (!clubs.some((club) => club.id === clubId)) return res.status(404).json({ message: 'Club not found.' });
+  await changeCommitteeHead(req, res, { clubId, mode: 'update' });
 });
 
 app.delete('/api/admin/club-heads/:email', async (req, res) => {
-  const email = String(req.params.email || '').trim().toLowerCase();
-  const accountIndex = clubAccounts.findIndex((account) => account.role === 'head' && account.email === email);
-  if (accountIndex < 0) return res.status(404).json({ message: 'Committee head not found.' });
-  try {
-    if (!requireLiveDatabase(res)) return;
-    const account = clubAccounts[accountIndex];
-    const result = await ClubAccount.deleteOne({ clubId: account.clubId, email, role: 'head' });
-    if (!result.deletedCount) return res.status(404).json({ message: 'Committee head not found.' });
-    clubAccounts.splice(accountIndex, 1);
-    writePrivateClubAccountsFile();
-    res.status(204).end();
-  } catch (error) {
-    console.error('Database operation failed:', error.name);
-    res.status(503).json({ message: 'Could not delete this committee head.' });
-  }
+  const clubId = Number(req.query.clubId);
+  if (!clubs.some((club) => club.id === clubId)) return res.status(404).json({ message: 'Club not found.' });
+  await changeCommitteeHead(req, res, { clubId, mode: 'remove' });
 });
 
 require('./services/admin-dashboard-pages').registerAdminDashboardPages(app, { root: __dirname, requireAdmin, Club });

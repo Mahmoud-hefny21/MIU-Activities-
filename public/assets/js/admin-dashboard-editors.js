@@ -97,20 +97,22 @@
   };
   window.renderAdminHeadEditor = async ({ data, request, read, escape, list, record, saveForm }) => {
     const selected = new URLSearchParams(location.search).get('email');
+    const selectedClub = Number(new URLSearchParams(location.search).get('club'));
+    const headUrl = head => '/api/admin/club-heads/' + encodeURIComponent(head.email);
     const clubs = await read('/api/clubs?media=links');
     if (!selected) {
       root().innerHTML = '<a class="v2-action" href="/admin/heads?email=new">Add committee head</a>' + list(data.map(head => record(head.email, `${head.clubName} · ${head.committee}`,
-        `<a href="/admin/heads?email=${encodeURIComponent(head.email)}">Edit account</a><button type="button" data-delete-head="${escape(head.email)}">Remove head</button>`)));
+        `<a href="/admin/heads?email=${encodeURIComponent(head.email)}&club=${head.clubId}">Edit head</a><button type="button" data-delete-head="${escape(head.email)}" data-club="${escape(head.clubId)}">Remove head</button>`)));
       root().querySelectorAll('[data-delete-head]').forEach(button => button.addEventListener('click', async () => {
-        if (!await window.miuConfirmAction('Remove this committee head account and its dashboard access?')) return;
+        if (!await window.miuConfirmAction('Remove this committee head role? Their other clubs and roles stay.')) return;
         button.disabled = true;
-        try { await request('/api/admin/club-heads/' + encodeURIComponent(button.dataset.deleteHead), { method: 'DELETE' }); button.closest('.v2-record').remove(); }
+        try { await request(headUrl({ email: button.dataset.deleteHead }) + '?clubId=' + encodeURIComponent(button.dataset.club), { method: 'DELETE' }); button.closest('.v2-record').remove(); }
         catch (error) { document.getElementById('toolFeedback').textContent = error.message; }
         finally { button.disabled = false; }
       }));
       return;
     }
-    let current = data.find(head => head.email === selected);
+    let current = data.find(head => head.email === selected && (!selectedClub || head.clubId === selectedClub));
     if (selected !== 'new' && !current) throw new Error('Committee head not found.');
     root().innerHTML = `<form id="headEditorForm" class="v2-form">
       <label>Club<select name="clubId" required ${current ? 'disabled' : ''}>${clubs.map(club => `<option value="${escape(club.id)}" ${club.id === current?.clubId ? 'selected' : ''}>${escape(club.name)}</option>`).join('')}</select></label>
@@ -119,10 +121,10 @@
       <p class="v2-panel-note">The head signs in with this MIU Google account. No password is needed.</p>
       <button class="v2-action" type="submit">Save head</button></form>`;
     document.getElementById('headEditorForm').addEventListener('submit', event => saveForm(event, async form => {
-      const payload = Object.fromEntries(new FormData(form));
-      await request(current ? '/api/admin/club-heads/' + encodeURIComponent(current.email) : '/api/admin/club-heads', { method: current ? 'PATCH' : 'POST', body: JSON.stringify(payload) });
-      current = { email: payload.email, committee: payload.committee };
-      const url = new URL(location.href); url.searchParams.set('email', payload.email); history.replaceState(history.state, '', url);
+      const payload = { ...Object.fromEntries(new FormData(form)), ...(current ? { clubId: current.clubId } : {}) };
+      await request(current ? headUrl(current) : '/api/admin/club-heads', { method: current ? 'PATCH' : 'POST', body: JSON.stringify(payload) });
+      current = { clubId: Number(payload.clubId), email: payload.email, committee: payload.committee };
+      const url = new URL(location.href); url.searchParams.set('email', payload.email); url.searchParams.set('club', current.clubId); history.replaceState(history.state, '', url);
       form.elements.clubId.disabled = true;
       return 'Head saved. They can sign in with Google now.';
     }));

@@ -31,7 +31,9 @@ function validateStaffAssignments(body) {
     if (validated.error) return validated;
     assignments.push(validated.value);
   }
-  if (new Set(assignments.map(item => item.role)).size !== assignments.length) return { error: 'Choose each dashboard role only once.' };
+  // A committee head role may repeat once per club; every other role appears once.
+  const roleKey = item => item.role === 'head' ? `head:${item.clubId}` : item.role;
+  if (new Set(assignments.map(roleKey)).size !== assignments.length) return { error: 'Choose each dashboard role only once (a committee head once per club).' };
   const assignedClubIds = assignments.flatMap(item => item.role === 'supervisor'
     ? item.assignedClubIds : ['president', 'vice_president', 'head'].includes(item.role) ? [item.clubId] : []);
   if (new Set(assignedClubIds).size > 200) return { error: 'Choose no more than 200 clubs across dashboard assignments.' };
