@@ -12,7 +12,7 @@ async function fixture(t, assignedEmail) {
     getStudentAccountFromRequest: async req => req.headers['x-test-email']
       ? { email: req.headers['x-test-email'] }
       : null,
-    getClubAccountFromRequest: async () => null,
+    getClubAccountFromRequest: async req => req.headers['x-test-staff'] ? { email: req.headers['x-test-staff'] } : null,
     requireLiveDatabase: () => true,
     AttendanceSession: {
       exists: async filter => filter.assignedMemberEmail === assignedEmail
@@ -33,15 +33,21 @@ async function fixture(t, assignedEmail) {
     const instance = app.listen(0, '127.0.0.1', () => resolve(instance));
   });
   t.after(() => new Promise(resolve => { server.close(resolve); server.closeAllConnections(); }));
-  return email => fetch(`http://127.0.0.1:${server.address().port}/pages/my-attendance-task.html`, {
-    headers: email ? { 'x-test-email': email } : {}
+  return (email, staff = false) => fetch(`http://127.0.0.1:${server.address().port}/pages/my-attendance-task.html`, {
+    headers: email ? { [staff ? 'x-test-staff' : 'x-test-email']: email } : {}, redirect: 'manual'
   });
 }
 
 test('only the assigned account can open its active MIU attendance task page', async t => {
   const request = await fixture(t, 'usher@miuegypt.edu.eg');
 
-  const assigned = await request('usher@miuegypt.edu.eg');
+  // Assigned students work the task in their student dashboard.
+  const student = await request('usher@miuegypt.edu.eg');
+  assert.equal(student.status, 302);
+  assert.equal(student.headers.get('location'), '/?myForms=1&section=attendance');
+
+  // Assigned staff accounts have no student dashboard, so they keep the task page.
+  const assigned = await request('usher@miuegypt.edu.eg', true);
   assert.equal(assigned.status, 200);
   assert.match(await assigned.text(), /Attendance usher task/);
 

@@ -53,6 +53,10 @@ function createEventContext({ Club, UniversityContent, Application, EventRegistr
     return !!await Club.findOne({ archivedAt: null, 'memberRoster.email': email }).session(session).lean() || !!await Application.findOne({ email, status: 'accepted' }).session(session).lean();
   }
   async function registration(context, student, session) { return EventRegistration.findOne({ ...context.filter, email: student.email.toLowerCase() }).session(session).lean(); }
-  return { resolve, eligible, registration };
+  // Registration is needed only when the event uses it. Events published with registration off
+  // admit anyone in their audience; older events without the setting keep requiring it.
+  const requiresRegistration = context => context.event.registrationEnabled !== false;
+  async function admitted(context, student, session) { return !requiresRegistration(context) || Boolean(await registration(context, student, session)); }
+  return { resolve, eligible, registration, requiresRegistration, admitted };
 }
 module.exports = { createEventContext, attendanceWindow, localInstant, fail };

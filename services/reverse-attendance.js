@@ -77,7 +77,7 @@ function createReverseAttendance(deps) {
   }
   async function issue(ref, student, req, res) {
     const ctx = await context.resolve(ref), window = await openWindow(ctx);
-    if (!await context.registration(ctx, student)) fail(403, 'NOT_REGISTERED', 'You are not registered for this event, or your registration was cancelled.');
+    if (!await context.admitted(ctx, student)) fail(403, 'NOT_REGISTERED', 'You are not registered for this event, or your registration was cancelled.');
     if (!await context.eligible(ctx, student)) fail(403, 'NOT_ELIGIBLE', 'Your current membership is not eligible for this event.');
     const existing = await AttendanceRecord.findOne({ clubId: ctx.clubId, itemType: 'event', eventRequestId: ctx.eventRequestId, email: student.email }).lean();
     if (existing) return { ...window, attended: true, attendedAt: existing.attendedAt, message: 'Attendance has already been recorded.' };
@@ -100,10 +100,9 @@ function createReverseAttendance(deps) {
       if (!student || Number(student.sessionVersion || 0) !== Number(payload.version)) fail(403, 'REVOKED_QR', 'The student session changed. Ask for a refreshed QR.');
       if (!student.name || !student.universityId) fail(422, 'PROFILE_REQUIRED', 'The student must complete their name and official university ID before attendance can be recorded.');
       if (String(actor.email || '').toLowerCase() === student.email.toLowerCase()) fail(403, 'SELF_SCAN_FORBIDDEN', 'Another authorized supervisor must scan your personal attendance QR.');
-      const registration = await context.registration(ctx, student, session);
-      if (!registration) fail(403, 'NOT_REGISTERED', 'The student is not registered, or the registration was cancelled.');
+      if (!await context.admitted(ctx, student, session)) fail(403, 'NOT_REGISTERED', 'The student is not registered, or the registration was cancelled.');
       if (!await context.eligible(ctx, student, session)) fail(403, 'NOT_ELIGIBLE', 'The student is no longer eligible for this event.');
-      const identity = { name: student.name, universityId: require('../public/assets/js/student-fields').displayMiuId(student.universityId, student.email), registrationStatus: 'registered', eventTitle: ctx.event.title, eventType: ctx.source === 'miu' ? 'University event' : 'Club event' };
+      const identity = { name: student.name, universityId: require('../public/assets/js/student-fields').displayMiuId(student.universityId, student.email), registrationStatus: context.requiresRegistration(ctx) ? 'registered' : 'open entry', eventTitle: ctx.event.title, eventType: ctx.source === 'miu' ? 'University event' : 'Club event' };
       const key = `${ctx.key}:${student._id}`, filter = { clubId: ctx.clubId, itemType: 'event', eventRequestId: ctx.eventRequestId };
       const binding = await DeviceBinding.findOne({ deviceHash: payload.device }).session(session).lean();
       if (!binding || new Date(binding.expiresAt).getTime() <= clock() || binding.state.generation !== payload.generation || binding.state.current !== String(student._id)) fail(403, 'REVOKED_QR', 'The browser account association changed. Ask for a refreshed QR.');

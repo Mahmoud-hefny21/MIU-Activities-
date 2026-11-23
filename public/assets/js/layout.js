@@ -601,7 +601,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
           }
           if (studentFormsLink) studentFormsLink.hidden = !isStudent;
-          if (attendanceUsherTaskLink && isAuthenticated && !fromCache) {
+          // Students work their attendance tasks in the student dashboard; only staff accounts get this header link.
+          if (attendanceUsherTaskLink && isAuthenticated && !isStudent && !fromCache) {
             fetch('/api/miu-attendance-task', { credentials: 'same-origin', cache: 'no-store', siteStartupNonBlocking: true })
               .then(response => response.ok ? response.json() : null)
               .then(result => {

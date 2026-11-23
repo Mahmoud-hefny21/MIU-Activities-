@@ -15,7 +15,7 @@
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" data-async-style />
     <script src="/assets/js/inline-actions.js?v=20261122csp1" defer></script>
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" /></noscript>
-    <link rel="stylesheet" href="/assets/css/base.css?v=20261120qb2" />
+    <link rel="stylesheet" href="/assets/css/base.css?v=20261123task1" />
     <link rel="stylesheet" href="/assets/css/responsive.css?v=20261122backdrop1" />
     <link rel="stylesheet" href="/assets/css/dark.css?v=20261120menus2" />
     <link rel="stylesheet" href="/assets/css/features.css?v=20261122attendance1" />
@@ -133,7 +133,7 @@
                   <button class="student-dashboard-nav-item is-active" type="button" data-student-section="overview" aria-current="page"><svg class="student-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z"/></svg><span>Overview</span></button>
                   <button class="student-dashboard-nav-item" type="button" data-student-section="clubs"><svg class="student-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20v-1a6 6 0 0 1 12 0v1"/><path d="M16 4a3 3 0 0 1 0 6M21 20v-1a5 5 0 0 0-3-4.6"/></svg><span>My clubs</span><span class="student-nav-count" id="studentSidebarClubCount">—</span></button>
                   <button class="student-dashboard-nav-item" type="button" data-student-section="applications"><svg class="student-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg><span>Applications</span><span class="student-nav-count" id="studentSidebarApplicationCount">—</span></button>
-                  <button class="student-dashboard-nav-item" type="button" data-student-section="attendance"><svg class="student-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Attendance</span><span class="student-nav-count" id="studentSidebarAttendanceCount">—</span></button>
+                  <button class="student-dashboard-nav-item" type="button" data-student-section="attendance" data-task-entry hidden><svg class="student-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Attendance</span><span class="student-nav-count" id="studentSidebarAttendanceCount">—</span></button>
                   <button class="student-dashboard-nav-item" type="button" data-student-section="my-attendance"><svg class="student-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 17h4v4"/></svg><span>My Attendance QR</span><span class="student-nav-count" id="studentSidebarVerifiedCount">—</span></button>
                 </nav>
                 <a class="student-dashboard-explore" href="/?explore=clubs#clubGrid">Explore clubs <span aria-hidden="true">→</span></a>
@@ -153,7 +153,7 @@
                       <strong id="studentDashboardApplicationCount">—</strong><p>Applications you have submitted.</p>
                       <button type="button" data-student-section="applications">View applications <span aria-hidden="true">→</span></button>
                     </article>
-                    <article class="student-dashboard-shortcut">
+                    <article class="student-dashboard-shortcut" data-task-entry hidden>
                       <svg class="student-shortcut-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="student-shortcut-label">ATTENDANCE REQUESTS</span>
                       <strong id="studentDashboardAttendanceCount">—</strong><p>Tasks assigned by your club.</p>
                       <button type="button" data-student-section="attendance">View requests <span aria-hidden="true">→</span></button>
@@ -893,7 +893,7 @@
 
     <script src="/assets/js/event-modal.js?v=20261122reconcile1" defer></script>
     <script src="/assets/js/committee-sidebar.js?v=20261013lighter1" defer></script>
-    <script src="/assets/js/member-dashboard.js?v=20261120self1" defer></script>
+    <script src="/assets/js/member-dashboard.js?v=20261123task2" defer></script>
     <script src="/assets/js/app-home.js?v=20261122upcoming1" defer></script>
     <script src="/assets/js/cloudinary-upload.js?v=20261018signedresponse1" defer></script>
     <script src="/assets/js/student-feedback.js?v=20261119checkin1" defer></script>
@@ -901,14 +901,14 @@
     <script src="/assets/js/president-interview-slots.js?v=20261120slots1" defer></script>
     <script src="/assets/js/club-qr.js?v=20261120clubqr1" defer></script>
     <script src="/assets/js/app-forms.js?v=20261120qb1" defer></script>
-    <script src="/assets/js/app-dashboard.js?v=20261122attendance1" defer></script>
+    <script src="/assets/js/app-dashboard.js?v=20261123task1" defer></script>
     <script src="/assets/js/student-checkin-auto.js?v=20261119checkin1" defer></script>
     <script src="/assets/js/president-overview.js?v=20261119todo1" defer></script>
     <script src="/assets/js/attendance-qr-style.js?v=20261120qr2" defer></script>
     <script src="/assets/js/attendance-dashboard.js?v=20261019radialqr1" defer></script>
     <script src="/assets/js/entry-permit-dashboard.js?v=20261014permitmobilecards1" defer></script>
     <script src="/assets/js/member-directory.js?v=20261013stagedload3" defer></script>
-    <script src="/assets/js/layout.js?v=20261122backdrop1" defer></script>
+    <script src="/assets/js/layout.js?v=20261123task1" defer></script>
     <script src="/assets/js/theme.js?v=20261120done1" defer></script>
     <script src="/assets/js/pages/report-downloads.js?v=20261122empty1" defer></script>
   <script src="/assets/js/report-dashboard-panels.js?v=20261119icons1" defer></script>

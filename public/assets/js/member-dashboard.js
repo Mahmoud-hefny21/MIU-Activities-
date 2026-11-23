@@ -3,6 +3,7 @@
   if (!list) return;
 
   let assignments = [];
+  let usherTask = null; // An MIU (university) usher task, worked from this dashboard like club tasks.
   let savedQr = {};
   try { savedQr = JSON.parse(window.sessionStorage.getItem('memberAttendanceQr') || '{}') || {}; } catch {}
   let activeToken = String(savedQr.token || '');
@@ -31,12 +32,16 @@
 
   function render() {
     list.replaceChildren();
-    const attendanceCount = String(assignments.length);
+    const attendanceCount = String(assignments.length + (usherTask ? 1 : 0));
     const dashboardAttendanceCount = document.getElementById('studentDashboardAttendanceCount');
     const sidebarAttendanceCount = document.getElementById('studentSidebarAttendanceCount');
     if (dashboardAttendanceCount) dashboardAttendanceCount.textContent = attendanceCount;
     if (sidebarAttendanceCount) sidebarAttendanceCount.textContent = attendanceCount;
+    // Only students with an assigned task see the task section and its overview card.
+    document.querySelectorAll('#myFormsView [data-task-entry]').forEach((entry) => { entry.hidden = !assignments.length && !usherTask; });
+    if (usherTask) list.append(usherCard(usherTask));
     if (!assignments.length) {
+      if (usherTask) return;
       const empty = document.createElement('p');
       empty.className = 'member-assignment-empty';
       empty.textContent = 'No attendance task is assigned to your account for today.';
@@ -102,6 +107,60 @@
     });
   }
 
+  function usherCard(task) {
+    const card = document.createElement('article');
+    card.className = 'member-assignment-card';
+    const content = document.createElement('div');
+    const title = document.createElement('h4');
+    title.textContent = task.eventTitle || 'MIU event attendance';
+    const meta = document.createElement('p');
+    meta.textContent = ['MIU event', task.eventDate, task.eventTime].filter(Boolean).join(' · ');
+    const role = document.createElement('p');
+    role.className = 'member-assignment-meta';
+    role.textContent = 'Usher · Assigned by the university events team';
+    content.append(title, meta, role);
+    const status = document.createElement('span');
+    status.className = `member-assignment-status${task.accepted ? '' : ' is-new'}`;
+    status.textContent = task.attendanceAsUsher ? 'Attendance recorded' : task.accepted ? 'Accepted' : 'New request';
+    const actions = document.createElement('div');
+    actions.className = 'member-assignment-actions';
+    const message = document.createElement('p');
+    message.className = 'member-assignment-meta';
+    message.setAttribute('role', 'status');
+    const run = async (work) => {
+      actions.querySelectorAll('button').forEach((item) => { item.disabled = true; });
+      try { await work(); await loadAssignments(true); }
+      catch (error) { message.textContent = error.message; message.classList.add('is-error'); actions.querySelectorAll('button').forEach((item) => { item.disabled = false; }); }
+    };
+    if (!task.accepted) {
+      actions.append(button('Accept request', 'primary-btn', () => run(() => apiJson('/api/miu-attendance-task/accept', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }))));
+    } else {
+      if (!task.attendanceAsUsher) {
+        // Name, MIU ID and major are asked for only when the student's profile is missing one of them.
+        const missing = [['name', 'Full name', 160], ['universityId', 'MIU ID (e.g. 2024/06700)', 12], ['major', 'Major', 120]]
+          .filter(([key]) => !String(task.profile?.[key] || '').trim());
+        const fields = missing.map(([key, label, max]) => {
+          const input = document.createElement('input');
+          input.name = key; input.placeholder = label; input.maxLength = max; input.required = true; input.setAttribute('aria-label', label);
+          actions.append(input);
+          return input;
+        });
+        actions.append(button('Take my attendance', 'primary-btn', () => run(async () => {
+          const details = Object.fromEntries(['name', 'universityId', 'major'].map((key) => [key, task.profile?.[key] || '']));
+          fields.forEach((input) => { details[input.name] = input.value.trim(); });
+          if (fields.some((input) => !input.value.trim())) throw new Error('Enter your full name, MIU ID and major first.');
+          message.textContent = 'Recording your attendance from this account and device…';
+          const result = await apiJson('/api/miu-attendance-task/check-in', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(details) });
+          if (result.savedToDatabase !== true) throw new Error('Your attendance was not confirmed in the database.');
+        })));
+      }
+      actions.append(button('Open attendance scanner', task.attendanceAsUsher ? 'primary-btn' : 'secondary-btn', () => { location.href = '/pages/attendance-scanner.html'; }));
+    }
+    actions.append(message);
+    card.append(content, status, actions);
+    return card;
+  }
+
   function loadAssignments(force = false) {
     if (assignmentLoadPromise) return assignmentLoadPromise;
     if (!force && assignmentsLoadedAt && Date.now() - assignmentsLoadedAt < 25_000) return Promise.resolve();
@@ -112,11 +171,14 @@
     loading.textContent = 'Loading your attendance requests from the database…';
     list.append(loading);
     try {
+      const usherRequest = fetch('/api/miu-attendance-task', { cache: 'no-store', credentials: 'same-origin' })
+        .then((reply) => (reply.ok ? reply.json() : null)).then((value) => value?.task || null).catch(() => null);
       const response = await fetch('/api/member/attendance-assignments', { cache: 'no-store' });
       if (response.status === 401) throw new Error('Sign in with your MIU Google account to view member tasks.');
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.message || 'Could not load member attendance requests.');
       assignments = Array.isArray(payload) ? payload : [];
+      usherTask = await usherRequest;
       assignmentsLoadedAt = Date.now();
       if (activeQrDate && activeQrDate !== todayInCairo()) {
         activeToken = '';

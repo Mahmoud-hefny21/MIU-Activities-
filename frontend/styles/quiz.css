@@ -791,3 +791,6 @@ body .quiz-dialog > .quiz-dialog-close:hover {
   .quiz-result-card > :nth-child(2) { flex: 1 1 calc(100% - 50px); }
   .quiz-result-card .quiz-view-club { flex: 1 1 100%; min-height: 44px; }
 }
+
+/* Attendance task links show only for students who have an assigned task. */
+[data-task-entry][hidden] { display: none !important; }

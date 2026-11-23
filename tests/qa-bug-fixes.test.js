@@ -58,7 +58,7 @@ test('BUG-12: my-attendance returns only the signed-in student\'s registrations,
     service: { context: { resolve: async ref => ({ eventRequestId: 77, source: 'club', club: { image: '/c.png', name: 'Utopia' }, event: { title: 'Workshop', date: '2099-01-01', time: '10:00' } }) } },
     requireStudentAuth: (req, res, next) => next(), sameOrigin: () => true, ready: () => true,
     Club: { findOne: () => chain({ events: [{ requestId: 77 }] }), find: filter => { queries.push(['Club', filter]); return chain([{ id: 3, name: 'Robotics' }]); } },
-    UniversityContent: {},
+    UniversityContent: { find: () => chain([]) },
     EventRegistration: { find: filter => { queries.push(['EventRegistration', filter]); return chain([{ clubId: 1, eventIndex: 0, eventRequestId: 77 }]); } },
     AttendanceRecord: { find: filter => { queries.push(['AttendanceRecord', filter]); return chain([
       { clubId: 1, eventRequestId: 77, itemType: 'event', attendedAt: '2026-01-01T10:00:00Z', approvalStatus: 'approved' },

@@ -24,16 +24,32 @@ function registerReverseAttendance(app, deps) {
   app.get(route, safe('scanner', async (req, res, actor) => res.json(await service.overview(ref(req), actor, req, res))));
   app.post(route + '/scan', safe('scanner', async (req, res, actor) => res.json(await service.scan(ref(req), actor, req.body || {}, req, res))));
   app.put(route + '/settings', safe('scanner', async (req, res, actor) => res.json(await service.configure(ref(req), actor, req.body || {}))));
-  // The signed-in student's registered events (from their own session, never a client-supplied ID).
+  // The signed-in student's registered events, plus open-entry events they may attend (from their own session, never a client-supplied ID).
   async function registeredEvents(student) {
     const registrations = await EventRegistration.find({ email: student.email }).sort({ createdAt: -1 }).limit(500).lean(), items = [];
     for (const registration of registrations) {
       const reference = { source: registration.clubId === 0 ? 'miu' : 'club', clubId: registration.clubId, eventIndex: registration.eventIndex };
       if (reference.source === 'club' && registration.eventRequestId > 0) { const club = await Club.findOne({ id: registration.clubId, archivedAt: null }).select('events').lean(); reference.eventIndex = club?.events?.findIndex(event => Number(event.requestId) === Number(registration.eventRequestId)); }
-      try { const ctx = await service.context.resolve(reference); items.push({ ...reference, eventRequestId: ctx.eventRequestId, title: ctx.event.title, date: ctx.event.date, time: ctx.event.time, source: ctx.source, logo: ctx.source === 'miu' ? '/assets/img/pics/logo.svg.png' : ctx.club.image, logoLabel: ctx.source === 'miu' ? 'MIU' : ctx.club.name, checkIn: checkInWindow(ctx.event) }); } catch (error) { if (![400, 404].includes(error.status) && error.code !== 'EVENT_ID_MIGRATION_REQUIRED') throw error; }
+      try { const ctx = await service.context.resolve(reference); items.push(listItem(reference, ctx)); } catch (error) { if (![400, 404].includes(error.status) && error.code !== 'EVENT_ID_MIGRATION_REQUIRED') throw error; }
+    }
+    // Events published with registration off need no registration: list today's and upcoming ones
+    // the student may attend (members-only events only for members), so their QR can open.
+    const seen = new Set(items.map(item => `${item.source}:${item.clubId}:${item.eventRequestId}`));
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo' }).format(new Date());
+    const openEntry = event => event?.registrationEnabled === false && event.attendanceEnabled !== false && !event.cancelled && String(event.date || '') >= today;
+    const [clubs, university] = await Promise.all([Club.find({ archivedAt: null }).select('id events').lean(), UniversityContent.find({ type: 'event' }).select('id date registrationEnabled attendanceEnabled cancelled').lean()]);
+    const candidates = [...clubs.flatMap(club => (club.events || []).flatMap((event, eventIndex) => openEntry(event) ? [{ source: 'club', clubId: club.id, eventIndex }] : [])),
+      ...university.filter(openEntry).map(event => ({ source: 'miu', clubId: 0, eventIndex: event.id }))];
+    for (const reference of candidates) {
+      try {
+        const ctx = await service.context.resolve(reference);
+        if (seen.has(`${ctx.source}:${ctx.clubId}:${ctx.eventRequestId}`) || !await service.context.eligible(ctx, student)) continue;
+        items.push(listItem(reference, ctx));
+      } catch (error) { if (![400, 404].includes(error.status) && error.code !== 'EVENT_ID_MIGRATION_REQUIRED') throw error; }
     }
     return items;
   }
+  const listItem = (reference, ctx) => ({ ...reference, eventRequestId: ctx.eventRequestId, title: ctx.event.title, date: ctx.event.date, time: ctx.event.time, source: ctx.source, logo: ctx.source === 'miu' ? '/assets/img/pics/logo.svg.png' : ctx.club.image, logoLabel: ctx.source === 'miu' ? 'MIU' : ctx.club.name, checkIn: checkInWindow(ctx.event) });
   app.get('/api/reverse-attendance/my-events', requireStudentAuth, safe('student', async (req, res, student) => {
     res.json({ items: await registeredEvents(student) });
   }));

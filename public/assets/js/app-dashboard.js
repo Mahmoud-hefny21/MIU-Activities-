@@ -913,7 +913,7 @@ function setStudentDashboardSection(sectionName, { updateUrl = true } = {}) {
     if (active) button.setAttribute('aria-current', 'page');
     else button.removeAttribute('aria-current');
   });
-  if (section === 'attendance') void window.loadMemberAttendanceAssignments?.();
+  void window.loadMemberAttendanceAssignments?.();
   if (section === 'my-attendance') void loadMyAttendance();
   void loadStudentClubs(section === 'clubs');
   if (updateUrl) {

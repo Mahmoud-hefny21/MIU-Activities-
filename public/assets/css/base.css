@@ -3663,3 +3663,6 @@ body .quiz-dialog > .quiz-dialog-close:hover {
 /* A page that failed to load shows only its error card: no half-built footer, bottom bar or quiz icon. */
 body:has(.page-load-error-wrap) :is(#site-footer, .site-footer, footer, .bottom-bar, .quiz-launcher) { display: none !important; }
 body:has(.page-load-error-wrap) { padding-bottom: 0 !important; }
+
+/* Attendance task links show only for students who have an assigned task. */
+[data-task-entry][hidden] { display: none !important; }

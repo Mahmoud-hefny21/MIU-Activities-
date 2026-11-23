@@ -136,3 +136,14 @@ test('historical attendance without the new account key still prevents a duplica
   f.store.rows.AttendanceRecord.push({clubId:1,itemType:'event',eventRequestId:99,email:a.email,attendedAt});
   const duplicate=await f.scan(qr.token);assert.equal(duplicate.color,'red');assert.deepEqual(duplicate.attendedAt,attendedAt);assert.equal(f.store.rows.AttendanceRecord.length,1);assert.equal(f.store.rows.AttendanceRecord[0].accountEventKey,undefined);
 });
+test('events with registration off admit anyone in their audience; registration on still requires it',async()=>{
+  const f=fixture(),c={...a,_id:'333333333333333333333333',email:'c@example.test',name:'Student C',universityId:'00789'};
+  f.store.rows.StudentAccount.push(c);
+  await assert.rejects(f.issue(c),code('NOT_REGISTERED'));
+  f.store.rows.Club[0].events[0].registrationEnabled=false;
+  const qr=await f.issue(c,ref,'c-browser');const result=await f.scan(qr.token);
+  assert.equal(result.color,'green');assert.equal(result.registrationStatus,'open entry');
+  f.store.rows.Club[0].events[0].attendanceAudience='members';
+  const d={...c,_id:'444444444444444444444444',email:'d@example.test'};f.store.rows.StudentAccount.push(d);
+  await assert.rejects(f.issue(d,ref,'d-browser'),code('NOT_ELIGIBLE'));
+});

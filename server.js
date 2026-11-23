@@ -3497,7 +3497,7 @@ function skipWhenSignedOut(req, res, next) {
 async function requireAttendanceTaskAuth(req, res, next) {
   try {
     const student = await getStudentAccountFromRequest(req, res);
-    if (student) { req.attendanceTaskAccount = student; return next(); }
+    if (student) { req.attendanceTaskAccount = student; req.attendanceTaskIsStudent = true; return next(); }
     const staff = await getClubAccountFromRequest(req, res);
     if (staff) { req.attendanceTaskAccount = staff; return next(); }
     if (!req.path.startsWith('/api/')) return sendHttpErrorPage(res, 401, 'Sign in required', 'Sign in to the student or staff account assigned to this task.');
@@ -3526,6 +3526,8 @@ app.get('/pages/my-attendance-task.html', requireAttendanceTaskAuth, async (req,
       sourceType: 'miu', active: true, assignedMemberEmail: req.attendanceTaskAccount.email
     });
     if (!assignedTask) return sendHttpErrorPage(res, 404, 'Attendance task not found', 'No active attendance task is assigned to this account.');
+    // Students accept and work their tasks in the student dashboard; this page stays for staff accounts.
+    if (req.attendanceTaskIsStudent) return res.redirect(302, '/?myForms=1&section=attendance');
     return res.sendFile(path.join(__dirname, 'public/pages/my-attendance-task.html'));
   } catch {
     return sendHttpErrorPage(res, 503, 'Attendance task is temporarily unavailable', 'Please try again in a moment.');
