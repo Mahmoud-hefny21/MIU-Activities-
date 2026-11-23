@@ -1413,6 +1413,20 @@ function isUpcomingUniversityEvent(item, today = startOfLocalDay(new Date())) {
   return Boolean(date) && date >= today && date <= horizon;
 }
 
+// MIU and faculty announcements and polls also appear in "Upcoming": the newest ones from the last 90 days,
+// shown after the events.
+const SLIDESHOW_ANNOUNCEMENT_DAYS = 90;
+const SLIDESHOW_ANNOUNCEMENT_LIMIT = 6;
+function recentUniversityAnnouncements(items, today = startOfLocalDay(new Date())) {
+  const since = new Date(today);
+  since.setDate(since.getDate() - SLIDESHOW_ANNOUNCEMENT_DAYS);
+  return items.filter((item) => item.contentType !== 'event')
+    .map((item) => ({ ...item, parsedDate: parseEventDate(item.publishedAt || item.createdAt) }))
+    .filter((item) => item.parsedDate && item.parsedDate >= since)
+    .sort((left, right) => right.parsedDate - left.parsedDate)
+    .slice(0, SLIDESHOW_ANNOUNCEMENT_LIMIT);
+}
+
 function renderEventsSlideshow() {
   const track = document.getElementById('eventsSlideshowTrack');
   const dots = document.getElementById('eventsSlideshowDots');
@@ -1455,6 +1469,7 @@ function renderEventsSlideshow() {
     .map((event) => ({ ...event, contentType: 'event', index: event.eventIndex, parsedDate: parseEventDate(event.date) }))
     .filter((event) => event.parsedDate && event.parsedDate >= todayStart)
     .concat(universityItems.filter(isUpcomingUniversityEvent))
+    .concat(recentUniversityAnnouncements(universityItems, todayStart))
     .sort((left, right) => {
       const leftEvent = left.contentType === 'event';
       const rightEvent = right.contentType === 'event';
@@ -1484,7 +1499,7 @@ function renderEventsSlideshow() {
       : (isToday ? 'TODAY · NEW' : 'UPCOMING EVENT');
     const metaLine = item.contentType === 'sponsor'
       ? escapeHtml(item.sponsorCompany || item.sponsorName || '')
-      : `${item.date || ''}${item.location ? ' · ' + escapeHtml(item.location) : ''}`;
+      : `${item.date || (item.contentType !== 'event' && item.parsedDate ? item.parsedDate.toLocaleDateString('en-CA') : '')}${item.location ? ' · ' + escapeHtml(item.location) : ''}`;
     return `
     <div class="event-slide${i === slideIndex ? ' active' : ''}" data-club="${item.clubId}" data-idx="${item.index}" data-type="${item.contentType}">
       <img class="${item.university && (item.image || item.clubImage) === '/assets/img/pics/logo.svg.png' ? 'university-brand-image' : ''}" src="${escapeHtml(item.image || item.clubImage)}" alt="${escapeHtml(item.title || 'event')}" loading="${i === slideIndex ? 'eager' : 'lazy'}" decoding="async" />
