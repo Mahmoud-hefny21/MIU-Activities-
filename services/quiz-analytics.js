@@ -25,6 +25,11 @@ function scoreSubmission(body, clubs = []) {
 
 // Account submissions use a separate key namespace from older anonymous attempts.
 const accountSubmissions = { attemptId: { $gte: 'account:', $lt: 'account;' } };
+// Only records in the current format count: at most three clubs scoring 3, 2 and 1. Records saved by an
+// older scoring version (which added points up across retakes) are left out of the totals.
+const validScores = scores => Array.isArray(scores) && scores.length <= 3
+  && JSON.stringify(scores.map(row => Number(row.points)).sort((a, b) => b - a)) === JSON.stringify([3, 2, 1].slice(0, scores.length))
+  && new Set(scores.map(row => Number(row.clubId))).size === scores.length;
 
 function registerQuizAnalytics(app, { requireAdmin, requireLiveDatabase, getClubs, getAccountEmail, model = QuizSubmission }) {
   const safe = handler => async (req, res) => {
@@ -52,15 +57,14 @@ function registerQuizAnalytics(app, { requireAdmin, requireLiveDatabase, getClub
     res.json({ saved: true });
   }));
   app.get('/api/admin/quiz-points', requireAdmin, safe(async (req, res) => {
-    const [totalSubmissions, totals] = await Promise.all([
-      model.countDocuments(accountSubmissions),
-      model.aggregate([{ $match: accountSubmissions }, { $unwind: '$scores' }, { $group: { _id: '$scores.clubId', points: { $sum: '$scores.points' } } }])
-    ]);
-    const byId = new Map(totals.map(row => [Number(row._id), row.points]));
+    const records = (await model.aggregate([{ $match: accountSubmissions }])).filter(record => validScores(record.scores));
+    const totalSubmissions = records.length;
+    const byId = new Map();
+    for (const record of records) for (const row of record.scores) byId.set(Number(row.clubId), (byId.get(Number(row.clubId)) || 0) + Number(row.points));
     const clubs = new Map();
     for (const club of getClubs()) clubs.set(Number(club.id), { clubId: Number(club.id), name: club.name });
     res.json({ totalSubmissions, clubs: [...clubs.values()].map(club => ({ ...club, points: byId.get(club.clubId) || 0 }))
       .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name)) });
   }));
 }
-module.exports = { QuizSubmission, scoreSubmission, registerQuizAnalytics };
+module.exports = { QuizSubmission, scoreSubmission, registerQuizAnalytics, validScores };

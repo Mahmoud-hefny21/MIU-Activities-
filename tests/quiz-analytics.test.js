@@ -117,3 +117,16 @@ test('invalid submissions and database outages never report a successful save', 
   assert.equal((await f.call('POST', '/api/quiz/submissions', { attemptId: first, answers })).statusCode, 503);
   assert.equal((await f.call('GET', '/api/admin/quiz-points', null, true)).statusCode, 503);
 });
+
+test('BL-06: records from older scoring (points added up across retakes) are left out of the totals', async () => {
+  const f = fixture();
+  await f.call('POST', '/api/quiz/submissions', { attemptId: first, answers });
+  // A legacy account record like the one found on production: 12 clubs, up to 18 points each.
+  f.saved.set('account:legacy', { attemptId: 'account:legacy', scores: [{ clubId: 1, points: 18 }, { clubId: 5, points: 11 }, { clubId: 999, points: 9 }, { clubId: 7, points: 0 }] });
+  f.saved.set('account:forged', { attemptId: 'account:forged', scores: [{ clubId: 1, points: 3 }, { clubId: 1, points: 2 }] });
+  const totals = (await f.call('GET', '/api/admin/quiz-points', null, true)).data;
+  assert.equal(totals.totalSubmissions, 1);
+  const valid = [...f.saved.values()].find(record => !['account:legacy', 'account:forged'].includes(record.attemptId));
+  assert.equal(totals.clubs.reduce((sum, club) => sum + club.points, 0), valid.scores.reduce((sum, row) => sum + row.points, 0), 'only the valid record counts');
+  assert.ok(totals.clubs.every(club => club.points <= 3));
+});
