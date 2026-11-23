@@ -42,7 +42,8 @@ function publicClubProjection() {
       input: { $range: [0, { $size: { $ifNull: [`$${collection}`, []] } }] }, as: 'mediaIndex',
       in: { $let: { vars: { item: { $arrayElemAt: [`$${collection}`, '$$mediaIndex'] } },
         in: { $cond: [{ $eq: [{ $type: '$$item' }, 'object'] },
-          { ...Object.fromEntries(publicContentFields.map(key => [key, `$$item.${key}`])), ...replacements }, '$$item'] } } }
+          // attendanceSettings is read only to work out endTime; sanitizePublicClub never sends it.
+          { ...Object.fromEntries(publicContentFields.map(key => [key, `$$item.${key}`])), attendanceSettings: '$$item.attendanceSettings', ...replacements }, '$$item'] } } }
     } }, `$${collection}`] };
   }
   return projection;

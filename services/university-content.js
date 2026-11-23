@@ -32,7 +32,7 @@ function registerPublicUniversityContentDetail(app, { UniversityContent, ensureR
     try {
       await ensureReady();
       if (!requireLiveDatabase(res)) return;
-      const record = await UniversityContent.findOne({ id, type: 'event' }).select(publicFields).read('primary').readConcern('majority').lean();
+      const record = await UniversityContent.findOne({ id, type: 'event' }).select(queryFields).read('primary').readConcern('majority').lean();
       res.setHeader('Cache-Control', 'no-store');
       if (!record) return res.status(404).json({ message: 'This university event is no longer available.' });
       res.json(toPublicUniversityContent(record));
@@ -42,4 +42,7 @@ function registerPublicUniversityContentDetail(app, { UniversityContent, ensureR
     }
   });
 }
-module.exports = { organization, publisherFor, publicFields, toPublicUniversityContent, registerPublicUniversityContentDetail };
+// Fields to load from the database: the public ones plus attendanceSettings, which is read only to work out
+// endTime and is never sent (toPublicUniversityContent copies publicFields only).
+const queryFields = publicFields + ' attendanceSettings';
+module.exports = { organization, publisherFor, publicFields, queryFields, toPublicUniversityContent, registerPublicUniversityContentDetail };

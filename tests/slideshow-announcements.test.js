@@ -46,3 +46,17 @@ test('public events carry their end time so lists can tell when they are over', 
   assert.deepEqual(club.events.map(event => event.endTime), ['15:46', '']);
   assert.equal(toPublicUniversityContent({ id: 1, type: 'event', title: 'x', date: '2026-11-23', time: '14:49', attendanceSettings: { endTime: '15:49' } }).endTime, '15:49');
 });
+
+test('the list queries load attendanceSettings for endTime, and it never reaches the public output', () => {
+  const { publicClubProjection, sanitizePublicClub } = require('../services/public-club-media');
+  const { queryFields, publicFields, toPublicUniversityContent } = require('../services/university-content');
+  assert.equal(publicClubProjection().events.$cond[1].$map.in.$let.in.$cond[1].attendanceSettings, '$$item.attendanceSettings');
+  assert.ok(queryFields.split(' ').includes('attendanceSettings'));
+  assert.ok(!publicFields.split(' ').includes('attendanceSettings'));
+  const club = sanitizePublicClub({ id: 1, events: [{ title: 'a', date: '2026-11-23', attendanceSettings: { endTime: '15:46', timeZone: 'Africa/Cairo' } }] });
+  assert.equal(club.events[0].endTime, '15:46');
+  assert.equal(club.events[0].attendanceSettings, undefined);
+  const uni = toPublicUniversityContent({ id: 1, type: 'event', title: 'x', date: '2026-11-23', attendanceSettings: { endTime: '15:49' } });
+  assert.equal(uni.endTime, '15:49');
+  assert.equal(uni.attendanceSettings, undefined);
+});

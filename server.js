@@ -2469,7 +2469,7 @@ app.get('/api/miu-hub', async (req, res) => {
   try {
     if (mongoose.isSqlProvider && (!mongoReady || mongoose.connection.readyState !== 1)) await ensureReady();
     if (!mongoReady || (mongoose.isSqlProvider && mongoose.connection.readyState !== 1)) return res.status(503).json({ message: 'MIU Hub is temporarily unavailable.' });
-    const { publicFields: fields, toPublicUniversityContent } = require('./services/university-content');
+    const { queryFields: fields, toPublicUniversityContent } = require('./services/university-content');
     const type = ['event', 'announcement'].includes(req.query.type) ? req.query.type : '';
     const records = (await UniversityContent.find(type ? { type } : {}).select(fields).read('primary').readConcern('majority').lean()).map(toPublicUniversityContent);
     const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo' }).format(new Date());
@@ -2494,7 +2494,7 @@ app.get('/api/university-content', async (req, res) => {
     if (mongoose.isSqlProvider && (!mongoReady || mongoose.connection.readyState !== 1)) await ensureReady();
     if (!mongoReady || (mongoose.isSqlProvider && mongoose.connection.readyState !== 1)) return res.status(503).json({ message: 'University updates are temporarily unavailable.' });
     const records = await UniversityContent.find()
-      .select(require('./services/university-content').publicFields)
+      .select(require('./services/university-content').queryFields)
       .read('primary').readConcern('majority').sort({ createdAt: -1, id: -1 }).lean();
     sendRevalidatedPublicJson(req, res, records.map(require('./services/university-content').toPublicUniversityContent));
   } catch (error) {
