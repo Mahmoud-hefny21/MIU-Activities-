@@ -1,6 +1,8 @@
 // Two-way sync between MongoDB (used by the live site on Vercel) and SQL Server (the main database).
 //   node scripts/sync-databases.cjs            -> preview only, changes nothing
 //   node scripts/sync-databases.cjs --apply    -> copies the differences
+//   add --to-sql to copy MongoDB -> SQL Server only (MongoDB is read, never written)
+//   add --prefer-sql to settle records without a usable updatedAt in favour of SQL Server (the main database)
 // Rules: a record missing on one side is copied there; a record on both sides that differs is updated
 // on the side with the older "updatedAt" (records without updatedAt are reported, never overwritten);
 // nothing is ever deleted on either side.
@@ -17,9 +19,12 @@ const runtime = require('../database/runtime');
 const { canonical } = require('./sqlserver-migrate.cjs');
 
 const apply = process.argv.includes('--apply');
+const toSqlOnly = process.argv.includes('--to-sql');
+const applyMongo = apply && !toSqlOnly;
+const preferSql = process.argv.includes('--prefer-sql');
 let backupDir = '';
 if (apply) {
-  backupDir = require('node:path').join(process.env.SYNC_BACKUP_DIR || 'D:/MIU-backups', 'db-sync-' + new Date().toISOString().replace(/[:.]/g, '-'));
+  backupDir = require('node:path').join(process.env.SYNC_BACKUP_DIR || 'C:/MIU-backups', 'db-sync-' + new Date().toISOString().replace(/[:.]/g, '-'));
   require('node:fs').mkdirSync(backupDir, { recursive: true });
   console.log('Backup of both databases:', backupDir);
 }
@@ -70,16 +75,21 @@ async function syncCollection(spec, db) {
       const same = (a, b) => { const { _id: x, __v: y, ...ra } = a; const { _id: z, __v: w, ...rb } = b; return canonical(ra) === canonical(rb); };
       if (same(mine, theirs)) continue;
       const m = stamp(doc), q = stamp(row.data);
-      if (m === null || q === null || m === q) { result.conflicts++; continue; }
+      if (m === null || q === null || m === q) {
+        // --prefer-sql: SQL Server is the main database, so it settles records that cannot be ordered by updatedAt.
+        if (preferSql && !toSqlOnly) { result.mongoUpdated++; if (applyMongo) await mongo.replaceOne({ _id: doc._id }, { ...row.data, _id: doc._id }); }
+        else result.conflicts++;
+        continue;
+      }
       if (m > q) { result.sqlUpdated++; if (apply) await write(spec, { ...mine, _id: row.data._id }, row.version, null, false); }
-      else { result.mongoUpdated++; if (apply) await mongo.replaceOne({ _id: doc._id }, { ...row.data, _id: doc._id }); }
+      else { result.mongoUpdated++; if (applyMongo) await mongo.replaceOne({ _id: doc._id }, { ...row.data, _id: doc._id }); }
     } catch (error) { result.errors.push(`${id}: ${error.message}`.slice(0, 160)); }
   }
   const mongoKeys = new Set(mongoDocs.flatMap(doc => [String(doc._id), ...keysOf(plain(doc), keys)]));
   for (const row of sqlRows) {
     const id = String(row.data._id);
     if (matched.has(id) || mongoKeys.has(id) || keysOf(plain(row.data), keys).some(key => mongoKeys.has(key))) continue;
-    try { result.toMongo++; if (apply) await mongo.insertOne(row.data); }
+    try { result.toMongo++; if (applyMongo) await mongo.insertOne(row.data); }
     catch (error) { result.errors.push(`${id}: ${error.message}`.slice(0, 160)); }
   }
   return result;
@@ -99,7 +109,7 @@ async function main() {
     }
   } finally { await client.close().catch(() => {}); await runtime.disconnect().catch(() => {}); }
   const changed = report.filter(r => r.toSql || r.toMongo || r.sqlUpdated || r.mongoUpdated || r.conflicts || r.errors.length);
-  console.log(apply ? 'APPLIED' : 'PREVIEW (nothing changed; add --apply to copy)');
+  console.log((apply ? 'APPLIED' : 'PREVIEW (nothing changed; add --apply to copy)') + (toSqlOnly ? ' - MongoDB -> SQL only; toMongo/mongoUpdated are reported, not copied' : ''));
   console.table(changed.map(({ errors, ...r }) => ({ ...r, errors: errors.length })));
   for (const r of changed) for (const e of r.errors.slice(0, 5)) console.log(`  ${r.collection} error ${e}`);
   console.log(`${report.length} collections checked, ${report.length - changed.length} already identical.`);

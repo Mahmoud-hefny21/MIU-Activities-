@@ -30,7 +30,7 @@
     "sql:api:compare": "node scripts/verify-database-api-parity.cjs",
     "vercel-build": "node scripts/stamp-sw.cjs",
     "db:sync:preview": "node scripts/sync-databases.cjs",
-    "db:sync": "node scripts/sync-databases.cjs --apply",
+    "db:sync": "node scripts/sync-databases.cjs --apply --prefer-sql",
     "test:e2e": "node scripts/e2e-workflows.cjs setup && echo Restart the test server WITHOUT push (set ONESIGNAL_APP_ID= empty), then run: node scripts/e2e-workflows.cjs run, then: node scripts/e2e-workflows.cjs cleanup",
     "test:security-local": "node tests/local-security-e2e.cjs"
   },
